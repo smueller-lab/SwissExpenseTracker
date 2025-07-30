@@ -1,0 +1,42 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+venv/
+.env
+.env.*
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints
+
+# VS Code settings
+.vscode/
+
+# macOS
+.DS_Store
+
+# PyCharm
+.idea/
+
+# Cache or logs
+*.log
+.cache/
+*.pkl
+*.db
+*.sqlite
+
+# Test & coverage
+htmlcov/
+.tox/
+.nox/
+coverage.*
+.cache
+nosetests.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# My data files
+Pipeline/cfg_cleaning.py

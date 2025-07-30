@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "expenseanalysis"
+version = "0.1.0"
+description = "Swiss ExpenseTracker tool"
+authors = ["Sebastian Müller <you@example.com>"]
+readme = "README.md"
+license = "MIT"  # You can change this or remove if undecided
+package-mode=false
+
+[tool.poetry.dependencies]
+python = ">=3.12"
+numpy = "^2.3.1"
+pandas = "^2.3.0"
+openai = "^1.93.0"
+fuzzywuzzy = "^0.18.0"
+python-dotenv = "^1.1.1"
+pyarrow = "^20.0.0"
+rapidfuzz = "^3.13.0"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
