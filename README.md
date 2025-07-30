@@ -139,7 +139,7 @@ _Coming soon..._
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/your-username/expensetracker.git
+git clone https://github.com/smueller-lab/SwissExpenseTracker.git
 cd expensetracker
 ```
 
