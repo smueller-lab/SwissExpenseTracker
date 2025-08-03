@@ -12,20 +12,20 @@
 
 ## Table of Contents
 
-- [ℹ️ Description](#---description)
-- [📝 Overview](#---overview)
-  * [📁 Directory tree for box](#---directory-tree-for-box)
-- [🚀 Getting Started](#---getting-started)
-  * [📁 Download your transactional data](#---download-your-transactional-data)
-    + [🏦 Zürcher Kantonalbank](#---z-rcher-kantonalbank)
-    + [💳 Viseca One](#---viseca-one)
-  * [✅ Prerequisites](#--prerequisites)
-  * [📦 Installation](#---installation)
-  * [💡 Usage of the OpenAI API](#---usage-of-the-openai-api)
-  * [▶ Run data pipeline](#--run-data-pipeline)
-- [📊 Visualisation & Reporting](#---visualisation---reporting)
-- [🗠 Analysis](#---analysis)
-- [💻 Some comments about the code base](#---some-comments-about-the-code-base)
+- [ℹ️ Description](#ℹ%EF%B8%8F-description)
+- [📝 Overview](#-overview)
+  * [📁 Directory tree for box](#-directory-tree-for-box)
+- [🚀 Getting Started](#-getting-started)
+  * [📁 Download your transactional data](#-download-your-transactional-data)
+    + [🏦 Zuercher Kantonalbank](#-zuercher-kantonalbank)
+    + [💳 Viseca One](#-viseca-one)
+  * [✅ Prerequisites](#-prerequisites)
+  * [📦 Installation](#-installation)
+  * [💡 Usage of the OpenAI API](#-usage-of-the-openai-api)
+  * [▶ Run data pipeline](#-run-data-pipeline)
+- [📊 Visualisation & Reporting](#-visualisation--reporting)
+- [🗠 Analysis](#-analysis)
+- [💻 Some comments about the code base](#-some-comments-about-the-code-base)
 
 
 ## ℹ️ Description
@@ -89,7 +89,7 @@ The pipeline is built for **repeatable, maintainable** processing — with smart
 
 A short guide is provided how to get the data files from the banks I'm using.
 
-#### 🏦 Zürcher Kantonalbank
+#### 🏦 Zuercher Kantonalbank
 
 1. Log-in to your eBanking of ZKB.
 2. Go to **Account & Payments** --> **Private account**. 
