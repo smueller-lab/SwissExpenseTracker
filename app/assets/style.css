@@ -1,0 +1,109 @@
+/* ===== General Layout ===== */
+body {
+    margin: 0;
+    background-color: #0f1e33;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* ===== Sidebar ===== */
+.sidebar {
+    width: 15%;
+    background-color: #1b2a41;
+    color: white;
+    position: fixed;
+    height: 100%;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.logo {
+    margin-bottom: 20px;
+    text-align: left;
+    color: #66b2ff;
+}
+
+/* ===== Menu Links ===== */
+.menu-link {
+    color: white;
+    text-decoration: none;
+    display: block;
+    padding: 10px 0;
+    font-size: 16px;
+    transition: 0.3s;
+}
+
+.menu-link:hover {
+    color: #66b2ff;
+    transform: translateX(5px);
+}
+
+.menu-link.active {
+    color: #66b2ff;
+    font-weight: bold;
+}
+
+/* ===== Content Area ===== */
+.content {
+    margin-left: 17%;
+    padding: 20px;
+    color: white;
+}
+
+/* ===== Cards ===== */
+.cards-container {
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.card {
+    background-color: #1b2a41;
+    padding: 15px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    flex: 1;
+    min-width: 250px;
+    text-align: center;
+    transition: 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-title {
+    color: #a8b8d8;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+.card-value {
+    font-size: 28px;
+    color: #66b2ff;
+    margin: 0;
+    font-weight: bold;
+}
+
+.card-value.balance {
+    color: #4caf50
+}
+
+.card-value.balance-positive {
+    color: #4caf50
+}
+
+.card-value.balance-negative {
+    color: #dc3545
+}
+
+/* ===== Graph Container ===== */
+.graph-container {
+    margin-top: 40px;
+    background-color: #1b2a41;
+    border-radius: 12px;
+    padding: 10px;
+}

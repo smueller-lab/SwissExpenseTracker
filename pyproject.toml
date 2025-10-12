@@ -16,6 +16,9 @@ fuzzywuzzy = "^0.18.0"
 python-dotenv = "^1.1.1"
 pyarrow = "^20.0.0"
 rapidfuzz = "^3.13.0"
+plotly = "^6.2.0"
+nbformat = "^5.10.4"
+dash = "^3.2.0"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
