@@ -40,3 +40,4 @@ nosetests.xml
 
 # My data files
 Pipeline/cfg_cleaning.py
+app/data/*.json

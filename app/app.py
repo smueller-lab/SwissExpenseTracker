@@ -1,6 +1,7 @@
 import dash
 from dash import html, dcc, Input, Output
 import plotly.express as px
+from plotly.io import from_json
 import pandas as pd
 from config import FDP
 fdp = FDP()
@@ -12,6 +13,11 @@ pdf = pd.read_parquet(fdp.pth_Master_BankZKB)
 z_StatsTable = pd.read_pickle(fdp.pth_StatsTable)
 
 Balance = pdf.sort_values(by='Date', ascending=False)['Balance_CHF'].iloc[0]
+
+
+# ----- load figures -----
+with open(fdp.pth_fig_BalancePerDay) as f:
+    fig_balance = from_json(f.read())
 
 
 # ----- functions -----
@@ -73,20 +79,7 @@ home_layout = html.Div([
     ], className="cards-container"),
 
     html.Div([
-        dcc.Graph(
-            id="expenses-scatter",
-            figure=px.scatter(
-                df, x="Date", y="Expense", color="Category",
-                title="Expenses Over Time",
-                template="plotly_dark"
-            ).update_layout(
-                paper_bgcolor="#12263A",
-                plot_bgcolor="#12263A",
-                font=dict(color="white"),
-                title_font=dict(size=20),
-                margin=dict(l=40, r=40, t=60, b=40)
-            )
-        )
+        dcc.Graph(figure=fig_balance)
     ], className="graph-container")
 ])
 

@@ -5,6 +5,11 @@ oj = os.path.join
 load_dotenv()
 
 @dataclass
+class config:
+    d_Tick_balance: int = 5000
+
+
+@dataclass
 class FDP:
     dr_Box = os.getenv('dr_Box')
     dr_app = os.getenv('dr_app')
@@ -19,3 +24,4 @@ class FDP:
     pth_Master_BankZKB = oj(dr_Use_Bank_ZKB, 'Master_Bank_ZKB.parquet')
 
     pth_StatsTable = oj(dr_app_data, 'StatsTable.pkl')
+    pth_fig_BalancePerDay = oj(dr_app_data, 'fig_BalancePerDay.json')
