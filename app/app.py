@@ -1,16 +1,21 @@
 import dash
-from dash import html, dcc, Input, Output
+from dash import html, dcc, Input, Output, dash_table
 import plotly.express as px
 from plotly.io import from_json
 import pandas as pd
-from config import FDP
+from config import FDP, VIS
 fdp = FDP()
+vis = VIS()
+
 
 
 # ----- load Data -----
 pdf = pd.read_parquet(fdp.pth_Master_BankZKB)
 
-z_StatsTable = pd.read_pickle(fdp.pth_StatsTable)
+z_StatsTable = pd.read_pickle(fdp.pth_table_Stats)
+pdf_TopExpenses = pd.read_pickle(fdp.pth_table_TopExpenses)
+pdf_TopExpenses['Date'] = pdf_TopExpenses['Date'].dt.strftime('%d-%m-%Y')
+scol_TopExpenses = [{'name': col, 'id': col, **vis.vk_format_col.get(col, {'type': 'text'})} for col in pdf_TopExpenses.columns]
 
 Balance = pdf.sort_values(by='Date', ascending=False)['Balance_CHF'].iloc[0]
 
@@ -23,14 +28,6 @@ with open(fdp.pth_fig_BalancePerDay) as f:
 # ----- functions -----
 def get_balance_class(value):
     return "card-value balance-positive" if value > 0 else "card-value balance-negative"
-
-# ---------- Sample Data ----------
-data = {
-    "Date": pd.date_range(start="2025-01-01", periods=50, freq="D"),
-    "Expense": [abs(x) for x in (pd.Series(range(50)) * 10 + (pd.Series(range(50)) * 3).apply(lambda x: x % 15))],
-    "Category": ["Food", "Transport", "Entertainment", "Bills", "Other"] * 10
-}
-df = pd.DataFrame(data)
 
 # ---------- Initialize App ----------
 app = dash.Dash(__name__, suppress_callback_exceptions=True)
@@ -79,8 +76,21 @@ home_layout = html.Div([
     ], className="cards-container"),
 
     html.Div([
-        dcc.Graph(figure=fig_balance)
-    ], className="graph-container")
+        html.Div([
+            html.H3('Balance Progression', className='graph-title'),
+            dcc.Graph(figure=fig_balance)
+        ], className="graph-container"),
+
+        html.Div([
+            html.H3('Top 20 Expenses', className='graph-title'),
+            dash_table.DataTable(
+                id='table-top-expenses',
+                columns=scol_TopExpenses,
+                data=pdf_TopExpenses.to_dict('records'),
+                style_table={'overflowX': 'auto'},
+            )
+        ], className='graph-container')
+    ])
 ])
 
 # Placeholder pages

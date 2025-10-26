@@ -102,8 +102,63 @@ body {
 
 /* ===== Graph Container ===== */
 .graph-container {
-    margin-top: 40px;
+    margin-top: 20px;
     background-color: #1b2a41;
     border-radius: 12px;
     padding: 10px;
+}
+
+.graph-title {
+    text-align: center;
+    font-weight: bold;
+    color: #a8b8d8;
+    font-size: 20px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+.title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+/* ===== Global Dash DataTable Theme ===== */
+.dash-table-container {
+    background-color: #0a2540 !important;
+}
+
+/* Header cells */
+.dash-table-container th {
+    background-color: #0a2540 !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
+    border: 1px solid #1b3b6f !important;
+    border-bottom: 3px solid #ffffff !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Data cells */
+.dash-table-container td {
+    background-color: #102b4e !important;
+    color: #e6e6e6 !important;
+    border: 1px solid #1b3b6f !important;
+    text-align: center !important;
+    padding: 8px !important;
+    font-family: 'Segoe UI', sans-serif;
+    font-size: 14px;
+}
+
+/* Alternating rows */
+.dash-table-container tr:nth-child(odd) td {
+    background-color: #0d2240 !important;
+}
+
+/* Hover effect */
+.dash-table-container tr:hover td {
+    background-color: #1a376b !important;
+    transition: background-color 0.2s ease-in-out;
 }

@@ -40,4 +40,4 @@ vk_Stats.update({
 z_StatsTable = pd.Series(vk_Stats)
 
 # %%
-z_StatsTable.to_pickle(fdp.pth_StatsTable)
+z_StatsTable.to_pickle(fdp.pth_table_Stats)
