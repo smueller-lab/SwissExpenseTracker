@@ -1,7 +1,11 @@
 import pandas as pd
 
-def get_ryAxis(d_Tick: int, z: pd.Series):
-    y_start = (z.min() // d_Tick) * d_Tick
+def get_ryAxis(d_Tick: int, z: pd.Series, q_ZeroStart: bool = False):
+    if q_ZeroStart:
+        y_start = 0
+    else:
+        y_start = (z.min() // d_Tick) * d_Tick
+    
     y_end = ((z.max() + d_Tick - 1) // d_Tick) * d_Tick
     ry_Axes = [y_start, y_end]
     return ry_Axes
