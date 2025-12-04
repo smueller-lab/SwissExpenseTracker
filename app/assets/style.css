@@ -44,6 +44,15 @@ body {
     font-weight: bold;
 }
 
+/* ===== Page layout ===== */
+.page-title-center {
+    text-align: center;
+    color: #66b2ff;
+    font-size: 30px;
+    font-weight: 600;
+    margin: 20px 0;
+}
+
 /* ===== Content Area ===== */
 .content {
     margin-left: 17%;
