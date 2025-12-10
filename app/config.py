@@ -7,8 +7,10 @@ load_dotenv()
 
 @dataclass
 class config:
+    vk_dTick_Grocery = {'Monthly': 100, 'Yearly': 500, 'Visit': 20}
+    vk_dTick_Food = {'Monthly': 100, 'Yearly': 1000, 'Visit': 20}
+
     d_Tick_balance: int = 5000
-    d_Tick_grocery: int = 100
     d_Tick_pct: int = 20
 
 
@@ -29,13 +31,16 @@ class FDP:
 
     # ----- Use data for app -----
     pth_app_GroceryMonth = oj(dr_Use_app, 'GroceryMonth.parquet')
+    pth_app_RestMonth = oj(dr_Use_app, 'RestaurantMonth.parquet')
 
     # ----- Tables -----
+    pth_table_Balance = oj(dr_app_data, 'table_Balance.pkl')
+    pth_table_Groceries = oj(dr_app_data, 'table_Groceries.pkl')
+    pth_table_Food = oj(dr_app_data, 'table_Food.pkl')
     pth_table_Stats = oj(dr_app_data, 'table_Stats.pkl')
     pth_table_TopExpenses = oj(dr_app_data, 'table_TopExpenses.pkl')
 
     # ----- Figures -----
-    pth_fig_BalancePerDay = oj(dr_app_data, 'fig_BalancePerDay.json')
     pth_fig_GroceryBar = oj(dr_app_data, 'fig_GroceryBar.json')
     pth_fig_GroceryBarPct = oj(dr_app_data, 'fig_GroceryBarPct.json')
     pth_fig_GroceryLR = oj(dr_app_data, 'fig_GroceryLR.json')
@@ -66,4 +71,15 @@ class VIS:
         'Avec': "#7563FA"
     }
 
+    vk_Food_col = {
+        'Groceries': "#45C7F6",
+        'Supermarket': "#45C7F6",
+        'Restaurant': "#E38A04",
+        'Cafe': "#17C528",
+        'Bakery': "#7563FA",
+        'Bar': "#FA6363",
+        'Cafeteria': "#FAF263"
+    }
+
     s_Merchant_Grocery = ['Coop', 'Migros', 'Lidl', 'Aldi', 'Denner', 'migrolino', 'Avec']
+    s_Category_Food = ['Supermarket', 'Restaurant', 'Cafe', 'Bakery', 'Bar']

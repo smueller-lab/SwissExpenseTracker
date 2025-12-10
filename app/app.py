@@ -1,13 +1,19 @@
 import dash
 from dash import html, dcc, Input, Output, dash_table
-from plotly.io import from_json
 import pandas as pd
-from config import FDP, VIS
+from app.config import FDP, VIS
+from app.vis.Figure import Fig
+import plotly.graph_objects as go
 fdp = FDP()
 vis = VIS()
 
+F = Fig()
+
 # ----- load Data -----
 pdf = pd.read_parquet(fdp.pth_Master_BankZKB)
+pdf_Balance = pd.read_pickle(fdp.pth_table_Balance)
+pdf_Grocery = pd.read_pickle(fdp.pth_table_Groceries)
+pdf_Food = pd.read_pickle(fdp.pth_table_Food)
 
 z_StatsTable = pd.read_pickle(fdp.pth_table_Stats)
 pdf_TopExpenses = pd.read_pickle(fdp.pth_table_TopExpenses)
@@ -21,10 +27,7 @@ def get_balance_class(value):
     return "card-value balance-positive" if value > 0 else "card-value balance-negative"
 
 
-def make_figure_card(title: str, pth_fig: str):
-    with open(pth_fig, "r") as f:
-        fig = from_json(f.read())
-
+def make_figure_card(title: str, fig: go.Figure):
     return html.Div([
         html.H6(title, className="graph-title"),
         dcc.Graph(figure=fig)
@@ -65,7 +68,7 @@ app.layout = html.Div([
         html.Div([
             dcc.Link("🏠 Home", href="/", id="link-home", className="menu-link"),
             dcc.Link("🛒 Groceries", href="/groceries", id="link-groceries", className="menu-link"),
-            dcc.Link("🍽️ Restaurant & Bars", href="/restaurant", id="link-restaurant", className="menu-link"),
+            dcc.Link("🍽️ Restaurant & Bars", href="/food", id="link-food", className="menu-link"),
             dcc.Link("✈️ Transport Analytics", href="/transport", id="link-transport", className="menu-link"),
             dcc.Link("⛳ Sport Analytics", href="/sport", id="link-sport", className="menu-link"),
         ], className="menu"),
@@ -103,7 +106,7 @@ home_layout = html.Div([
     ], className="cards-container"),
 
     
-    make_figure_card("Balance Progression", fdp.pth_fig_BalancePerDay),
+    make_figure_card("Balance Progression", F.fig_BalancePerDay(pdf_Balance)),
     make_table_card(
         title='Top 20 Expenses',
         s_col=scol_TopExpenses,
@@ -117,9 +120,16 @@ home_layout = html.Div([
 # --------- Grocery Page ----------
 groceries_layout = html.Div([
     html.H2("🛒 Groceries Analytics", className="page-title-center"),
-    make_figure_card("Grocery Expenses per month", fdp.pth_fig_GroceryBar),
-    make_figure_card("Grocery Expense Merchant distribution per month [%]", fdp.pth_fig_GroceryBarPct),
-    make_figure_card("Total Grocery Expenses vs. fraction of Merchant from total expenses", fdp.pth_fig_GroceryLR)
+    make_figure_card('Grocery Expenses per month', F.fig_BarGrocery(pdf_Grocery, Freq='Monthly')),
+    make_figure_card('Grocery Expense Merchant distribution per month [%]', F.fig_BarGrocery_pct(pdf_Grocery, Freq='Monthly')),
+    make_figure_card('Grocery Expenses per visit', F.fig_BoxGrocery(pdf))
+])
+
+# ---------- Food Page ---------
+food_layout = html.Div([
+    html.H2("🍽️ Restaurant & Bars Analytics", className="page-title-center"),
+    make_figure_card('Food Expenses per month', F.fig_BarFood(pdf_Food, Freq='Monthly')),
+    make_figure_card('Food Expenses per visit', F.fig_BoxFood(pdf))
 ])
 
 # Placeholder pages
@@ -141,13 +151,15 @@ def display_page(pth):
         return home_layout
     elif pth == '/groceries':
         return groceries_layout
+    elif pth == '/food':
+        return food_layout
     
 
 @app.callback(
     [
         Output("link-home", "className"),
         Output("link-groceries", "className"),
-        Output("link-restaurant", "className"),
+        Output("link-food", "className"),
         Output("link-transport", "className"),
         Output("link-sport", "className")
     ],
@@ -161,7 +173,7 @@ def highlight_active_tab(pth):
     return [
         active if pth == "/" else default,
         active if pth == "/groceries" else default,
-        active if pth == "/restaurant" else default,
+        active if pth == "/food" else default,
         active if pth == "/transport" else default,
         active if pth == "/sport" else default,
     ]
