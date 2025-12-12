@@ -10,6 +10,7 @@ def get_ryAxis(d_Tick: int, z: pd.Series, q_ZeroStart: bool = False):
     ry_Axes = [y_start, y_end]
     return ry_Axes
 
+
 def get_rxAxis_Date(z_Date: pd.Series):
     format_Date = '%b %y'
     z_Date = pd.to_datetime(z_Date)
@@ -27,3 +28,11 @@ def get_rxAxis_Date(z_Date: pd.Series):
     s_tick_text = [Date.strftime(format_Date) for Date in s_tick_val]
 
     return s_tick_val, s_tick_text, format_Date
+
+
+def get_heightFigure(ry_Axis: list, dTick: float, npixel: int, vk_Margin: dict):
+    ymin, ymax = ry_Axis
+    n_step = int((ymax - ymin) / dTick)
+    h_plot = n_step * npixel
+    h_fig = h_plot + vk_Margin['t'] + vk_Margin['b']
+    return h_fig

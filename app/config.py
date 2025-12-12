@@ -2,16 +2,27 @@ import os
 from dataclasses import dataclass
 from dotenv import load_dotenv
 from dash.dash_table import FormatTemplate
+from Pipeline.cfg_cleaning import config
+cfg = config()
 oj = os.path.join
 load_dotenv()
 
 @dataclass
 class config:
-    vk_dTick_Grocery = {'Monthly': 100, 'Yearly': 500, 'Visit': 20}
-    vk_dTick_Food = {'Monthly': 100, 'Yearly': 1000, 'Visit': 20}
+    #dTick
+    vk_dTick_Grocery = {'Monthly': 100, 'Yearly': 1000, 'Visit': 20}
+    vk_dTick_Food = {'Monthly': 200, 'Yearly': 1000, 'Visit': 20}
+    dTick_Balance: int = 5000
+    dTick_Pct: int = 20
 
-    d_Tick_balance: int = 5000
-    d_Tick_pct: int = 20
+    #npixel
+    vk_npixel_Food = {'Monthly': 50, 'Yearly': 40, 'Visit': 50}
+    vk_npixel_Grocery = {'Monthly': 50, 'Yearly': 80, 'Visit': 50}
+    npixel_Balance: int = 80
+    npixel_Pct: int = 80
+
+    # default ry_Axis
+    ry_Axis_Pct = [0, 100]
 
 
 @dataclass
@@ -62,13 +73,13 @@ class VIS:
     }
 
     vk_GroceryStore_col = {
-        'Aldi': "#45C7F6",
-        'Lidl': "#FAF263",
-        'Migros': "#D052E9",
-        'Coop': "#E38A04",
-        'Denner': "#FA6363",
-        'migrolino': "#17C528",
-        'Avec': "#7563FA"
+        cfg.nm_GroceryShop3: "#45C7F6",
+        cfg.nm_GroceryShop4: "#FAF263",
+        cfg.nm_Supermarket: "#D052E9",
+        cfg.nm_GroceryShop1: "#E38A04",
+        cfg.nm_GroceryShop2: "#FA6363",
+        cfg.nm_ShopSmall: "#17C528",
+        cfg.nm_KioskLate: "#7563FA"
     }
 
     vk_Food_col = {
@@ -81,5 +92,5 @@ class VIS:
         'Cafeteria': "#FAF263"
     }
 
-    s_Merchant_Grocery = ['Coop', 'Migros', 'Lidl', 'Aldi', 'Denner', 'migrolino', 'Avec']
+    s_Merchant_Grocery = [cfg.nm_GroceryShop1, cfg.nm_Supermarket, cfg.nm_GroceryShop4, cfg.nm_GroceryShop3, cfg.nm_GroceryShop2, cfg.nm_ShopSmall, cfg.nm_KioskLate]
     s_Category_Food = ['Supermarket', 'Restaurant', 'Cafe', 'Bakery', 'Bar']

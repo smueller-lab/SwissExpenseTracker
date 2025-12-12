@@ -23,6 +23,8 @@ fdp = FDP()
 # %%
 pdf = pd.read_parquet(fdp.pth_Master_BankZKB)
 pdf_Food = pd.read_pickle(fdp.pth_table_Food)
+pdf_Grocery = pd.read_pickle(fdp.pth_table_Groceries)
+pdf_Balance = pd.read_pickle(fdp.pth_table_Balance)
 
 # %%
 F = Fig()

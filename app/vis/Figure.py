@@ -4,7 +4,7 @@ import plotly.io as pio
 from app.vis.ploty_template import myTemp
 import numpy as np
 from app.config import VIS, config
-from app.libs import get_ryAxis, get_rxAxis_Date
+from app.libs import get_ryAxis, get_rxAxis_Date, get_heightFigure
 from typing import Literal
 vis = VIS()
 cfg = config()
@@ -13,7 +13,7 @@ pio.templates.default = 'myTemp'
 
 class Fig:
     def __init__(self):
-        pass
+        self.vk_Margin = pio.templates['myTemp'].layout.margin
 
 
     def fig_BalancePerDay(self, pdf_Balance: pd.DataFrame):
@@ -26,13 +26,14 @@ class Fig:
             name='Balance CHF'
         ))
 
-        ry_Axes = get_ryAxis(cfg.d_Tick_balance, pdf_Balance['Balance_CHF'])
+        ry_Axis = get_ryAxis(cfg.dTick_Balance, pdf_Balance['Balance_CHF'])
+        height_Figure = get_heightFigure(ry_Axis, cfg.dTick_Balance, cfg.npixel_Balance, self.vk_Margin)
         s_tick_val, s_tick_text, format_Date = get_rxAxis_Date(pdf_Balance['Date'])
 
         fig.update_layout(
             yaxis=dict(
-                dtick=cfg.d_Tick_balance,
-                range=ry_Axes,
+                dtick=cfg.dTick_Balance,
+                range=ry_Axis,
                 showline=True,
                 linecolor='white'
             ),
@@ -43,7 +44,8 @@ class Fig:
                 tickformat=format_Date,
                 showline=True,
                 linecolor='white',
-            )
+            ),
+            height=height_Figure
         )
 
         return fig
@@ -70,15 +72,19 @@ class Fig:
             ))
 
         dTick_Grocery = cfg.vk_dTick_Grocery[Freq]
-        ry_Axes = get_ryAxis(dTick_Grocery, pdf_Grocery['totalPeriod_CHF'], True)
+        npixel_Grocery = cfg.vk_npixel_Grocery[Freq]
+        ry_Axis = get_ryAxis(dTick_Grocery, pdf_Grocery['totalPeriod_CHF'], True)
+
+        height_Figure = get_heightFigure(ry_Axis, dTick_Grocery, npixel_Grocery, self.vk_Margin)
 
         fig.update_layout(
             barmode='stack',
             yaxis=dict(
                 dtick=dTick_Grocery,
-                range=ry_Axes,
+                range=ry_Axis,
                 showline=True
-            )
+            ),
+            height=height_Figure
         )
 
         return fig
@@ -104,15 +110,16 @@ class Fig:
                 marker=dict(color=vis.vk_GroceryStore_col[Merchant])
             ))
 
-        ry_Axes = [0, 100]
+        height_Figure = get_heightFigure(cfg.ry_Axis_Pct, cfg.dTick_Pct, cfg.npixel_Pct, self.vk_Margin)
 
         fig.update_layout(
             barmode='stack',
             yaxis=dict(
-                dtick=cfg.d_Tick_pct,
-                range=ry_Axes,
+                dtick=cfg.dTick_Pct,
+                range=cfg.ry_Axis_Pct,
                 showline=True
-            )
+            ),
+            height=height_Figure
         )
 
         return fig
@@ -137,9 +144,11 @@ class Fig:
             stick_Text.append(f'{Merchant} (n={len(pdf_Merchant)})')
             stick_Val.append(i)
 
-        dTick_Grocery = cfg.vk_dTick_Grocery['Visit']
         pdf_Merchant = pdf[pdf['Merchant'].isin(vis.s_Merchant_Grocery)].reset_index(drop=True)
-        ry_Axes = get_ryAxis(dTick_Grocery, pdf_Merchant['amount_CHF'], True)
+        dTick_Grocery = cfg.vk_dTick_Grocery['Visit']
+        npixel_Grocery = cfg.vk_npixel_Grocery['Visit']
+        ry_Axis = get_ryAxis(dTick_Grocery, pdf_Merchant['amount_CHF'], True)
+        height_Figure = get_heightFigure(ry_Axis, dTick_Grocery, npixel_Grocery, self.vk_Margin)
 
         fig.update_layout(
             xaxis=dict(
@@ -149,9 +158,10 @@ class Fig:
             ),
             yaxis=dict(
                 dtick=dTick_Grocery,
-                range=ry_Axes,
+                range=ry_Axis,
                 showline=True
-            )
+            ),
+            height=height_Figure
         )
 
         return fig
@@ -179,16 +189,19 @@ class Fig:
             ))
 
         dTick_Food = cfg.vk_dTick_Food[Freq]
-        ry_Axes = get_ryAxis(dTick_Food, pdf_Food['totalPeriod_CHF'], True)
+        npixel_Food = cfg.vk_npixel_Food[Freq]
+        ry_Axis = get_ryAxis(dTick_Food, pdf_Food['totalPeriod_CHF'], True)
+
+        height_Figure = get_heightFigure(ry_Axis, dTick_Food, npixel_Food, self.vk_Margin)
 
         fig.update_layout(
             barmode='stack',
             yaxis=dict(
                 dtick=dTick_Food,
-                range=ry_Axes,
+                range=ry_Axis,
                 showline=True
             ),
-            height=700
+            height=height_Figure
         )
 
         return fig
@@ -213,9 +226,11 @@ class Fig:
             stick_Text.append(f'{Category} (n={len(pdf_Category)})')
             stick_Val.append(i)
 
-        dTick_Food = cfg.vk_dTick_Food['Visit']
         pdf_Category = pdf[pdf['category_second'].isin(vis.s_Category_Food)].reset_index(drop=True)
-        ry_Axes = get_ryAxis(dTick_Food, pdf_Category['amount_CHF'], True)
+        dTick_Food = cfg.vk_dTick_Food['Visit']
+        npixel_Food = cfg.vk_npixel_Food['Visit']
+        ry_Axis = get_ryAxis(dTick_Food, pdf_Category['amount_CHF'], True)
+        height_Figure = get_heightFigure(ry_Axis, dTick_Food, npixel_Food, self.vk_Margin)
 
         fig.update_layout(
             xaxis=dict(
@@ -225,9 +240,10 @@ class Fig:
             ),
             yaxis=dict(
                 dtick=dTick_Food,
-                range=ry_Axes,
+                range=ry_Axis,
                 showline=True
-            )
+            ),
+            height=height_Figure
         )
 
         return fig
