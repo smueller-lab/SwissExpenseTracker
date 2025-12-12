@@ -38,3 +38,4 @@ class Filename:
     
     Master_Debit = 'Master_DebitCard.parquet'
     Master_Viseca = 'Master_Viseca.parquet'
+    Master_ZKB = 'Master_Bank_ZKB.parquet'
