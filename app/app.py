@@ -1,5 +1,5 @@
 import dash
-from dash import html, dcc, Input, Output, dash_table
+from dash import html, dcc, Input, Output, dash_table, ctx
 import pandas as pd
 from app.config import FDP, VIS
 from app.vis.Figure import Fig
@@ -31,7 +31,54 @@ def make_figure_card(title: str, fig: go.Figure):
     return html.Div([
         html.H6(title, className="graph-title"),
         dcc.Graph(figure=fig)
-    ], className="graph-container")
+    ], className="graph-container graph-card-enhanced")
+
+
+def make_figure_card_MonthYear(title: str, fig_id: str):
+    return html.Div([
+        html.Div([
+            # Header Row (buttons + title + spacer)
+            html.Div([
+                html.Div([
+                    html.Button("Month", id=f"{fig_id}-monthly", n_clicks=0, className="freq-btn"),
+                    html.Button("Year", id=f"{fig_id}-yearly", n_clicks=0, className="freq-btn"),
+                ], className="button-row"),
+
+                html.H6(title, className='graph-title'),
+                html.Div(className='header-spacer'),
+            ], className='header-row'),
+
+            # Graph
+            dcc.Graph(id=fig_id),
+
+        ], className='graph-container graph-card-enhanced'),
+    ])
+
+
+def make_double_figure_card_MonthYear(title: str, fig_id_abs: str, fig_id_pct: str):
+    return html.Div([
+        html.Div([
+            html.Div([
+                html.Button("Month", id=f"{fig_id_abs}-monthly", n_clicks=0, className="freq-btn"),
+                html.Button("Year", id=f"{fig_id_abs}-yearly", n_clicks=0, className="freq-btn"),
+            ], className="button-row"),
+
+            html.H6(title, className="graph-title"),
+            html.Div(className="header-spacer"),
+
+        ], className="header-row"),
+
+        # Absolute plot
+        html.Div([
+            dcc.Graph(id=fig_id_abs)
+        ], className="sub-plot-container"),
+
+        # Percentage plot
+        html.Div([
+            dcc.Graph(id=fig_id_pct)
+        ], className="sub-plot-container"),
+
+    ], className="big-plot-card")
 
 
 def make_table_card(title: str, s_col: list, data: dict, table_id: str):
@@ -68,7 +115,7 @@ app.layout = html.Div([
         html.Div([
             dcc.Link("🏠 Home", href="/", id="link-home", className="menu-link"),
             dcc.Link("🛒 Groceries", href="/groceries", id="link-groceries", className="menu-link"),
-            dcc.Link("🍽️ Restaurant & Bars", href="/food", id="link-food", className="menu-link"),
+            dcc.Link("🍽️ Dining & Bars", href="/food", id="link-food", className="menu-link"),
             dcc.Link("✈️ Transport Analytics", href="/transport", id="link-transport", className="menu-link"),
             dcc.Link("⛳ Sport Analytics", href="/sport", id="link-sport", className="menu-link"),
         ], className="menu"),
@@ -119,26 +166,16 @@ home_layout = html.Div([
 
 # --------- Grocery Page ----------
 groceries_layout = html.Div([
-    html.H2("🛒 Groceries Analytics", className="page-title-center"),
-    make_figure_card('Grocery Expenses per month', F.fig_BarGrocery(pdf_Grocery, Freq='Monthly')),
-    make_figure_card('Grocery Expense Merchant distribution per month [%]', F.fig_BarGrocery_pct(pdf_Grocery, Freq='Monthly')),
-    make_figure_card('Grocery Expenses per visit', F.fig_BoxGrocery(pdf))
+    html.H2("🛒 Grocery store Analytics", className="page-title-center"),
+    make_double_figure_card_MonthYear('Grocery store expenses [CHF / %]', 'fig-Abs', 'fig-Pct'),
+    make_figure_card('Grocery store expenses per visit [CHF]', F.fig_BoxGrocery(pdf))
 ])
 
 # ---------- Food Page ---------
 food_layout = html.Div([
-    html.H2("🍽️ Restaurant & Bars Analytics", className="page-title-center"),
-    make_figure_card('Food Expenses per month', F.fig_BarFood(pdf_Food, Freq='Monthly')),
-    make_figure_card('Food Expenses per visit', F.fig_BoxFood(pdf))
-])
-
-# Placeholder pages
-analytics_layout = html.Div([
-    html.H2("📊 Analytics page - coming soon!", style={"color": "white"})
-])
-
-settings_layout = html.Div([
-    html.H2("⚙️ Settings page - coming soon!", style={"color": "white"})
+    html.H2("🍽️ Dining Analytics", className="page-title-center"),
+    make_figure_card_MonthYear('Food & Dining expenses [CHF]', 'fig-Food'),
+    make_figure_card('Food & Dining expenses per visit [CHF]', F.fig_BoxFood(pdf))
 ])
 
 # ---------- Callbacks ----------
@@ -166,10 +203,8 @@ def display_page(pth):
     Input("url", "pathname")
 )
 def highlight_active_tab(pth):
-
     default = "menu-link"
     active = "menu-link active"
-
     return [
         active if pth == "/" else default,
         active if pth == "/groceries" else default,
@@ -177,6 +212,58 @@ def highlight_active_tab(pth):
         active if pth == "/transport" else default,
         active if pth == "/sport" else default,
     ]
+
+
+@app.callback(
+    Output("fig-Abs", "figure"),
+    Output("fig-Pct", "figure"),
+    Output("fig-Abs-monthly", "className"),
+    Output("fig-Abs-yearly", "className"),
+    Input("fig-Abs-monthly", "n_clicks"),
+    Input("fig-Abs-yearly", "n_clicks"),
+)
+def update_GroceryDualPlot(n_monthly, n_yearly):
+
+    trigger = ctx.triggered_id
+
+    if trigger == "fig-Abs-yearly":
+        freq = "Yearly"
+        monthly_class = "freq-btn"
+        yearly_class = "freq-btn freq-btn-active"
+    else:
+        freq = "Monthly"
+        monthly_class = "freq-btn freq-btn-active"
+        yearly_class = "freq-btn"
+
+    fig_abs = F.fig_BarGrocery(pdf_Grocery, freq)
+    fig_pct = F.fig_BarGrocery_pct(pdf_Grocery, freq)
+
+    return fig_abs, fig_pct, monthly_class, yearly_class
+
+
+@app.callback(
+    Output("fig-Food", "figure"),
+    Output("fig-Food-monthly", "className"),
+    Output("fig-Food-yearly", "className"),
+    Input("fig-Food-monthly", "n_clicks"),
+    Input("fig-Food-yearly", "n_clicks"),
+)
+def update_FoodPlot(n_monthly, n_yearly):
+
+    trigger = ctx.triggered_id
+
+    if trigger == "fig-Food-yearly":
+        freq = "Yearly"
+        monthly_class = "freq-btn"
+        yearly_class = "freq-btn freq-btn-active"
+    else:
+        freq = "Monthly"
+        monthly_class = "freq-btn freq-btn-active"
+        yearly_class = "freq-btn"
+
+    fig = F.fig_BarFood(pdf_Food, freq)
+
+    return fig, monthly_class, yearly_class
 
 
 
