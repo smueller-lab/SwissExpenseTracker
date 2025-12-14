@@ -50,6 +50,7 @@ class FDP:
     pth_table_Food = oj(dr_app_data, 'table_Food.pkl')
     pth_table_Stats = oj(dr_app_data, 'table_Stats.pkl')
     pth_table_TopExpenses = oj(dr_app_data, 'table_TopExpenses.pkl')
+    pth_table_CatMain = oj(dr_app_data, 'table_CatMain.pkl')
 
     # ----- Figures -----
     pth_fig_GroceryBar = oj(dr_app_data, 'fig_GroceryBar.json')

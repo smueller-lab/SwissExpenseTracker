@@ -2,7 +2,7 @@ import dash
 from dash import html, dcc, Input, Output, dash_table, ctx
 import pandas as pd
 from app.config import FDP, VIS
-from app.vis.Figure import Fig
+from app.vis.figure import Fig
 import plotly.graph_objects as go
 fdp = FDP()
 vis = VIS()
@@ -14,6 +14,7 @@ pdf = pd.read_parquet(fdp.pth_Master_BankZKB)
 pdf_Balance = pd.read_pickle(fdp.pth_table_Balance)
 pdf_Grocery = pd.read_pickle(fdp.pth_table_Groceries)
 pdf_Food = pd.read_pickle(fdp.pth_table_Food)
+pdf_CatMain = pd.read_pickle(fdp.pth_table_CatMain)
 
 z_StatsTable = pd.read_pickle(fdp.pth_table_Stats)
 pdf_TopExpenses = pd.read_pickle(fdp.pth_table_TopExpenses)
@@ -31,7 +32,7 @@ def make_figure_card(title: str, fig: go.Figure):
     return html.Div([
         html.H6(title, className="graph-title"),
         dcc.Graph(figure=fig)
-    ], className="graph-container graph-card-enhanced")
+    ], className="graph-container graph-card-enhanced full-width-card")
 
 
 def make_figure_card_MonthYear(title: str, fig_id: str):
@@ -81,6 +82,32 @@ def make_double_figure_card_MonthYear(title: str, fig_id_abs: str, fig_id_pct: s
     ], className="big-plot-card")
 
 
+def make_card_selectBox(title: str, pdf_CatMain: pd.DataFrame):
+
+    s_Year = pdf_CatMain['Year'].dropna().astype(str).unique()
+    s_Year = sorted([year for year in s_Year if year.isdigit()], reverse=True)
+
+    return html.Div([
+        html.Div(
+            className="card-header",
+            children=[
+                html.H6(title, className="graph-title"),
+                dcc.Dropdown(
+                    id='dropdown-Year',
+                    className="dropdown-year",
+                    options=(
+                        [{'label': 'All', 'value': 'All'}] +
+                        [{'label': str(year), 'value': str(year)} for year in s_Year]
+                    ),
+                    value='All',
+                    clearable=False
+                ),
+            ]
+        ),
+        dcc.Graph(id='fig-Donut')
+    ], className='graph-container graph-card-enhanced half-width-card')
+
+
 def make_table_card(title: str, s_col: list, data: dict, table_id: str):
     """make table card
 
@@ -99,7 +126,7 @@ def make_table_card(title: str, s_col: list, data: dict, table_id: str):
             data=data,
             style_table={'overflowX': 'auto'}
         )
-    ], className="graph-container")
+    ], className="graph-container full-width-card")
 
 
 
@@ -152,15 +179,16 @@ home_layout = html.Div([
         ], className="card"),
     ], className="cards-container"),
 
-    
-    make_figure_card("Balance Progression", F.fig_BalancePerDay(pdf_Balance)),
-    make_table_card(
-        title='Top 20 Expenses',
-        s_col=scol_TopExpenses,
-        data=pdf_TopExpenses.to_dict('records'),
-        table_id="table-top-expenses"
-    ),
-    
+    html.Div([
+        make_card_selectBox('Expense distribution', pdf_CatMain),
+        make_figure_card("Balance Progression", F.fig_BalancePerDay(pdf_Balance)),
+        make_table_card(
+            title='Top 20 Expenses',
+            s_col=scol_TopExpenses,
+            data=pdf_TopExpenses.to_dict('records'),
+            table_id="table-top-expenses"
+        ),
+    ], className='cards-row')
 ])
 
 
@@ -264,6 +292,18 @@ def update_FoodPlot(n_monthly, n_yearly):
     fig = F.fig_BarFood(pdf_Food, freq)
 
     return fig, monthly_class, yearly_class
+
+
+@app.callback(
+    Output("fig-Donut", "figure"),
+    Input("dropdown-Year", "value")
+)
+def update_Donut(Period):
+    pdf_Period = pdf_CatMain[pdf_CatMain['Year'] == Period].copy()
+
+    fig = F.fig_DonutCategoryMain(pdf_Period)
+
+    return fig
 
 
 
