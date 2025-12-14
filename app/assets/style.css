@@ -61,22 +61,25 @@ body {
 }
 
 /* ===== Cards ===== */
-.cards-container {
+.cards-container,
+.cards-row {
     display: flex;
-    gap: 20px;
-    justify-content: space-between;
     flex-wrap: wrap;
+    gap: 10px; /* horizontal & vertical spacing between cards */
+    align-items: flex-start;
 }
 
-.card {
+.card,
+.graph-container,
+.graph-card-enhanced,
+.big-plot-card {
     background-color: #1a3857;
-    padding: 15px 20px;
     border-radius: 12px;
+    padding: 15px 20px;
+    margin-bottom: 10px; /* consistent vertical spacing between all cards */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     flex: 1;
     min-width: 250px;
-    text-align: center;
-    transition: 0.3s ease;
 }
 
 .card:hover {
@@ -85,56 +88,96 @@ body {
 
 .card-title {
     color: #a8b8d8;
-    margin-top: 0;
-    margin-bottom: 10px;
+    margin: 0 0 10px 0;
     font-size: 16px;
 }
 
 .card-value {
     font-size: 28px;
-    color: #66b2ff;
-    margin: 0;
     font-weight: bold;
+    margin: 0;
 }
 
 .card-value.balance {
-    color: #4caf50
+    color: #4caf50;
 }
 
 .card-value.balance-positive {
-    color: #4caf50
+    color: #4caf50;
 }
 
 .card-value.balance-negative {
-    color: #dc3545
+    color: #dc3545;
 }
 
-.big-plot-card {
-    background-color: #1a3857;
+/* ===== Plot Cards ===== */
+.big-plot-card,
+.graph-card-enhanced {
     padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 20px;
 }
 
-.big-plot-card .graph-title {
+.big-plot-card .graph-title,
+.graph-card-enhanced .graph-title {
     font-size: 24px;
     color: #7bb3e4;
     font-weight: 600;
-    margin-bottom: 10px;
     text-align: center;
+    margin-bottom: 10px;
 }
 
 .sub-plot-container {
-    margin-top: 0px;
-    margin-bottom: 0px;
+    margin: 0;
 }
 
 .sub-plot-container:not(:last-child) {
-    margin-bottom: 40px; /* space between subplots */
+    margin-bottom: 40px; /* spacing between subplots inside big-plot-card */
 }
 
+/* ===== Half & Full Width Cards ===== */
+.half-width-card {
+    flex: 0 0 50%;
+    align-self: flex-start;
+}
+
+.full-width-card {
+    flex: 0 0 100%;
+}
+
+/* ===== Card Header (title + dropdown) ===== */
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.card-header .graph-title {
+    margin: 0;
+    font-size: 22px;
+    color: #7bb3e4;
+    font-weight: 600;
+}
+
+.card-header .dropdown-year {
+    width: 90px;
+    min-width: 80px;
+}
+
+.card-header .dropdown-year .Select-control,
+.card-header .dropdown-year .Select-placeholder,
+.card-header .dropdown-year .Select-menu-outer,
+.card-header .dropdown-year .Select-value-label {
+    background-color: #1b2a41 !important;
+    color: white !important;
+}
+
+.card-header .dropdown-year .Select-value,
+.card-header .dropdown-year .Select-placeholder {
+    line-height: 34px !important;
+}
+
+
 /* ===== Buttons ===== */
-/* Base look for all frequency buttons */
 .button-row {
     display: flex;
     gap: 4px;
@@ -151,74 +194,29 @@ body {
     transition: 0.15s ease-in-out;
 }
 
-/* Hover effect */
 .freq-btn:hover {
     background-color: #28506f;
 }
 
-/* Active button (selected) */
 .freq-btn-active {
     background-color: #2b7bc0;
     border-color: #5aa2db;
 }
 
-/* ===== Graph Container ===== */
-.graph-container {
-    margin-top: 20px;
-    background-color: #1a3857;
-    border-radius: 12px;
-    padding: 10px;
-}
-
+/* ===== Graph Styling ===== */
 .graph-title {
     text-align: center;
     font-weight: bold;
     color: #a8b8d8;
     font-size: 20px;
-    margin-top: 5px;
-    margin-bottom: 10px;
+    margin: 5px 0 10px 0;
 }
 
-.graph-card-enhanced {
-    background-color: #1a3857;
-    padding: 20px;
-    border-radius: 12px;
-    margin-bottom: 30px;
-}
-
-.graph-card-enhanced .graph-title {
-    font-size: 24px;
-    color: #7bb3e4;           
-    font-weight: 600;         
-    margin-bottom: 15px;      
-    text-align: center;       
-}
-
-
-.title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-}
-
-.header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.header-spacer {
-    width: 120px;
-}
-
-/* ===== Global Dash DataTable Theme ===== */
+/* ===== DataTable Styling ===== */
 .dash-table-container {
     background-color: #0a2540 !important;
 }
 
-/* Header cells */
 .dash-table-container th {
     background-color: #0a2540 !important;
     color: #ffffff !important;
@@ -230,7 +228,6 @@ body {
     font-family: 'Segoe UI', sans-serif;
 }
 
-/* Data cells */
 .dash-table-container td {
     background-color: #102b4e !important;
     color: #e6e6e6 !important;
@@ -241,12 +238,10 @@ body {
     font-size: 14px;
 }
 
-/* Alternating rows */
 .dash-table-container tr:nth-child(odd) td {
     background-color: #0d2240 !important;
 }
 
-/* Hover effect */
 .dash-table-container tr:hover td {
     background-color: #1a376b !important;
     transition: background-color 0.2s ease-in-out;
