@@ -34,7 +34,7 @@ class FDP:
     dr_Use_Viseca = oj(dr_Box, 'use', 'Viseca')
     dr_Use_Bank_ZKB = oj(dr_Box, 'use', 'Bank_ZKB')
     dr_Use_app = oj(dr_Box, 'use', 'app')
-    dr_app_data = oj(dr_app, 'data')
+    dr_app_data = oj(dr_app, 'data', 'tables')
 
     pth_Master_Debit = oj(dr_Use_Debit, 'Master_DebitCard.parquet')
     pth_Master_Viseca = oj(dr_Use_Viseca, 'Master_Viseca.parquet')
@@ -51,6 +51,7 @@ class FDP:
     pth_table_Stats = oj(dr_app_data, 'table_Stats.pkl')
     pth_table_TopExpenses = oj(dr_app_data, 'table_TopExpenses.pkl')
     pth_table_CatMain = oj(dr_app_data, 'table_CatMain.pkl')
+    pth_table_TopCat = oj(dr_app_data, 'table_TopCategory.pkl')
 
     # ----- Figures -----
     pth_fig_GroceryBar = oj(dr_app_data, 'fig_GroceryBar.json')
@@ -62,15 +63,12 @@ class FDP:
 class VIS:
     vk_Variable_show = {
         'amount_CHF': 'Amount [CHF]',
-        'Balance_CHF': 'Balance [CHF]',
         'category_main': 'Main category',
-        'category_second': 'Second category',
-        'MerchantPlace': 'City'
+        'category_second': 'Second category'
     }
 
     vk_format_col = {
-        'Amount [CHF]': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
-        'Balance [CHF]': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')}
+        'Amount [CHF]': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')}
     }
 
     vk_GroceryStore_col = {

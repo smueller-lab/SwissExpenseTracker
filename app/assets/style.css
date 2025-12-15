@@ -87,9 +87,10 @@ body {
 }
 
 .card-title {
+    font-size: 16px;
     color: #a8b8d8;
     margin: 0 0 10px 0;
-    font-size: 16px;
+    text-align: center;
 }
 
 .card-value {
@@ -98,22 +99,120 @@ body {
     margin: 0;
 }
 
-.card-value.balance {
+.card-number {
+    font-size: 28px;
+    font-weight: bold;
+    color: #66b2ff;
+    text-align: center;
+    margin: 0;
+}
+
+.card-number.balance {
     color: #4caf50;
 }
 
-.card-value.balance-positive {
+.card-number.balance-positive {
     color: #4caf50;
 }
 
-.card-value.balance-negative {
+.card-number.balance-negative {
     color: #dc3545;
 }
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1));
+    grid-gap: 10px;
+    margin-bottom: 20px;
+}
+
+/* ===== TOP Category KPI Card ===== */
+.kpi-card {
+    background-color: #1a3857;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 10px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 8px
+}
+
+.kpi-headline {
+    font-size: 28px;
+    font-weight: 600;
+    color: #a338c3;
+    margin-bottom: 0px;
+}
+
+.kpi-diff-row {
+    font-size: 28px;
+}
+
+.kpi-diff {
+    font-weight: 600;
+}
+
+.kpi-red {
+    color: #dc3545;
+}
+
+.kpi-green {
+    color: #4caf50;
+}
+
+.kpi-diff-label {
+    color: #a8b8d8;
+    margin-left: 4px;
+}
+
+.kpi-subtext {
+    font-size: 13px;
+    color: #a8b8d8;
+    margin-top: -2px;
+}
+
+.top-category-name {
+    font-size: 28px;
+    font-weight: 600;
+    color: #d9ac24;
+}
+
+.top-category-amount {
+    font-size: 28px;
+    font-weight: bold;
+    color: #66b2ff;
+}
+
+.top-diff-row {
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+}
+
+.top-diff.kpi-red {
+    color: #dc3545;
+    font-weight: bold;
+}
+
+.top-diff.kpi-green {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.top-diff-label {
+    color: #a8b8d8;
+}
+
 
 /* ===== Plot Cards ===== */
 .big-plot-card,
 .graph-card-enhanced {
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .big-plot-card .graph-title,
@@ -123,6 +222,11 @@ body {
     font-weight: 600;
     text-align: center;
     margin-bottom: 10px;
+}
+
+.graph-card-enhanced .dash-graph {
+    height: 300px;
+    min-height: 300px;
 }
 
 .sub-plot-container {
