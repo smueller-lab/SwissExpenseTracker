@@ -21,3 +21,6 @@ class DataLoader:
         self.pdf_TopExpenses = pd.read_pickle(self.fdp.pth_table_TopExpenses)
         self.pdf_TopExpenses['Date'] = self.pdf_TopExpenses['Date'].dt.strftime('%d-%m-%Y')
         self.scol_TopExpenses = [{'name': col, 'id': col, **self.vis.vk_format_col.get(col, {'type': 'text'})} for col in self.pdf_TopExpenses.columns]
+
+        self.pdf_NetBalanceMonth = pd.read_pickle(self.fdp.pth_table_NetBalanceMonth)
+        self.scol_NetBalanceMonth = [{"name": col, "id": col, **self.vis.vk_format_col.get(col, {'type': 'text'})} for col in ['Month', 'expense', 'income', 'NetBalance']]
