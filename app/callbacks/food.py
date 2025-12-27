@@ -17,12 +17,12 @@ def register_callbacks(app, data):
 
         if trigger == "fig-Food-yearly":
             freq = "Yearly"
-            monthly_class = "freq-btn"
-            yearly_class = "freq-btn freq-btn-active"
+            monthly_class = "btn-toggle"
+            yearly_class = "btn-toggle btn-toggle-active"
         else:
             freq = "Monthly"
-            monthly_class = "freq-btn freq-btn-active"
-            yearly_class = "freq-btn"
+            monthly_class = "btn-toggle btn-toggle-active"
+            yearly_class = "btn-toggle"
 
         fig = F.fig_BarFood(data.pdf_Food, freq)
 

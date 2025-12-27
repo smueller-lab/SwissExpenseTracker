@@ -27,7 +27,9 @@ pdf = pd.read_parquet(fdp.pth_Master_BankZKB)
 pdf_TopExpenses = pdf[pdf['transaction_type'] == 'expense'].sort_values(by='amount_CHF', ascending=False)
 
 # drop categories like Fried, Tax Services, and Finance
-pdf_TopExpenses = pdf_TopExpenses[~pdf_TopExpenses['category_main'].isin(['Government', 'Finance', 'Friend', 'Housing', 'Hausing', 'Financial Services', 'Healthcare'])].reset_index(drop=True)
+pdf_TopExpenses = pdf_TopExpenses[~pdf_TopExpenses['category_main'].isin([
+    'Government', 'Finance', 'Friend', 'Housing', 'Hausing', 'Financial Services', 'Healthcare', 'Investing'
+])].reset_index(drop=True)
 
 # only select data from the last year so it's equivalent to BalancePerDay
 Date_1YearAgo = pdf['Date'].max() - pd.DateOffset(years=1)

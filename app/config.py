@@ -52,6 +52,7 @@ class FDP:
     pth_table_TopExpenses = oj(dr_app_data, 'table_TopExpenses.pkl')
     pth_table_CatMain = oj(dr_app_data, 'table_CatMain.pkl')
     pth_table_TopCat = oj(dr_app_data, 'table_TopCategory.pkl')
+    pth_table_NetBalanceMonth = oj(dr_app_data, 'table_NetBalanceMonth.pkl')
 
     # ----- Figures -----
     pth_fig_GroceryBar = oj(dr_app_data, 'fig_GroceryBar.json')
@@ -68,7 +69,10 @@ class VIS:
     }
 
     vk_format_col = {
-        'Amount [CHF]': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')}
+        'Amount [CHF]': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
+        'expense': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
+        'income': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
+        'NetBalance': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
     }
 
     vk_GroceryStore_col = {
@@ -93,3 +97,4 @@ class VIS:
 
     s_Merchant_Grocery = [cfg.nm_GroceryShop1, cfg.nm_Supermarket, cfg.nm_GroceryShop4, cfg.nm_GroceryShop3, cfg.nm_GroceryShop2, cfg.nm_ShopSmall, cfg.nm_KioskLate]
     s_Category_Food = ['Supermarket', 'Restaurant', 'Cafe', 'Bakery', 'Bar']
+    s_Col_Text = ['Date', 'Month', 'Merchant', 'Main category', 'Second category']

@@ -1,45 +1,42 @@
 from dash import html, dcc, dash_table
 import plotly.graph_objects as go
 import pandas as pd
+import dash_ag_grid as dag
+from app.config import VIS
+vis = VIS()
 
 
 def get_balance_class(value):
-    return "card-number balance-positive" if value > 0 else "card-number balance-negative"
+    return "kpi-value kpi-positive" if value > 0 else "kpi-value kpi-negative"
 
 
 def make_number_card(title: str, Number: float):
     return html.Div([
         html.H6(title, className='card-title'),
         html.P(f'{Number:,.2f} CHF', className=get_balance_class(Number))
-    ], className='card')
+    ], className='card card-kpi col-3')
 
 
 def make_figure_card(title: str, fig: go.Figure):
     return html.Div([
-        html.H6(title, className="graph-title"),
+        html.H6(title, className="card-title"),
         dcc.Graph(figure=fig)
-    ], className="graph-card-enhanced")
+    ], className="card card-graph col-12")
 
 
 def make_figure_card_MonthYear(title: str, fig_id: str):
     return html.Div([
         html.Div([
-            # Header Row (buttons + title + spacer)
+            html.H6(title, className='card-title'),
             html.Div([
-                html.Div([
-                    html.Button("Month", id=f"{fig_id}-monthly", n_clicks=0, className="freq-btn"),
-                    html.Button("Year", id=f"{fig_id}-yearly", n_clicks=0, className="freq-btn"),
-                ], className="button-row"),
+                html.Button("Month", id=f"{fig_id}-monthly", n_clicks=0, className="btn-toggle"),
+                html.Button("Year", id=f"{fig_id}-yearly", n_clicks=0, className="btn-toggle"),
+            ], className="card-header-buttons"),
+        ], className='card-header-with-buttons'),
 
-                html.H6(title, className='graph-title'),
-                html.Div(className='header-spacer'),
-            ], className='header-row'),
-
-            # Graph
-            dcc.Graph(id=fig_id),
-
-        ], className='graph-container graph-card-enhanced'),
-    ])
+        # Graph
+        dcc.Graph(id=fig_id),
+    ], className="card card-graph col-12")
 
 
 def make_double_figure_card_MonthYear(title: str, fig_id_abs: str, fig_id_pct: str):
@@ -68,7 +65,7 @@ def make_double_figure_card_MonthYear(title: str, fig_id_abs: str, fig_id_pct: s
     ], className="big-plot-card")
 
 
-def make_card_selectBox(title: str, pdf_CatMain: pd.DataFrame):
+def make_CategoryDonut_card(title: str, pdf_CatMain: pd.DataFrame):
 
     s_Year = pdf_CatMain['Year'].dropna().astype(str).unique()
     s_Year = sorted([year for year in s_Year if year.isdigit()], reverse=True)
@@ -77,7 +74,7 @@ def make_card_selectBox(title: str, pdf_CatMain: pd.DataFrame):
         html.Div(
             className="card-header",
             children=[
-                html.H6(title, className="graph-title"),
+                html.H6(title, className='card-title'),
                 dcc.Dropdown(
                     id='dropdown-Year',
                     className="dropdown-year",
@@ -90,34 +87,56 @@ def make_card_selectBox(title: str, pdf_CatMain: pd.DataFrame):
                 ),
             ]
         ),
-        dcc.Graph(id='fig-Donut')
-    ], className='graph-container graph-card-enhanced half-width-card')
+        dcc.Graph(id='fig-Donut', style={"flex": "1"})
+    ], className='card card-graph col-6')
+    
 
+def make_table_card(
+    title: str,
+    s_col: list,
+    data: list[dict],
+    class_name: str = "card card-graph col-6",
+):
+    """make table card"""
 
-def make_table_card(title: str, s_col: list, data: dict, table_id: str):
-    """make table card
+    data_head = data[:15]
 
-    Args:
-        title (str): title for the Card
-        s_col (list): columns to show from the table
-        data (dict): data
-        table_id (str): table id
-    """
+    # Table header
+    header = html.Thead(
+        html.Tr([
+            html.Th(
+                col["name"],
+                className="" if col["id"] in vis.s_Col_Text else "num"
+            )
+            for col in s_col
+        ])
+    )
+
+    # Table body
+    body = html.Tbody([
+        html.Tr([
+            html.Td(
+                f'{row[col["id"]]:,.2f}' if isinstance(row[col["id"]], (int, float)) else row[col["id"]],
+                className=(
+                    "num balance-positive" if col['id'] == 'NetBalance' and row[col["id"]] > 0 else
+                    "num balance-negative" if col['id'] == 'NetBalance' and row[col["id"]] < 0 else
+                    "num" if isinstance(row[col["id"]], (int, float)) else ""
+                )
+            )
+            for col in s_col
+        ])
+        for row in data_head
+    ])
 
     return html.Div([
-        html.H6(title, className="graph-title"),
-        dash_table.DataTable(
-            id=table_id,
-            columns=s_col,
-            data=data,
-            style_table={'overflowX': 'auto'}
-        )
-    ], className="graph-container full-width-card")
+        html.H6(title, className="card-title"),
+        html.Table([header, body], className="simple-table")
+    ], className=class_name)
 
 
 def format_diff(pct: float):
     sign = '+' if pct >= 0 else '-'
-    color = 'kpi-red' if pct >= 0 else 'kpi-green'
+    color = 'kpi-negative' if pct >= 0 else 'kpi-positive'
     return f'{sign}{abs(pct):.1f} %', color
 
 
@@ -139,13 +158,13 @@ def make_TopCategory_card(
         html.H6(f'{title} ({MonthLast})', className="card-title"),
 
         # Headline: Category · Amount
-        html.Div(f"{Category} · {amount_MonthLast:,.0f} CHF", className="kpi-headline"),
+        html.Div(f"{Category} · {amount_MonthLast:,.0f} CHF", className="kpi-category"),
 
         # Difference vs previous month
-        html.Div([html.Span(text_prev, className=f"kpi-diff {class_prev}")], className="kpi-diff-row"),
+        html.Div([html.Span(text_prev, className=f'kpi-value {class_prev}')], className="kpi-diff-row"),
         html.Div(f"prev: {amount_MonthPrev:,.0f} CHF", className="kpi-subtext"),
 
         # Difference vs 12-month average
-        html.Div([html.Span(text_12m, className=f"kpi-diff {class_12m}")], className="kpi-diff-row"),
+        html.Div([html.Span(text_12m, className=f'kpi-value {class_12m}')], className="kpi-diff-row"),
         html.Div(f"12m avg: {amount_12m_avg:,.0f} CHF", className="kpi-subtext"),
-    ], className="graph-container graph-card-enhanced kpi-card")
+    ], className="card card-kpi col-6")

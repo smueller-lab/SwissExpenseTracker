@@ -244,6 +244,25 @@ diskcache = ["diskcache (>=5.2.1)", "multiprocess (>=0.70.12)", "psutil (>=5.8.0
 testing = ["beautifulsoup4 (>=4.8.2)", "cryptography", "dash-testing-stub (>=0.0.2)", "lxml (>=4.6.2)", "multiprocess (>=0.70.12)", "percy (>=2.0.2)", "psutil (>=5.8.0)", "pytest (>=6.0.2)", "requests[security] (>=2.21.0)", "selenium (>=3.141.0,<=4.2.0)", "waitress (>=1.4.4)"]
 
 [[package]]
+name = "dash-ag-grid"
+version = "32.3.2"
+description = "Dash wrapper around AG Grid, the best interactive data grid for the web."
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "dash_ag_grid-32.3.2-py3-none-any.whl", hash = "sha256:a690d18a83ebba96e68e63d928f3e30f97d38a8a6418ddd479db4ce825c0de91"},
+    {file = "dash_ag_grid-32.3.2.tar.gz", hash = "sha256:c3137b66c73b2de82da379c2aa238f4fbe9b555913c3361e11d93096a0e61f50"},
+]
+
+[package.dependencies]
+dash = ">=2"
+
+[package.extras]
+dev = ["dash[ci,dev,testing] (>=2.0)", "dash_mantine_components (==0.12.1)", "pytest (<8.1.0)", "pyyaml (>=5.0)", "selenium (>=4.0.0,<4.3.0)", "wheel"]
+docs = ["colorlover", "dash (>=2.9.0)", "dash-bootstrap-components (>=1.0.0)", "dash-iconify", "dash-mantine-components", "gunicorn (>=19.9.0)", "pandas (>=1.2.3)", "pyyaml (>=6.0)", "statsmodels", "yfinance"]
+
+[[package]]
 name = "distro"
 version = "1.9.0"
 description = "Distro - an OS platform information API"
@@ -2216,4 +2235,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "305ecaf8a6bbe8982c06ece1e3e04640f9d42f7c92a31cb9e63122161d0eecae"
+content-hash = "7efdf173a56ea471a0339b7d9c8a43a85c28ac8de36195f875ec7bc628e80650"

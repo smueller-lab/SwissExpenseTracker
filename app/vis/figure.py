@@ -257,6 +257,7 @@ class Fig:
                 hole=0.4,
                 textinfo='percent+label',
                 pull=[0.02] * len(pdf_CatMain),
+                domain=dict(x=[0.0, 0.9], y=[0.0, 1.0]),
             )
         )
 
