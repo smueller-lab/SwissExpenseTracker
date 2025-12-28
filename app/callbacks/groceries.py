@@ -19,12 +19,12 @@ def register_callbacks(app, data):
 
         if trigger == "fig-Abs-yearly":
             freq = "Yearly"
-            monthly_class = "freq-btn"
-            yearly_class = "freq-btn freq-btn-active"
+            monthly_class = "btn-toggle"
+            yearly_class = "btn-toggle btn-toggle-active"
         else:
             freq = "Monthly"
-            monthly_class = "freq-btn freq-btn-active"
-            yearly_class = "freq-btn"
+            monthly_class = "btn-toggle btn-toggle-active"
+            yearly_class = "btn-toggle"
 
         fig_abs = F.fig_BarGrocery(data.pdf_Grocery, freq)
         fig_pct = F.fig_BarGrocery_pct(data.pdf_Grocery, freq)

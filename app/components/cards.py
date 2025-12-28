@@ -10,21 +10,21 @@ def get_balance_class(value):
     return "kpi-value kpi-positive" if value > 0 else "kpi-value kpi-negative"
 
 
-def make_number_card(title: str, Number: float):
+def make_number_card(title: str, Number: float, width: int = 3):
     return html.Div([
         html.H6(title, className='card-title'),
         html.P(f'{Number:,.2f} CHF', className=get_balance_class(Number))
-    ], className='card card-kpi col-3')
+    ], className=f'card card-kpi col-{width}')
 
 
-def make_figure_card(title: str, fig: go.Figure):
+def make_figure_card(title: str, fig: go.Figure, width: int = 6):
     return html.Div([
         html.H6(title, className="card-title"),
         dcc.Graph(figure=fig)
-    ], className="card card-graph col-12")
+    ], className=f"card card-graph col-{width}")
 
 
-def make_figure_card_MonthYear(title: str, fig_id: str):
+def make_figure_card_MonthYear(title: str, fig_id: str, width: int = 6):
     return html.Div([
         html.Div([
             html.H6(title, className='card-title'),
@@ -36,36 +36,34 @@ def make_figure_card_MonthYear(title: str, fig_id: str):
 
         # Graph
         dcc.Graph(id=fig_id),
-    ], className="card card-graph col-12")
+    ], className=f"card card-graph col-{width}")
 
 
-def make_double_figure_card_MonthYear(title: str, fig_id_abs: str, fig_id_pct: str):
+def make_double_figure_card_MonthYear(
+        title_abs: str,
+        fig_id_abs: str,
+        title_pct: str,
+        fig_id_pct: str,
+        width: int = 6
+):
     return html.Div([
         html.Div([
+            html.H6(title_abs, className="card-title"),
             html.Div([
-                html.Button("Month", id=f"{fig_id_abs}-monthly", n_clicks=0, className="freq-btn"),
-                html.Button("Year", id=f"{fig_id_abs}-yearly", n_clicks=0, className="freq-btn"),
-            ], className="button-row"),
+                html.Button("Month", id=f"{fig_id_abs}-monthly", n_clicks=0, className="btn-toggle"),
+                html.Button("Year", id=f"{fig_id_abs}-yearly", n_clicks=0, className="btn-toggle"),
+            ], className="card-header-buttons"),
+        ], className="card-header-with-buttons"),
 
-            html.H6(title, className="graph-title"),
-            html.Div(className="header-spacer"),
-
-        ], className="header-row"),
-
-        # Absolute plot
-        html.Div([
-            dcc.Graph(id=fig_id_abs)
-        ], className="sub-plot-container"),
-
-        # Percentage plot
-        html.Div([
-            dcc.Graph(id=fig_id_pct)
-        ], className="sub-plot-container"),
-
-    ], className="big-plot-card")
+        # Plots
+        dcc.Graph(id=fig_id_abs, className="subplot-spacing"),
+        html.H6(title_pct, className="card-title"),
+        dcc.Graph(id=fig_id_pct),
+        
+    ], className=f"card card-graph col-{width}")
 
 
-def make_CategoryDonut_card(title: str, pdf_CatMain: pd.DataFrame):
+def make_CategoryDonut_card(title: str, pdf_CatMain: pd.DataFrame, width: int = 6):
 
     s_Year = pdf_CatMain['Year'].dropna().astype(str).unique()
     s_Year = sorted([year for year in s_Year if year.isdigit()], reverse=True)
@@ -88,14 +86,14 @@ def make_CategoryDonut_card(title: str, pdf_CatMain: pd.DataFrame):
             ]
         ),
         dcc.Graph(id='fig-Donut', style={"flex": "1"})
-    ], className='card card-graph col-6')
+    ], className=f'card card-graph col-{width}')
     
 
 def make_table_card(
     title: str,
     s_col: list,
     data: list[dict],
-    class_name: str = "card card-graph col-6",
+    width: int = 6,
 ):
     """make table card"""
 
@@ -131,7 +129,7 @@ def make_table_card(
     return html.Div([
         html.H6(title, className="card-title"),
         html.Table([header, body], className="simple-table")
-    ], className=class_name)
+    ], className=f"card card-graph col-{width}")
 
 
 def format_diff(pct: float):
@@ -149,7 +147,8 @@ def make_TopCategory_card(
     amount_MonthPrev: float,
     amount_12m_avg: float,
     diff_prev_pct: float,
-    diff_12m_pct: float
+    diff_12m_pct: float,
+    width: int = 6
 ):
     text_prev, class_prev = format_diff(diff_prev_pct)
     text_12m, class_12m = format_diff(diff_12m_pct)
@@ -167,4 +166,4 @@ def make_TopCategory_card(
         # Difference vs 12-month average
         html.Div([html.Span(text_12m, className=f'kpi-value {class_12m}')], className="kpi-diff-row"),
         html.Div(f"12m avg: {amount_12m_avg:,.0f} CHF", className="kpi-subtext"),
-    ], className="card card-kpi col-6")
+    ], className=f"card card-kpi col-{width}")

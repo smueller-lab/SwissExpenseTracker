@@ -180,15 +180,17 @@ a {
     gap: var(--card-gap);
 }
 
-.new-row {
-    flex-basis: 100%;
-    height: 0;
+.grid-break {
+    grid-column: 1 / -1;
 }
 
 .col-2  { grid-column: span 2; }
 .col-3  { grid-column: span 3; }
 .col-4  { grid-column: span 4; }
+.col-5  { grid-column: span 5; }
 .col-6  { grid-column: span 6; }
+.col-7  { grid-column: span 7; }
+.col-8  { grid-column: span 8; }
 .col-9  { grid-column: span 9; }
 .col-12 { grid-column: span 12; }
 
@@ -250,6 +252,8 @@ a {
     font-size: var(--font-size-kpi-value);
     font-weight: 700;
     color: var(--color-text-accent);
+    margin-bottom: 8px;
+    margin-top: 8px;
 }
 
 .card-kpi .kpi-label {
@@ -372,6 +376,12 @@ a {
     vertical-align: middle;
 }
 
+/* Text columns */
+.simple-table th:not(.num),
+.simple-table td:not(.num) {
+    text-align: center;
+}
+
 /* Numeric columns */
 .simple-table th.num,
 .simple-table td.num {
@@ -379,12 +389,6 @@ a {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
     white-space: nowrap;
-}
-
-/* Text columns */
-.simple-table th:not(.num),
-.simple-table td:not(.num) {
-    text-align: center;
 }
 
 /* Headers style */
@@ -447,4 +451,8 @@ a {
 .card-header-with-buttons button.btn-toggle-active {
     background-color: #2b7bc0 !important;
     border-color: #5aa2db !important;
+}
+
+.subplot-spacing {
+    margin-bottom: 20px;
 }

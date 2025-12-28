@@ -35,7 +35,7 @@ pdf_TopExpenses = pdf_TopExpenses[~pdf_TopExpenses['category_main'].isin([
 Date_1YearAgo = pdf['Date'].max() - pd.DateOffset(years=1)
 pdf_TopExpenses = pdf_TopExpenses[pdf_TopExpenses['Date'] >= Date_1YearAgo].copy()
 
-scol_display = ['Date', 'amount_CHF', 'Merchant', 'category_main', 'category_second']
+scol_display = ['Date', 'amount_CHF', 'Merchant', 'category_main']
 pdf_TopExpenses = pdf_TopExpenses[scol_display].head(20).copy()
 
 pdf_TopExpenses.columns = [vis.vk_Variable_show[col] if col in vis.vk_Variable_show.keys() else col for col in pdf_TopExpenses.columns]
