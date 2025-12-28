@@ -247,4 +247,22 @@ class Fig:
         )
 
         return fig
+    
+
+    def fig_DonutCategoryMain(self, pdf_CatMain: pd.DataFrame):
+        fig = go.Figure(
+            go.Pie(
+                labels=pdf_CatMain['category_main'],
+                values=pdf_CatMain['amount_CHF'],
+                hole=0.4,
+                textinfo='percent+label',
+                textfont=dict(size=12),
+                pull=[0.02] * len(pdf_CatMain),
+                domain=dict(x=[0.0, 0.9], y=[0.0, 1.0]),
+            )
+        )
+
+        fig.update_layout(showlegend=False)
+
+        return fig
 
