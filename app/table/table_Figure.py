@@ -81,3 +81,40 @@ pdf_Food = pd.concat([
 ]).drop(columns=['MonthYear', 'Year'])
 
 pdf_Food.to_pickle(fdp.pth_table_Food)
+
+# %%
+# Donut chart
+pdf_Expenses = pdf[(pdf['transaction_type'] == 'expense') & (pdf['Merchant'] != 'Viseca Payment Services SA')].copy()
+pdf_Expenses.loc[pdf_Expenses['Merchant'].str.contains('Revolut', case=False), 'category_main'] = 'Revolut'
+pdf_Expenses.loc[:, 'Year'] = pdf_Expenses['Date'].dt.year
+
+pdf_Summary = pdf_Expenses.groupby(['category_main', 'Year'])['amount_CHF'].sum().reset_index()
+pdf_SummaryAll = pdf_Expenses.groupby('category_main')['amount_CHF'].sum().reset_index()
+pdf_SummaryAll['Year'] = 'All'
+
+pdf_Summary = pd.concat([pdf_Summary, pdf_SummaryAll], ignore_index=True)
+
+pdf_Summary['perc'] = pdf_Summary.groupby('Year')['amount_CHF'].transform(lambda x: x / x.sum() * 100)
+
+pdf_Big = pdf_Summary[pdf_Summary['perc'] >= 1].copy()
+pdf_Small = pdf_Summary[pdf_Summary['perc'] < 1].copy()
+
+pdf_Other = (
+    pdf_Small.groupby('Year').agg({
+        'amount_CHF': 'sum',
+        'perc': 'sum'
+    }).reset_index()
+)
+
+pdf_Other['category_main'] = 'Other'
+
+pdf_Summary = pd.concat([pdf_Big, pdf_Other], ignore_index=True)
+
+pdf_Summary = pdf_Summary.sort_values(
+    ['Year', 'category_main'],
+    ascending=[True, True]
+).reset_index(drop=True)
+
+pdf_Summary['Year'] = pdf_Summary['Year'].astype(str)
+
+pdf_Summary.to_pickle(fdp.pth_table_CatMain)
