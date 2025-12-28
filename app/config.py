@@ -65,13 +65,16 @@ class VIS:
     vk_Variable_show = {
         'amount_CHF': 'Amount [CHF]',
         'category_main': 'Main category',
-        'category_second': 'Second category'
+        'category_second': 'Second category',
+        'MerchantPlace': 'Location',
+        'expense': 'Expense',
+        'income': 'Income'
     }
 
     vk_format_col = {
         'Amount [CHF]': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
-        'expense': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
-        'income': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
+        'Expense': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
+        'Income': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
         'NetBalance': {'type': 'numeric', 'format': FormatTemplate.money(2).symbol('')},
     }
 
@@ -97,4 +100,4 @@ class VIS:
 
     s_Merchant_Grocery = [cfg.nm_GroceryShop1, cfg.nm_Supermarket, cfg.nm_GroceryShop4, cfg.nm_GroceryShop3, cfg.nm_GroceryShop2, cfg.nm_ShopSmall, cfg.nm_KioskLate]
     s_Category_Food = ['Supermarket', 'Restaurant', 'Cafe', 'Bakery', 'Bar']
-    s_Col_Text = ['Date', 'Month', 'Merchant', 'Main category', 'Second category']
+    s_Col_Text = ['Date', 'Month', 'Merchant', 'Main category', 'Second category', 'Location']

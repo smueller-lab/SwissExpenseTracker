@@ -11,8 +11,8 @@ def layout(data):
         ], style={"width": "100%"}),
 
         html.Div([
-            make_figure_card_MonthYear('Food & Dining expenses [CHF]', 'fig-Food'),
-            make_figure_card('Food & Dining expenses per visit [CHF]', F.fig_BoxFood(data.pdf_Master))
+            make_figure_card_MonthYear('Food & Dining expenses [CHF]', 'fig-Food', width=12),
+            make_figure_card('Food & Dining expenses per visit [CHF]', F.fig_BoxFood(data.pdf_Master), width=12)
         ], className="grid")
     ])
 

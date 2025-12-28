@@ -256,6 +256,7 @@ class Fig:
                 values=pdf_CatMain['amount_CHF'],
                 hole=0.4,
                 textinfo='percent+label',
+                textfont=dict(size=12),
                 pull=[0.02] * len(pdf_CatMain),
                 domain=dict(x=[0.0, 0.9], y=[0.0, 1.0]),
             )
