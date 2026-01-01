@@ -1,25 +1,21 @@
-from dash import html, dcc, dash_table
+from dash import html, dcc
 import plotly.graph_objects as go
 import pandas as pd
-import dash_ag_grid as dag
+from app.dash_components import make_card_title, get_balance_class, format_diff
 from app.config import VIS
 vis = VIS()
 
 
-def get_balance_class(value):
-    return "kpi-value kpi-positive" if value > 0 else "kpi-value kpi-negative"
-
-
 def make_number_card(title: str, Number: float, width: int = 3):
     return html.Div([
-        html.H6(title, className='card-title'),
+        make_card_title(title),
         html.P(f'{Number:,.2f} CHF', className=get_balance_class(Number))
     ], className=f'card card-kpi col-{width}')
 
 
 def make_figure_card(title: str, fig: go.Figure, width: int = 6):
     return html.Div([
-        html.H6(title, className="card-title"),
+        make_card_title(title),
         dcc.Graph(figure=fig)
     ], className=f"card card-graph col-{width}")
 
@@ -27,7 +23,7 @@ def make_figure_card(title: str, fig: go.Figure, width: int = 6):
 def make_figure_card_MonthYear(title: str, fig_id: str, width: int = 6):
     return html.Div([
         html.Div([
-            html.H6(title, className='card-title'),
+            make_card_title(title),
             html.Div([
                 html.Button("Month", id=f"{fig_id}-monthly", n_clicks=0, className="btn-toggle"),
                 html.Button("Year", id=f"{fig_id}-yearly", n_clicks=0, className="btn-toggle"),
@@ -48,7 +44,7 @@ def make_double_figure_card_MonthYear(
 ):
     return html.Div([
         html.Div([
-            html.H6(title_abs, className="card-title"),
+            make_card_title(title_abs),
             html.Div([
                 html.Button("Month", id=f"{fig_id_abs}-monthly", n_clicks=0, className="btn-toggle"),
                 html.Button("Year", id=f"{fig_id_abs}-yearly", n_clicks=0, className="btn-toggle"),
@@ -57,7 +53,7 @@ def make_double_figure_card_MonthYear(
 
         # Plots
         dcc.Graph(id=fig_id_abs, className="subplot-spacing"),
-        html.H6(title_pct, className="card-title"),
+        make_card_title(title_pct),
         dcc.Graph(id=fig_id_pct),
         
     ], className=f"card card-graph col-{width}")
@@ -72,7 +68,7 @@ def make_CategoryDonut_card(title: str, pdf_CatMain: pd.DataFrame, width: int = 
         html.Div(
             className="card-header",
             children=[
-                html.H6(title, className='card-title'),
+                make_card_title(title),
                 dcc.Dropdown(
                     id='dropdown-Year',
                     className="dropdown-year",
@@ -127,16 +123,9 @@ def make_table_card(
     ])
 
     return html.Div([
-        html.H6(title, className="card-title"),
+        make_card_title(title),
         html.Table([header, body], className="simple-table")
     ], className=f"card card-graph col-{width}")
-
-
-def format_diff(pct: float):
-    sign = '+' if pct >= 0 else '-'
-    color = 'kpi-negative' if pct >= 0 else 'kpi-positive'
-    return f'{sign}{abs(pct):.1f} %', color
-
 
 
 def make_TopCategory_card(
@@ -154,7 +143,8 @@ def make_TopCategory_card(
     text_12m, class_12m = format_diff(diff_12m_pct)
 
     return html.Div([
-        html.H6(f'{title} ({MonthLast})', className="card-title"),
+
+        make_card_title(f'{title} ({MonthLast})'),
 
         # Headline: Category · Amount
         html.Div(f"{Category} · {amount_MonthLast:,.0f} CHF", className="kpi-category"),

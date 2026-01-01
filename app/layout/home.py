@@ -10,6 +10,7 @@ def layout(data):
 
     TopCategory = z_TopCategory['category_main']
     MonthLast = z_TopCategory['MonthLast']
+    MonthLast_pretty = z_TopCategory['MonthLast'].strftime("%Y-%B")
     pdf_TopExpenses_Category_Month = data.get_TopExpenses_Category_Month(Category=TopCategory, Month=MonthLast)
 
     return html.Div([
@@ -29,10 +30,10 @@ def layout(data):
         ),
 
         ##
-        
+
         make_TopCategory_card(
             title='Top Category',
-            MonthLast=z_TopCategory['MonthLast'],
+            MonthLast=MonthLast_pretty,
             Category=z_TopCategory['category_main'],
             amount_MonthLast=z_TopCategory['amount_MonthLast'],
             amount_MonthPrev=z_TopCategory['amount_MonthPrev'],
@@ -44,7 +45,7 @@ def layout(data):
 
 
         make_table_card(
-            title=f'Top Expenses - {TopCategory} - {MonthLast}',
+            title=f'Top Expenses - {TopCategory} - {MonthLast_pretty}',
             s_col=data.get_scol_DashTable(pdf_TopExpenses_Category_Month),
             data=pdf_TopExpenses_Category_Month.to_dict('records'),
             width=8
