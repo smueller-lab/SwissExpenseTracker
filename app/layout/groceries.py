@@ -1,4 +1,5 @@
 from dash import html
+from app.dash_components import make_page_title
 from app.components.cards import make_double_figure_card_MonthYear, make_figure_card
 from app.vis.figure import Fig
 F = Fig()
@@ -7,10 +8,8 @@ F = Fig()
 def layout(data):
     return html.Div([
 
-        html.Div([
-            html.H2("🛒 Grocery store Analytics", className="page-title-center")
-        ], style={"width": "100%"}),
-
+        make_page_title("🛒 Grocery store Analytics"),
+    
         html.Div([
             make_double_figure_card_MonthYear(
                 title_abs='Grocery store expenses [CHF]',

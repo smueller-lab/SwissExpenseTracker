@@ -5,6 +5,7 @@
     --color-bg-sidebar: #1b2a41;
     --color-bg-card: #1a3857;
     --color-bg-dropdown: #295886;
+    --color-white: #ffffff;
 
     /* Text colors */
     --color-text-primary: #ffffff;
@@ -16,6 +17,7 @@
     --color-text-kpi-subtext: #a8b8d8;
 
     /* Button colors */
+    --color-bg-btn: #1b2a41;
     --color-bg-btn-hover: #28506f;
     --color-bg-btn-active: #2b7bc0;
     --color-border-btn: #4c6e91;
@@ -433,9 +435,9 @@ a {
 
 .card-header-with-buttons button.btn-toggle {
     padding: 6px 12px;
-    background-color: #1b2a41 !important;
-    border: 1px solid #4c6e91 !important;
-    color: white !important;
+    background-color: var(--color-bg-btn) !important;
+    border: 1px solid var(--color-border-btn) !important;
+    color: var(--color-white) !important;
     border-radius: 6px;
     font-size: 15px !important;
     font-weight: 600 !important;
@@ -445,12 +447,12 @@ a {
 }
 
 .card-header-with-buttons button.btn-toggle:hover {
-    background-color: #28506f !important;
+    background-color: var(--color-bg-btn-hover) !important;
 }
 
 .card-header-with-buttons button.btn-toggle-active {
-    background-color: #2b7bc0 !important;
-    border-color: #5aa2db !important;
+    background-color: var(--color-bg-btn-active) !important;
+    border-color: var(--color-border-btn-active) !important;
 }
 
 .subplot-spacing {
