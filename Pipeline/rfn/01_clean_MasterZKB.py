@@ -55,6 +55,11 @@ pdf.loc[pdf['Merchant'].str.contains(cfg.nm_GroceryShop2), 'Merchant'] = cfg.nm_
 # clean Spa
 pdf.loc[(pdf['Merchant'] == cfg.nm_CompanySpaMarathon) & (pdf['Date'] == cfg.Date_SpaMarathon), ['Merchant', 'category_main', 'category_second']] = [cfg.nm_SpaMarathon, 'Entertainment', 'Spa']
 
+# correct values
+pdf.loc[pdf['Merchant'] == cfg.nm_Mall1, cfg.snm_Category] = ['Groceries', 'Supermarket']
+pdf.loc[pdf['Merchant'] == cfg.nm_LiftCompany, cfg.snm_Category] = ['Sport', 'Ticketing']
+pdf.loc[pdf['Merchant'] == cfg.nm_FerryHome, cfg.snm_Category] = ['Transport', 'Ferry']
+
 # group similar categories together
 pdf.loc[pdf['category_main'].str.contains('Public Service', case=False, na=False), 'category_main'] = 'Public Service'
 pdf.loc[pdf['Merchant'] == cfg.nm_HotelKisok, 'category_main'] = 'Groceries'
@@ -67,6 +72,20 @@ pdf['category_main'] = pdf['category_main'].replace({
     'Telecom': 'Telecommunication'
 })
 
+# group Accomodation (Airbnb, Hotel, Hostel)
+pdf['category_second'] = pdf['category_second'].replace({'Accomodation': 'Accommodation', 'Airline': 'Flight'})
+pdf.loc[pdf['Merchant'].str.contains(cfg.nm_HotelWebsite, case=False, na=False), 'Merchant'] = cfg.nm_HotelWebsite
+pdf.loc[pdf['Merchant'] == cfg.nm_HotelWebsite, 'category_second'] = 'Accommodation'
+pdf.loc[pdf['category_second'].str.contains('Accommodation', case=False, na=False), 'category_second'] = 'Accommodation'
+pdf.loc[pdf['category_second'].str.contains('Hotel', case=False, na=False), 'category_second'] = 'Accommodation'
+
+# override Transport in other countries as Travel
+s_MerchantCountry = [i for i in pdf['MerchantCountry'].unique() if i not in [None, 'CHE', 'DEU']]
+pdf.loc[
+    (pdf['MerchantCountry'].isin(['USA', 'ITA', 'NLD', 'ESP', 'IRL', 'PRT', 'IDN'])) &
+    (pdf['category_main'] == 'Transport'),
+    'category_main'] = 'Travel'
+
 # clean 3rd pillar
 pdf.loc[
     (pdf['Merchant'].str.contains(cfg.nm_FullName)) & 
@@ -75,4 +94,4 @@ pdf.loc[
 ] = [cfg.nm_ThirdPillar, 'Investing', 'Third pillar']
 
 # %%
-pdf.to_parquet(oj(dr.Use_Bank_ZKB, fn.Master_ZKB))
+pdf.to_parquet(oj(dr.Use_Bank_ZKB_RFN, fn.Master_ZKB))

@@ -2,6 +2,7 @@ from dash import Input, Output
 from app.layout.home import layout as home_layout
 from app.layout.food import layout as food_layout
 from app.layout.groceries import layout as groceries_layout
+from app.layout.vacation import layout as vacation_layout
 
 
 def register_callbacks(app, data):
@@ -17,6 +18,8 @@ def register_callbacks(app, data):
             return groceries_layout(data)
         elif pth == "/food":
             return food_layout(data)
+        elif pth == "/vacation":
+            return vacation_layout(data)
         return home_layout(data)
 
 
@@ -25,6 +28,7 @@ def register_callbacks(app, data):
             Output("link-home", "className"),
             Output("link-groceries", "className"),
             Output("link-food", "className"),
+            Output("link-vacation", "className"),
             Output("link-transport", "className"),
             Output("link-sport", "className"),
         ],
@@ -37,6 +41,7 @@ def register_callbacks(app, data):
             active if pth == "/" else default,
             active if pth == "/groceries" else default,
             active if pth == "/food" else default,
+            active if pth == "/vacation" else default,
             active if pth == "/transport" else default,
             active if pth == "/sport" else default,
         ]
