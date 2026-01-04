@@ -1,3 +1,19 @@
+# ---
+# jupyter:
+#   jupytext:
+#     cell_metadata_filter: -all
+#     custom_cell_magics: kql
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.11.2
+#   kernelspec:
+#     display_name: venv
+#     language: python
+#     name: python3
+# ---
+
 # %%
 import pandas as pd
 from app.config import FDP
@@ -10,11 +26,11 @@ pdf_Food = pd.read_pickle(fdp.pth_table_Food)
 pdf_Grocery = pd.read_pickle(fdp.pth_table_Groceries)
 pdf_Balance = pd.read_pickle(fdp.pth_table_Balance)
 pdf_CatMain = pd.read_pickle(fdp.pth_table_CatMain)
+pdf_Vacation = pd.read_pickle(fdp.pth_table_Vacation)
 
 # %%
 F = Fig()
-pdf_CatMain = pdf_CatMain[pdf_CatMain['Year'] == 'All']
 
-fig = F.fig_DonutCategoryMain(pdf_CatMain)
+fig = F.fig_BarVacation(pdf_Vacation)
 
 fig.show()

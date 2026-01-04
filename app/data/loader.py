@@ -26,6 +26,7 @@ class DataLoader:
         self.pdf_CatMain = pd.read_pickle(self.fdp.pth_table_CatMain)
         self.z_StatsTable = pd.read_pickle(self.fdp.pth_table_Stats)
         self.pdf_TopCat = pd.read_pickle(self.fdp.pth_table_TopCat)
+        self.pdf_Vacation = pd.read_pickle(self.fdp.pth_table_Vacation)
 
         self.pdf_TopExpenses = pd.read_pickle(self.fdp.pth_table_TopExpenses)
         self.pdf_TopExpenses['Date'] = self.pdf_TopExpenses['Date'].dt.strftime('%d-%m-%Y')
