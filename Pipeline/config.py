@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 from dataclasses import dataclass
-from typing import Dict
 oj = os.path.join
 load_dotenv()
 
@@ -28,6 +27,7 @@ class Drive:
     Use_Debit: str = oj(Box, 'use', 'DebitCard')
     Use_Viseca: str = oj(Box, 'use', 'Viseca')
     Use_Bank_ZKB: str = oj(Box, 'use', 'Bank_ZKB')
+    Use_Bank_ZKB_RFN: str = oj(Box, 'use', 'Bank_ZKB_RFN')
 
 
 @dataclass

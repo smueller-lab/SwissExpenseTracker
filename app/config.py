@@ -14,12 +14,14 @@ class config:
     vk_dTick_Food = {'Monthly': 200, 'Yearly': 1000, 'Visit': 20}
     dTick_Balance: int = 5000
     dTick_Pct: int = 20
+    dTick_Vacation: int = 1000
 
     #npixel
     vk_npixel_Food = {'Monthly': 50, 'Yearly': 40, 'Visit': 50}
     vk_npixel_Grocery = {'Monthly': 50, 'Yearly': 80, 'Visit': 50}
     npixel_Balance: int = 80
     npixel_Pct: int = 80
+    npixel_Vacation: int = 80
 
     # default ry_Axis
     ry_Axis_Pct = [0, 100]
@@ -32,7 +34,7 @@ class FDP:
     
     dr_Use_Debit = oj(dr_Box, 'use', 'DebitCard')
     dr_Use_Viseca = oj(dr_Box, 'use', 'Viseca')
-    dr_Use_Bank_ZKB = oj(dr_Box, 'use', 'Bank_ZKB')
+    dr_Use_Bank_ZKB = oj(dr_Box, 'use', 'Bank_ZKB_RFN')
     dr_Use_app = oj(dr_Box, 'use', 'app')
     dr_app_data = oj(dr_app, 'data', 'tables')
 
@@ -53,11 +55,7 @@ class FDP:
     pth_table_CatMain = oj(dr_app_data, 'table_CatMain.pkl')
     pth_table_TopCat = oj(dr_app_data, 'table_TopCategory.pkl')
     pth_table_NetBalanceMonth = oj(dr_app_data, 'table_NetBalanceMonth.pkl')
-
-    # ----- Figures -----
-    pth_fig_GroceryBar = oj(dr_app_data, 'fig_GroceryBar.json')
-    pth_fig_GroceryBarPct = oj(dr_app_data, 'fig_GroceryBarPct.json')
-    pth_fig_GroceryLR = oj(dr_app_data, 'fig_GroceryLR.json')
+    pth_table_Vacation = oj(dr_app_data, 'table_Vacation.pkl')
 
 
 @dataclass
