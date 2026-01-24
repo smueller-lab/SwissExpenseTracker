@@ -265,4 +265,33 @@ class Fig:
         fig.update_layout(showlegend=False)
 
         return fig
+    
+
+    def fig_BarVacation(self, pdf_Vacation: pd.DataFrame):
+        fig = go.Figure()
+
+        z_YearExpense = pdf_Vacation.groupby('Year')['Total'].sum()
+
+        for Category in pdf_Vacation['category_second'].unique():
+            group = pdf_Vacation[pdf_Vacation['category_second'] == Category]
+            fig.add_trace(go.Bar(
+                x=group['Year'],
+                y=group['Total'],
+                name=Category,
+            ))
+
+        ry_Axis = get_ryAxis(cfg.dTick_Vacation, z_YearExpense, True)
+        height_Figure = get_heightFigure(ry_Axis, cfg.dTick_Vacation, cfg.npixel_Vacation, self.vk_Margin)
+
+        fig.update_layout(
+            barmode='stack',
+            yaxis=dict(
+                dtick=cfg.dTick_Vacation,
+                range=ry_Axis,
+                showline=True
+            ),
+            height=height_Figure
+        )
+
+        return fig
 
