@@ -294,4 +294,58 @@ class Fig:
         )
 
         return fig
+    
+
+    def fig_BarYearlyByCategory(self, pdf: pd.DataFrame, col_catgeory: str, col_amount: str, dTick: float, npixel: float) -> go.Figure:
+        fig = go.Figure()
+
+        z_YearExpense = pdf.groupby('Year')[col_amount].sum()
+
+        for Category in pdf[col_catgeory].unique():
+            group = pdf[pdf[col_catgeory] == Category]
+            fig.add_trace(go.Bar(
+                x=group['Year'],
+                y=group[col_amount],
+                name=Category,
+            ))
+
+        ry_Axis = get_ryAxis(dTick, z_YearExpense, True)
+        height_Figure = get_heightFigure(ry_Axis, dTick, npixel, self.vk_Margin)
+
+        fig.update_layout(
+            barmode='stack',
+            yaxis=dict(
+                dtick=dTick,
+                range=ry_Axis,
+                showline=True
+            ),
+            height=height_Figure
+        )
+
+        return fig
+    
+
+    def fig_HeatmapMonthly(self, pdf: pd.DataFrame):
+        s_month_order = [pdf[pdf['Month_num'] == i]['Month_name'].values[0] for i in range(1, 13)]
+        pdf_pivot = pdf.pivot(index='Year', columns='Month_name', values='amount_CHF')
+        pdf_pivot = pdf_pivot[s_month_order]
+
+        fig = go.Figure(
+            go.Heatmap(
+                z=pdf_pivot.values,
+                x=pdf_pivot.columns,
+                y=pdf_pivot.index,
+                colorscale='RdYlGn_r',
+                colorbar=dict(title='CHF'),
+                showscale=True,
+                hovertemplate='Year: %{y}<br>Month: %{x}<br>Cost: %{z} CHF<extra></extra>'
+            )
+        )
+
+        fig.update_layout(
+            xaxis=dict(scaleanchor="y"),
+            yaxis_autorange='reversed'
+        )
+
+        return fig
 

@@ -22,15 +22,12 @@ fdp = FDP()
 
 # %%
 pdf = pd.read_parquet(fdp.pth_Master_BankZKB)
-pdf_Food = pd.read_pickle(fdp.pth_table_Food)
-pdf_Grocery = pd.read_pickle(fdp.pth_table_Groceries)
-pdf_Balance = pd.read_pickle(fdp.pth_table_Balance)
-pdf_CatMain = pd.read_pickle(fdp.pth_table_CatMain)
-pdf_Vacation = pd.read_pickle(fdp.pth_table_Vacation)
+
+pdf_TransportHeatmap = pd.read_pickle(fdp.pth_table_TransportHeatmap)
 
 # %%
 F = Fig()
 
-fig = F.fig_BarVacation(pdf_Vacation)
+fig = F.fig_HeatmapMonthly(pdf_TransportHeatmap)
 
 fig.show()
