@@ -15,6 +15,7 @@ class config:
     dTick_Balance: int = 5000
     dTick_Pct: int = 20
     dTick_Vacation: int = 1000
+    dTick_Transport: int = 1000
 
     #npixel
     vk_npixel_Food = {'Monthly': 50, 'Yearly': 40, 'Visit': 50}
@@ -22,6 +23,7 @@ class config:
     npixel_Balance: int = 80
     npixel_Pct: int = 80
     npixel_Vacation: int = 80
+    npixel_Transport: int = 80
 
     # default ry_Axis
     ry_Axis_Pct = [0, 100]
@@ -56,6 +58,8 @@ class FDP:
     pth_table_TopCat = oj(dr_app_data, 'table_TopCategory.pkl')
     pth_table_NetBalanceMonth = oj(dr_app_data, 'table_NetBalanceMonth.pkl')
     pth_table_Vacation = oj(dr_app_data, 'table_Vacation.pkl')
+    pth_table_Transport = oj(dr_app_data, 'table_Transport.pkl')
+    pth_table_TransportHeatmap = oj(dr_app_data, 'table_TransportHeatmap.pkl')
 
 
 @dataclass

@@ -9,10 +9,6 @@
 #       format_name: percent
 #       format_version: '1.3'
 #       jupytext_version: 1.11.2
-#   kernelspec:
-#     display_name: venv
-#     language: python
-#     name: python3
 # ---
 
 # %%
@@ -92,6 +88,33 @@ pdf.loc[
     (pdf['Date'].isin(pd.to_datetime(cfg.s_Date_Investing))),
     ['Merchant', 'category_main', 'category_second']
 ] = [cfg.nm_ThirdPillar, 'Investing', 'Third pillar']
+
+# clean transport
+pdf.loc[pdf['Merchant'] == cfg.nm_MobileProvider, 'category_main'] = 'Telecommunication'
+pdf.loc[pdf['Merchant'] == cfg.nm_FineProvider, 'category_second'] = 'Traffic control'
+
+mk_gasStation = pdf['category_main'] == 'Gas station'
+pdf.loc[mk_gasStation & (pdf['amount_CHF'] < 10), 'category_second'] = 'Groceries'
+pdf.loc[mk_gasStation & (pdf['amount_CHF'] >= 10), 'category_second'] = 'Car'
+
+pdf['Merchant'] = pdf['Merchant'].replace({cfg.nm_Healthcare2: cfg.nm_Healthcare})
+
+# differentiate between different Insurances at the same Insurance provider
+pdf['Merchant'] = pdf['Merchant'].replace({cfg.nm_Insurance2: cfg.nm_Insurance})
+pdf.loc[pdf['Merchant'] == cfg.nm_Insurance, 'category_main'] = 'Insurance'
+
+mk_Insurance = pdf['Merchant'] == cfg.nm_Insurance
+pdf.loc[mk_Insurance & (pdf['amount_CHF'] < cfg.Insurance_Threshold), 'category_second'] = 'Liability'
+pdf.loc[mk_Insurance & (pdf['amount_CHF'] >= cfg.Insurance_Threshold), 'category_second'] = 'Car'
+
+pdf.loc[pdf['Merchant'] == cfg.nm_thriftshop, cfg.snm_Category] = ['Retail', 'Thrift Shop']
+pdf.loc[pdf['Merchant'] == cfg.nm_Dealership, 'categrory_second'] = 'Car Dealership'
+
+pdf['category_second'] = pdf['category_second'].replace({
+    'Car Dealer': 'Car Dealership',
+    'Car-sharing': 'Car Sharing'
+})
+pdf.loc[pdf['Merchant'] == cfg.nm_Dealership2, 'category_main'] = 'Transport'
 
 # %%
 pdf.to_parquet(oj(dr.Use_Bank_ZKB_RFN, fn.Master_ZKB))
