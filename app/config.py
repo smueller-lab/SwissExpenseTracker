@@ -16,6 +16,7 @@ class config:
     dTick_Pct: int = 20
     dTick_Vacation: int = 1000
     dTick_Transport: int = 1000
+    vk_dTick_Sport = {'Monthly': 500, 'Yearly': 1000}
 
     #npixel
     vk_npixel_Food = {'Monthly': 50, 'Yearly': 40, 'Visit': 50}
@@ -24,6 +25,7 @@ class config:
     npixel_Pct: int = 80
     npixel_Vacation: int = 80
     npixel_Transport: int = 80
+    vk_npixel_Sport = {'Monthly': 100, 'Yearly': 80}
 
     # default ry_Axis
     ry_Axis_Pct = [0, 100]
@@ -60,6 +62,8 @@ class FDP:
     pth_table_Vacation = oj(dr_app_data, 'table_Vacation.pkl')
     pth_table_Transport = oj(dr_app_data, 'table_Transport.pkl')
     pth_table_TransportHeatmap = oj(dr_app_data, 'table_TransportHeatmap.pkl')
+    pth_table_Sport = oj(dr_app_data, 'table_Sport.pkl')
+    pth_table_CategoryCorrelation = oj(dr_app_data, 'table_CategoryCorrelation.pkl')
 
 
 @dataclass
@@ -98,6 +102,36 @@ class VIS:
         'Bakery': "#7563FA",
         'Bar': "#FA6363",
         'Cafeteria': "#FAF263"
+    }
+
+    vk_Sport_col = {
+        # 🟦 Golf (blue family)
+        'Golf': "#4580F6",
+
+        # 🟩 Outdoor / endurance sports (green family)
+        'Running': "#2ECC71",
+        'Climbing Gym': "#27AE60",
+        'Swimming Pool': "#1ABC9C",
+
+        # 🟧 Racket sports (orange / warm tones)
+        'Tennis': "#F39C12",
+        'Padel': "#E67E22",
+
+        # 🟪 Fitness & wellness (purple family)
+        'Fitness Center': "#9B59B6",
+        'Yoga Studio': "#8E44AD",
+
+        # 🟥 Team sports (red family)
+        'Football Club': "#E74C3C",
+        'Stadium': "#C0392B",
+
+        # 🟨 Academic / institutional (yellow family)
+        'University Sport': "#F1C40F",
+
+        # ⚫ Business / events (neutral / professional)
+        'Retail': "#BBCFE2",
+        'Ticketing': "#7F8C8D",
+        'Event Organizer': "#95A5A6",
     }
 
     s_Merchant_Grocery = [cfg.nm_GroceryShop1, cfg.nm_Supermarket, cfg.nm_GroceryShop4, cfg.nm_GroceryShop3, cfg.nm_GroceryShop2, cfg.nm_ShopSmall, cfg.nm_KioskLate]

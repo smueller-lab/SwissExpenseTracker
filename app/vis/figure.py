@@ -5,7 +5,7 @@ from app.vis.ploty_template import myTemp
 import numpy as np
 from app.config import VIS, config
 from app.libs import get_ryAxis, get_rxAxis_Date, get_heightFigure
-from typing import Literal
+from typing import Literal, Optional
 vis = VIS()
 cfg = config()
 pio.templates.default = 'myTemp'
@@ -325,6 +325,52 @@ class Fig:
         return fig
     
 
+    def fig_BarFreqByCategory(
+        self,
+        pdf: pd.DataFrame,
+        col_catgeory: str,
+        col_amount: str,
+        Freq: Literal['Monthly', 'Yearly'],
+        dTick: float,
+        npixel: float
+    ) -> go.Figure:
+        fig = go.Figure()
+
+        pdf_Freq = pdf[pdf['Freq'] == Freq].reset_index(drop=True)
+
+        # sum per period
+        z_FreqExpense = pdf_Freq.groupby(['Period'])[col_amount].sum()
+
+        # determine stacking order
+        pdf_grouped = pdf_Freq.groupby([col_catgeory, 'Period'])[col_amount].sum().sort_values(ascending=False).reset_index()
+        z_category_totals = pdf_grouped.groupby(col_catgeory)[col_amount].sum().sort_values(ascending=False)
+        s_category_orderstack_order = z_category_totals.index.tolist()
+
+        for Category in s_category_orderstack_order:
+            group = pdf_Freq[pdf_Freq[col_catgeory] == Category]
+            fig.add_trace(go.Bar(
+                x=group['Period'],
+                y=group[col_amount],
+                name=Category,
+                marker=dict(color=vis.vk_Sport_col[Category])
+            ))
+
+        ry_Axis = get_ryAxis(dTick, z_FreqExpense, True)
+        height_Figure = get_heightFigure(ry_Axis, dTick, npixel, self.vk_Margin)
+
+        fig.update_layout(
+            barmode='stack',
+            yaxis=dict(
+                dtick=dTick,
+                range=ry_Axis,
+                showline=True
+            ),
+            height=height_Figure
+        )
+
+        return fig
+    
+
     def fig_HeatmapMonthly(self, pdf: pd.DataFrame):
         s_month_order = [pdf[pdf['Month_num'] == i]['Month_name'].values[0] for i in range(1, 13)]
         pdf_pivot = pdf.pivot(index='Year', columns='Month_name', values='amount_CHF')
@@ -348,4 +394,74 @@ class Fig:
         )
 
         return fig
+    
+
+    def fig_CategoryCorrelation(
+        self,
+        pdf: pd.DataFrame,
+        col_category: str,
+        Period: Literal['Month', 'Week'],
+        Year: Optional[int] = None
+    ) -> go.Figure:
+        
+        df = pdf.copy()
+
+        if Year is not None:
+            df = df[df['Year'] == Year].reset_index(drop=True)
+
+        df_pivot = df.pivot_table(
+            index=Period,
+            columns=col_category,
+            values='amount_CHF',
+            aggfunc='sum',
+            fill_value=0
+        ).reset_index(drop=True)
+
+        df_pivot = df_pivot.loc[(df_pivot != 0).any(axis=1)]
+        corr = df_pivot.corr()
+        np.fill_diagonal(corr.values, 0)
+
+        # add text in cells with correlation values where corr is > 0.5 or < -0.5
+        threshold_text = 0.5
+        text = corr.copy().values.astype(str)
+        text_mask = np.abs(corr.values) < threshold_text
+        text[text_mask] = ''
+        text = np.where(text != '', np.round(corr.values, 2).astype(str), '')
+
+        fig = go.Figure(
+            go.Heatmap(
+                z=corr.values,
+                x=corr.columns,
+                y=corr.index,
+                colorscale=[
+                    [0.0, '#b2182b'],
+                    [0.5, '#f7f7f7'],
+                    [1.0, '#2166ac']
+                ],
+                showscale=False,
+                zmin=-1,
+                zmax=1,
+                text=text,
+                texttemplate="%{text}",
+                textfont=dict(color="white", size=14)
+            )
+        )
+
+        # set height based on n_categories
+        n_categories = len(corr.index)
+        npixel_row = 35
+        npixel_min = 300
+        npixel_max = 1200
+        height_figure = min(max(n_categories * npixel_row, npixel_min), npixel_max)
+
+        fig.update_layout(
+            margin=dict(
+                l=self.vk_Margin['l'] + 80,
+                b=self.vk_Margin['b'] + 70
+            ),
+            height=height_figure
+        )
+
+        return fig
+        
 

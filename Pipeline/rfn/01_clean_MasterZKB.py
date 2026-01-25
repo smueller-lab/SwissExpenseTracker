@@ -116,5 +116,34 @@ pdf['category_second'] = pdf['category_second'].replace({
 })
 pdf.loc[pdf['Merchant'] == cfg.nm_Dealership2, 'category_main'] = 'Transport'
 
+# clean Sport
+pattern_retail  = '|'.join(['Retail', 'Goods', 'Equipment'])
+pdf.loc[(pdf['category_main'] == 'Sport') & (pdf['category_second'].str.contains(pattern_retail, case=False, na=False)), 'category_second'] = 'Retail'
+pdf.loc[pdf['category_second'].str.contains('Golf', na=False), 'category_second'] = 'Golf'
+pdf.loc[pdf['category_second'].str.contains('Tennis', na=False), 'category_second'] = 'Tennis'
+
+mk_GolfShop = pdf['Merchant'].str.contains(cfg.pattern_GolfShop, case=False, na=False)
+pdf.loc[mk_GolfShop, 'Merchant'] = cfg.nm_GolfShop
+
+pdf.loc[pdf['Merchant'].isin([cfg.nm_GolfShop, cfg.nm_GolfShop2, cfg.nm_GolfShop3]), 'category_second'] = 'Retail'
+pdf.loc[pdf['Merchant'] == cfg.nm_FootballClub, cfg.snm_Category] = ['Entertainment', 'Sports Ticketing']
+pdf.loc[pdf['Merchant'].str.contains(cfg.nm_SportShop, case=False, na=False), 'Merchant'] = cfg.nm_SportShop
+pdf.loc[pdf['Merchant'] == cfg.nm_SportShop, cfg.snm_Category] = ['Sport', 'Retail']
+
+pdf.loc[pdf['Merchant'].str.contains(cfg.nm_SportShop2, case=False, na=False), 'Merchant'] = cfg.nm_SportShop2
+pdf.loc[pdf['Merchant'] == cfg.nm_SportShop2, cfg.snm_Category] = ['Sport', 'Retail']
+
+mk_Rest = pdf['Merchant'].str.contains(cfg.nm_GolfHome_Rest, case=False, na=False)
+mk_Golf = pdf['Merchant'].str.contains(cfg.nm_GolfHome, case=False, na=False)
+
+pdf.loc[mk_Rest, 'Merchant'] = cfg.nm_GolfHome_Rest
+pdf.loc[mk_Golf & ~mk_Rest, 'Merchant'] = cfg.nm_GolfHome
+
+pdf['category_second'] = pdf['category_second'].replace({
+    'University Sports': 'University Sport'
+})
+
+pdf.loc[pdf['Merchant'] == cfg.nm_BikeShop, cfg.snm_Category] = ['Sport', 'Retail']
+
 # %%
 pdf.to_parquet(oj(dr.Use_Bank_ZKB_RFN, fn.Master_ZKB))
