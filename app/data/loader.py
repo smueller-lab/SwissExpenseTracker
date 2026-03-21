@@ -27,6 +27,9 @@ class DataLoader:
         self.z_StatsTable = pd.read_pickle(self.fdp.pth_table_Stats)
         self.pdf_TopCat = pd.read_pickle(self.fdp.pth_table_TopCat)
         self.pdf_Vacation = pd.read_pickle(self.fdp.pth_table_Vacation)
+        self.pdf_Transport = pd.read_pickle(self.fdp.pth_table_Transport)
+        self.pdf_TransportHeatmap = pd.read_pickle(self.fdp.pth_table_TransportHeatmap)
+        self.pdf_Sport = pd.read_pickle(self.fdp.pth_table_Sport)
 
         self.pdf_TopExpenses = pd.read_pickle(self.fdp.pth_table_TopExpenses)
         self.pdf_TopExpenses['Date'] = self.pdf_TopExpenses['Date'].dt.strftime('%d-%m-%Y')
