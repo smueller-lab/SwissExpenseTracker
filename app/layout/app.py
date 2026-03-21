@@ -13,6 +13,10 @@ def create_app_layout():
             dcc.Link("🏖️ Vacation", href="/vacation", id="link-vacation", className="menu-link"),
             dcc.Link("🚄 Transport", href="/transport", id="link-transport", className="menu-link"),
             dcc.Link("⛳ Sport", href="/sport", id="link-sport", className="menu-link"),
+            dcc.Link("🛍️ Retail", href="/retail", id="link-retail", className="menu-link"),
+            dcc.Link("✨ Entertainment", href="/entertainment", id="link-entertainment", className="menu-link"),
+            dcc.Link("📈 Correlation Matrix", href="/corrmatrix", id="link-corr", className="menu-link"),
+            dcc.Link("🔍 Smart Table", href="/smarttable", id="link-smarttable", className="menu-link"),
         ], className="sidebar"),
 
         # ---------------- Router ----------------

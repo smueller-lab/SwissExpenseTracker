@@ -3,6 +3,8 @@ from app.layout.home import layout as home_layout
 from app.layout.food import layout as food_layout
 from app.layout.groceries import layout as groceries_layout
 from app.layout.vacation import layout as vacation_layout
+from app.layout.transport import layout as transport_layout
+from app.layout.sport import layout as sport_layout
 
 
 def register_callbacks(app, data):
@@ -20,6 +22,10 @@ def register_callbacks(app, data):
             return food_layout(data)
         elif pth == "/vacation":
             return vacation_layout(data)
+        elif pth == "/transport":
+            return transport_layout(data)
+        elif pth == "/sport":
+            return sport_layout(data)
         return home_layout(data)
 
 

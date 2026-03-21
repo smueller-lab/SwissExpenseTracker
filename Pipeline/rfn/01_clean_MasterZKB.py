@@ -9,10 +9,6 @@
 #       format_name: percent
 #       format_version: '1.3'
 #       jupytext_version: 1.11.2
-#   kernelspec:
-#     display_name: venv
-#     language: python
-#     name: python3
 # ---
 
 # %%
@@ -92,6 +88,62 @@ pdf.loc[
     (pdf['Date'].isin(pd.to_datetime(cfg.s_Date_Investing))),
     ['Merchant', 'category_main', 'category_second']
 ] = [cfg.nm_ThirdPillar, 'Investing', 'Third pillar']
+
+# clean transport
+pdf.loc[pdf['Merchant'] == cfg.nm_MobileProvider, 'category_main'] = 'Telecommunication'
+pdf.loc[pdf['Merchant'] == cfg.nm_FineProvider, 'category_second'] = 'Traffic control'
+
+mk_gasStation = pdf['category_main'] == 'Gas station'
+pdf.loc[mk_gasStation & (pdf['amount_CHF'] < 10), 'category_second'] = 'Groceries'
+pdf.loc[mk_gasStation & (pdf['amount_CHF'] >= 10), 'category_second'] = 'Car'
+
+pdf['Merchant'] = pdf['Merchant'].replace({cfg.nm_Healthcare2: cfg.nm_Healthcare})
+
+# differentiate between different Insurances at the same Insurance provider
+pdf['Merchant'] = pdf['Merchant'].replace({cfg.nm_Insurance2: cfg.nm_Insurance})
+pdf.loc[pdf['Merchant'] == cfg.nm_Insurance, 'category_main'] = 'Insurance'
+
+mk_Insurance = pdf['Merchant'] == cfg.nm_Insurance
+pdf.loc[mk_Insurance & (pdf['amount_CHF'] < cfg.Insurance_Threshold), 'category_second'] = 'Liability'
+pdf.loc[mk_Insurance & (pdf['amount_CHF'] >= cfg.Insurance_Threshold), 'category_second'] = 'Car'
+
+pdf.loc[pdf['Merchant'] == cfg.nm_thriftshop, cfg.snm_Category] = ['Retail', 'Thrift Shop']
+pdf.loc[pdf['Merchant'] == cfg.nm_Dealership, 'categrory_second'] = 'Car Dealership'
+
+pdf['category_second'] = pdf['category_second'].replace({
+    'Car Dealer': 'Car Dealership',
+    'Car-sharing': 'Car Sharing'
+})
+pdf.loc[pdf['Merchant'] == cfg.nm_Dealership2, 'category_main'] = 'Transport'
+
+# clean Sport
+pattern_retail  = '|'.join(['Retail', 'Goods', 'Equipment'])
+pdf.loc[(pdf['category_main'] == 'Sport') & (pdf['category_second'].str.contains(pattern_retail, case=False, na=False)), 'category_second'] = 'Retail'
+pdf.loc[pdf['category_second'].str.contains('Golf', na=False), 'category_second'] = 'Golf'
+pdf.loc[pdf['category_second'].str.contains('Tennis', na=False), 'category_second'] = 'Tennis'
+
+mk_GolfShop = pdf['Merchant'].str.contains(cfg.pattern_GolfShop, case=False, na=False)
+pdf.loc[mk_GolfShop, 'Merchant'] = cfg.nm_GolfShop
+
+pdf.loc[pdf['Merchant'].isin([cfg.nm_GolfShop, cfg.nm_GolfShop2, cfg.nm_GolfShop3]), 'category_second'] = 'Retail'
+pdf.loc[pdf['Merchant'] == cfg.nm_FootballClub, cfg.snm_Category] = ['Entertainment', 'Sports Ticketing']
+pdf.loc[pdf['Merchant'].str.contains(cfg.nm_SportShop, case=False, na=False), 'Merchant'] = cfg.nm_SportShop
+pdf.loc[pdf['Merchant'] == cfg.nm_SportShop, cfg.snm_Category] = ['Sport', 'Retail']
+
+pdf.loc[pdf['Merchant'].str.contains(cfg.nm_SportShop2, case=False, na=False), 'Merchant'] = cfg.nm_SportShop2
+pdf.loc[pdf['Merchant'] == cfg.nm_SportShop2, cfg.snm_Category] = ['Sport', 'Retail']
+
+mk_Rest = pdf['Merchant'].str.contains(cfg.nm_GolfHome_Rest, case=False, na=False)
+mk_Golf = pdf['Merchant'].str.contains(cfg.nm_GolfHome, case=False, na=False)
+
+pdf.loc[mk_Rest, 'Merchant'] = cfg.nm_GolfHome_Rest
+pdf.loc[mk_Golf & ~mk_Rest, 'Merchant'] = cfg.nm_GolfHome
+
+pdf['category_second'] = pdf['category_second'].replace({
+    'University Sports': 'University Sport'
+})
+
+pdf.loc[pdf['Merchant'] == cfg.nm_BikeShop, cfg.snm_Category] = ['Sport', 'Retail']
 
 # %%
 pdf.to_parquet(oj(dr.Use_Bank_ZKB_RFN, fn.Master_ZKB))
