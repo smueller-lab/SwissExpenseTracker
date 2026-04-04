@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+import sqlite3
+
+from collections.abc import Iterator
+from contextlib import contextmanager
+
+from swiss_exp_tracker.pipeline_ingestion.config import INGESTION_DB_PATH
+
+
+@contextmanager
+def get_connection() -> Iterator[sqlite3.Connection]:
+    db = sqlite3.connect(INGESTION_DB_PATH)
+    try:
+        db.execute("PRAGMA foreign_keys = ON")
+        yield db
+        db.commit()
+    finally:
+        db.close()
+
+
+def create_all_tables() -> None:
+    with get_connection() as db:
+        db.execute(
+            """
+			CREATE TABLE IF NOT EXISTS ingested_files (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				filename TEXT NOT NULL,
+				file_hash TEXT NOT NULL,
+				source_type TEXT NOT NULL,
+				ingested_at TEXT NOT NULL,
+				record_count INTEGER NOT NULL,
+				status TEXT NOT NULL,
+				UNIQUE(filename, file_hash, source_type)
+			)
+			"""
+        )
+
+        db.execute(
+            """
+			CREATE TABLE IF NOT EXISTS transactions_landing (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				file_id INTEGER NOT NULL,
+				source_type TEXT NOT NULL,
+				raw_json TEXT NOT NULL,
+				created_at TEXT NOT NULL,
+				processed INTEGER NOT NULL DEFAULT 0,
+				FOREIGN KEY (file_id) REFERENCES ingested_files(id)
+			)
+			"""
+        )
+
+        db.execute(
+            """
+			CREATE TABLE IF NOT EXISTS transactions_raw (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				landing_id INTEGER NOT NULL,
+				source_type TEXT NOT NULL,
+				raw_json TEXT NOT NULL,
+				source_file TEXT NOT NULL,
+				created_at TEXT NOT NULL,
+				processed INTEGER NOT NULL DEFAULT 0,
+				FOREIGN KEY (landing_id) REFERENCES transactions_landing(id)
+			)
+			"""
+        )
+
+        db.execute(
+            """
+			CREATE TABLE IF NOT EXISTS transactions_refined (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				raw_id INTEGER NOT NULL,
+				source_type TEXT NOT NULL,
+				date TEXT,
+				amount REAL NOT NULL,
+				transaction_type TEXT NOT NULL,
+				booking_text TEXT,
+				merchant_normalized TEXT,
+				currency TEXT,
+				reference TEXT,
+				enrichment_status TEXT NOT NULL DEFAULT 'pending',
+				created_at TEXT NOT NULL,
+				FOREIGN KEY (raw_id) REFERENCES transactions_raw(id)
+			)
+			"""
+        )
+
+        db.execute(
+            """
+			CREATE INDEX IF NOT EXISTS idx_ingested_files_source
+			ON ingested_files(source_type)
+			"""
+        )
+        db.execute(
+            """
+			CREATE INDEX IF NOT EXISTS idx_landing_file_processed
+			ON transactions_landing(file_id, processed)
+			"""
+        )
+        db.execute(
+            """
+			CREATE INDEX IF NOT EXISTS idx_raw_source_processed
+			ON transactions_raw(source_type, processed)
+			"""
+        )
+        db.execute(
+            """
+			CREATE INDEX IF NOT EXISTS idx_refined_enrichment_status
+			ON transactions_refined(enrichment_status)
+			"""
+        )

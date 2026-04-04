@@ -41,3 +41,14 @@ nosetests.xml
 # My data files
 Pipeline/cfg_cleaning.py
 app/data/*.json
+
+# database files
+merchant_db/
+merchant_vector_store/
+ingestion_db/
+
+# test data
+tests/test_data/*.csv
+
+# user config: user specific pathes and information are stored here, do not commit
+user_config.py
