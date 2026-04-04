@@ -1,0 +1,30 @@
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff check
+        entry: poetry run ruff check src
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: black
+        name: black check
+        entry: poetry run black --check src
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: mypy
+        name: mypy
+        entry: poetry run mypy --config-file pyproject.toml src
+        language: system
+        types: [python]
+        pass_filenames: false
+
+      - id: pytest
+        name: pytest
+        entry: poetry run pytest tests
+        language: system
+        pass_filenames: false
+        always_run: true
