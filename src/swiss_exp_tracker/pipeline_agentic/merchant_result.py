@@ -13,8 +13,8 @@ __all__ = ["MerchantResult", "MetadataResult"]
 
 class MerchantResult:
     def __init__(self) -> None:
-        self.dr_db = "./merchant_db"
-        self.path_db = oj(self.dr_db, "merchant_results.db")
+        self.dr_db = "./database"
+        self.path_db = oj(self.dr_db, "transactions.db")
 
         os.makedirs(self.dr_db, exist_ok=True)
 

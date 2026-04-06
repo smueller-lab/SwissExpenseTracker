@@ -17,6 +17,10 @@ class Transaction(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     Date: date | None = Field(description="date of the transaction")
+    merchant: str | None = Field(
+        default=None,
+        description="Normalized merchant name from refined ingestion",
+    )
     booking_text: str = Field(
         alias="Booking text", description="bboking text of the transaction"
     )
@@ -28,6 +32,10 @@ class Transaction(BaseModel):
     )
     amount_chf: float | None = Field(
         description="amount of the transaction in CHF, negative if expense, positive if income"
+    )
+    is_person: bool = Field(
+        default=False,
+        description="Whether the booking text indicates a person-to-person transaction",
     )
 
     @field_validator("Date", mode="before")
