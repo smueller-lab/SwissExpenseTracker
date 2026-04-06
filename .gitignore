@@ -45,7 +45,7 @@ app/data/*.json
 # database files
 merchant_db/
 merchant_vector_store/
-ingestion_db/
+database/
 
 # test data
 tests/test_data/*.csv

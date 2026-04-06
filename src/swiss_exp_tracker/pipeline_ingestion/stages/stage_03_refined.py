@@ -45,24 +45,34 @@ from swiss_exp_tracker.pipeline_ingestion.db import create_all_tables
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
 
-def _normalize_merchant(merchant: str) -> str:
+def _is_person_transaction(text: str) -> bool:
+    """Detect phone-like sequences with at least 7 digits and if it's a TWINT transaction"""
+    for candidate in re.findall(r"(?:\+|00)?\d[\d\s()./-]{5,}\d", text):
+        digits = re.sub(r"\D", "", candidate)
+        if len(digits) >= 7 and "TWINT" in text:
+            return True
+    return False
+
+
+def _normalize_merchant(merchant: str, booking_text: str) -> tuple[str, bool]:
     """Normalize merchant names by lowercasing, replacing common umlauts, and applying known brand patterns."""
+    is_person = _is_person_transaction(booking_text)
     normalized = merchant.lower()
     normalized = normalized.replace("ü", "u").replace("ä", "a").replace("ö", "o")
 
     for pattern, canonical in MERCHANT_COMPOUND_BRANDS:
         if pattern in normalized:
-            return canonical
+            return canonical, is_person
 
     for brand in MERCHANT_BRANDS:
         if brand in normalized:
-            return brand
+            return brand, is_person
 
     name = re.sub(r"\d+", "", normalized)
     name = re.sub(r"[^a-z\s]", " ", name)
     name = re.sub(r"\b(ag|sa|gmbh|ltd)\b", "", name)
     name = re.sub(r"\s+", " ", name).strip()
-    return name if name else merchant
+    return (name if name else merchant), is_person
 
 
 def _booking_text_split(text: str) -> str:
@@ -78,15 +88,15 @@ def _booking_text_split(text: str) -> str:
     return text.split(":", 1)[-1]
 
 
-def _extract_merchant_normalized(booking_text: str | None) -> str | None:
+def _extract_merchant_normalized(booking_text: str | None) -> tuple[str | None, bool]:
     if not booking_text:
-        return None
+        return None, False
 
     split_text = _booking_text_split(booking_text).strip()
     if not split_text:
-        return None
+        return None, _is_person_transaction(booking_text)
 
-    return _normalize_merchant(split_text)
+    return _normalize_merchant(split_text, booking_text)
 
 
 def _as_iso_datetime(value: datetime | None) -> str | None:
@@ -441,7 +451,9 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
                 mark_processed(row.raw_id, row.file_id)
                 continue
 
-            merchant_normalized = _extract_merchant_normalized(unified.booking_text)
+            merchant_normalized, is_person = _extract_merchant_normalized(
+                unified.booking_text
+            )
 
             enrichment_status = EnrichmentStatus.PENDING.value
 
@@ -455,12 +467,13 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
 					transaction_type,
 					booking_text,
 					merchant_normalized,
+					is_person,
 					currency,
 					reference,
 					enrichment_status,
 					created_at
 				)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				""",
                 (
                     row.raw_id,
@@ -470,6 +483,7 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
                     transaction_type,
                     unified.booking_text,
                     merchant_normalized,
+                    int(is_person),
                     currency,
                     reference,
                     enrichment_status,

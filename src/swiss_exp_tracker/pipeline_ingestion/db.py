@@ -76,6 +76,7 @@ def create_all_tables() -> None:
 				transaction_type TEXT NOT NULL,
 				booking_text TEXT,
 				merchant_normalized TEXT,
+				is_person INTEGER NOT NULL DEFAULT 0,
 				currency TEXT,
 				reference TEXT,
 				enrichment_status TEXT NOT NULL DEFAULT 'pending',
@@ -84,6 +85,17 @@ def create_all_tables() -> None:
 			)
 			"""
         )
+
+        refined_columns = {
+            str(column[1])
+            for column in db.execute(
+                "PRAGMA table_info(transactions_refined)"
+            ).fetchall()
+        }
+        if "is_person" not in refined_columns:
+            db.execute(
+                "ALTER TABLE transactions_refined ADD COLUMN is_person INTEGER NOT NULL DEFAULT 0"
+            )
 
         db.execute(
             """
