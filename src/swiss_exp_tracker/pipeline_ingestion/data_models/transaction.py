@@ -157,8 +157,3 @@ class RevolutTransaction(BaseModel):
         if value in (None, ""):
             return None
         return float(value)
-
-
-# TODO: to be filled
-class SwissquoteTransaction(BaseModel):
-    Date: datetime

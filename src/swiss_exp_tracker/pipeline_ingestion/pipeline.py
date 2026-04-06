@@ -29,10 +29,14 @@ _mod_raw = importlib.import_module(
 _mod_refined = importlib.import_module(
     "swiss_exp_tracker.pipeline_ingestion.stages.stage_03_refined"
 )
+_mod_postprocess = importlib.import_module(
+    "swiss_exp_tracker.pipeline_ingestion.stages.stage_04_postprocess"
+)
 
 run_landing = _mod_landing.run_landing
 run_raw = _mod_raw.run_raw
 run_refined = _mod_refined.run_refined
+run_postprocess = _mod_postprocess.run_postprocess
 
 
 def _load_pending_transactions() -> list[Any]:
@@ -70,7 +74,7 @@ def _load_pending_transactions() -> list[Any]:
 
 
 def run_ingestion() -> dict[str, Any]:
-    """Run landing → raw → refined in sequence and return stage-level stats."""
+    """Run landing → raw → refined → postprocess in sequence and return stage-level stats."""
     create_all_tables()
 
     logger.info("[pipeline] Stage 1: landing")
@@ -85,10 +89,15 @@ def run_ingestion() -> dict[str, Any]:
     refined_result = run_refined()
     logger.info("           %s", refined_result)
 
+    logger.info("[pipeline] Stage 4: postprocess")
+    postprocess_result = run_postprocess()
+    logger.info("           %s", postprocess_result)
+
     return {
         "landing": landing_result,
         "raw": raw_result,
         "refined": refined_result,
+        "postprocess": postprocess_result,
     }
 
 
@@ -98,14 +107,14 @@ async def run_enrichment() -> None:
 
     transactions = _load_pending_transactions()
     logger.info(
-        "[pipeline] Stage 4: enrichment — %d pending transaction(s)",
+        "[pipeline] Stage 5: enrichment — %d pending transaction(s)",
         len(transactions),
     )
     await run_all_transactions(transactions)
 
 
 def run() -> None:
-    """Full pipeline: ingestion (landing → raw → refined) then agentic enrichment."""
+    """Full pipeline: ingestion (landing → raw → refined → postprocess) then agentic enrichment."""
     run_ingestion()
     # asyncio.run(run_enrichment())
 

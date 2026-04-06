@@ -11,9 +11,6 @@ from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import Currenc
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
     RevolutTransaction,
 )
-from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
-    SwissquoteTransaction,
-)
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import TransactionType
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
     UnifiedTransaction,
@@ -41,20 +38,27 @@ class ZKBDebitAdapter(BaseAdapter[ZKBTransaction]):
         if row.AmountDebit is not None:
             amount = abs(row.AmountDebit)
             transaction_type = TransactionType.EXPENSE
+            currency = Currency.CHF
         elif row.AmountCredit is not None:
             amount = abs(row.AmountCredit)
             transaction_type = TransactionType.INCOME
+            currency = Currency.CHF
+        elif row.AmountDetails is not None and row.Curr is not None:
+            amount = abs(row.AmountDetails)
+            transaction_type = TransactionType.EXPENSE
+            currency = row.Curr
         else:
             amount = 0.0
             transaction_type = TransactionType.EXPENSE
+            currency = Currency.CHF
 
         return UnifiedTransaction(
             id=uuid.uuid4(),
             source=self.source,
             zkb_reference=row.ZKBReference or row.ReferenceNumber or "",
-            date=row.Date,
+            date=row.Date or row.ValueDate,
             amount=amount,
-            currency=Currency.CHF,
+            currency=currency,
             transaction_type=transaction_type,
             booking_text=row.BookingText,
             source_file=source_file,
@@ -105,12 +109,3 @@ class RevolutAdapter(BaseAdapter[RevolutTransaction]):
             booking_text=row.Description,
             source_file=source_file,
         )
-
-
-class SwissquoteAdapter(BaseAdapter[SwissquoteTransaction]):
-    source = SourceType.SWISSQUOTE
-
-    def to_unified(
-        self, row: SwissquoteTransaction, source_file: str
-    ) -> UnifiedTransaction:
-        raise NotImplementedError("SwissquoteAdapter.to_unified is not yet implemented")
