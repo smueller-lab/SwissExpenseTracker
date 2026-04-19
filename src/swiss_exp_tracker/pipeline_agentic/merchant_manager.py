@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any
 
 from agents import Runner
 from agents import gen_trace_id
 from agents import trace
 
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_metadata import metadata_agent
+from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import SearchToolResult
+from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import WebSearchTool
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import summary_agent
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
@@ -49,7 +50,10 @@ class MerchantManager:
                     city="",
                 )
                 summary = f"{merchant.merchant} is a person, categorized as FRIEND_SUPPORT_PAYMENT"
-                search_tool = "none (person detected)"
+                search_result = SearchToolResult(
+                    summary=summary, tool_used=WebSearchTool.PERSON
+                )
+                result: SearchToolResult | MetadataResult = search_result
 
             else:
                 # 3. check if vector store already contains merchant
@@ -70,20 +74,22 @@ class MerchantManager:
                     )
 
                     self.result.save_merchant_result(result)
+                    self.result.mark_transaction_enriched(transaction.refined_id)
                     return
 
                 # 4. Get summary of Merchant
-                summary, search_tool = await self.get_merchant_summary(merchant)
-                yield f"Got summary via {search_tool}, get merchant metadata"
+                search_result = await self.get_merchant_summary(merchant)
+                result = search_result
+                yield f"Got summary via {search_result.tool_used}, get merchant metadata"
 
                 # 5. Get Merchant metadata
                 merchant_metadata = await self.get_merchant_metadata(
-                    merchant, transaction, summary
+                    merchant, transaction, search_result.summary
                 )
                 yield "Got Metadata"
 
             # 6. Save merchant metadata to store
-            self.store.save(merchant.merchant, summary, merchant_metadata)
+            self.store.save(merchant.merchant, search_result.summary, merchant_metadata)
             yield f"Saved {merchant.merchant} to store"
 
             # 7. Save results to relational db
@@ -93,7 +99,7 @@ class MerchantManager:
                 matched_merchant=merchant_metadata.name,
                 cache_hit=False,
                 similarity=None,
-                search_tool=search_tool,
+                search_tool=search_result.tool_used,
                 category_main=merchant_metadata.category_main.value,
                 category_second=merchant_metadata.category_second,
                 city=merchant_metadata.city,
@@ -101,30 +107,15 @@ class MerchantManager:
 
             self.result.save_merchant_result(result)
 
-    def _detect_search_tool(self, result: Any) -> str:
-        """Inspect RunResult.new_items to determine which search tool was called."""
-        for item in getattr(result, "new_items", []):
-            raw = getattr(item, "raw_item", None)
-            if raw is None:
-                continue
-            name = str(getattr(raw, "name", "") or "").lower()
-            tool_type = str(getattr(raw, "type", "") or "").lower()
-            if name == "search_with_fallback":
-                return "tavily/serpapi-router"
-            if "tavily" in name or "tavily" in tool_type:
-                return "tavily"
-            if name == "serpapi_search":
-                return "serpapi"
-            if "web_search" in name or "web_search" in tool_type:
-                return "websearch"
-        return "unknown"
+            # 8. Update pending transaction as enriched in DB
+            self.result.mark_transaction_enriched(transaction.refined_id)
 
     async def get_merchant_summary(
         self, merchant: MerchantExtractor
-    ) -> tuple[str, str]:
+    ) -> SearchToolResult:
         """Get merchant summary. Returns (summary, search_tool_used)."""
         result = await Runner.run(summary_agent, merchant.model_dump_json())
-        return result.final_output_as(str), self._detect_search_tool(result)
+        return result.final_output_as(SearchToolResult)
 
     async def get_merchant_metadata(
         self, merchant: MerchantExtractor, transaction: Transaction, summary: str

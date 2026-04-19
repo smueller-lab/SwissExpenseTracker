@@ -30,6 +30,7 @@ ruff = "^0.11.0"
 black = "^25.1.0"
 mypy = "^1.15.0"
 pre-commit = "^4.2.0"
+types-tqdm = "^4.67.3.20260408"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
@@ -96,6 +97,10 @@ enable_error_code = [
 
 [[tool.mypy.overrides]]
 module = ["pandas", "pandas.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tqdm", "tqdm.*"]
 ignore_missing_imports = true
 
 [tool.pyright]

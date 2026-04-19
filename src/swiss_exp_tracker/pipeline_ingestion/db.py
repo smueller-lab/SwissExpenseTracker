@@ -121,3 +121,17 @@ def create_all_tables() -> None:
 			ON transactions_refined(enrichment_status)
 			"""
         )
+
+        db.execute(
+            """
+			CREATE TABLE IF NOT EXISTS api_usage (
+				id INTEGER PRIMARY KEY AUTOINCREMENT,
+				provider TEXT NOT NULL,
+				period TEXT NOT NULL,
+				used INTEGER NOT NULL DEFAULT 0,
+				credit_limit INTEGER NOT NULL DEFAULT 0,
+				updated_at TEXT NOT NULL,
+				UNIQUE(provider, period)
+			)
+			"""
+        )

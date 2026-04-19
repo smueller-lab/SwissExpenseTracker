@@ -12,10 +12,16 @@ from pydantic import Field
 from pydantic import computed_field
 from pydantic import field_validator
 
+from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import WebSearchTool
+
 
 class Transaction(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
+    refined_id: int | None = Field(
+        default=None,
+        description="Primary key of the row in transactions_refined",
+    )
     Date: date | None = Field(description="date of the transaction")
     merchant: str | None = Field(
         default=None,
@@ -43,7 +49,10 @@ class Transaction(BaseModel):
     def parse_date(cls, value: str | None) -> date | None:
         if value is None:
             return None
-        return datetime.strptime(value, "%d.%m.%Y").date()
+        if isinstance(value, date):
+            return value
+        else:
+            return datetime.strptime(value, "%d.%m.%Y").date()
 
     @field_validator("zkb_reference", mode="before")
     @classmethod
@@ -120,6 +129,9 @@ class CategorySecond(StrEnum):
 
     # RESTAURANT
     # Use for food & drink consumption (eat-in, takeaway, cafe, bar, delivery).
+    # Takeaway should be categorized as RESTAURANT_FASTFOOD
+    # items which contain, bar/pub should be categorized as RESTAURANT_BAR
+    # items which contain cafe or bakery should be categorized as RESTAURANT_CAFE
     RESTAURANT_DINING = "Dining"
     RESTAURANT_FASTFOOD = "Fast Food"
     RESTAURANT_CAFE = "Cafe"
@@ -264,7 +276,7 @@ class MetadataResult(BaseModel):
     matched_merchant: str
     cache_hit: bool
     similarity: float | None
-    search_tool: str | None
+    search_tool: WebSearchTool | None
     category_main: str
     category_second: str
     city: str | None
