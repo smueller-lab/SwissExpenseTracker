@@ -1,279 +1,151 @@
 from __future__ import annotations
 
-import json
-import os
-
-from datetime import date
-from typing import Any
-from typing import cast
-
-import requests
+from enum import Enum
 
 from agents import Agent
 from agents import ModelSettings
 from agents import function_tool
-from dotenv import load_dotenv
+from pydantic import BaseModel
+
+from swiss_exp_tracker.pipeline_agentic.libs import BRIGHT_DATA_FREE_CREDIT_LIMIT
+from swiss_exp_tracker.pipeline_agentic.libs import TAVILY_FREE_CREDIT_LIMIT
+from swiss_exp_tracker.pipeline_agentic.libs import brightdata_web_search
+from swiss_exp_tracker.pipeline_agentic.libs import is_serpapi_quota_exceeded
+from swiss_exp_tracker.pipeline_agentic.libs import load_brightdata_usage
+from swiss_exp_tracker.pipeline_agentic.libs import load_tavily_usage
+from swiss_exp_tracker.pipeline_agentic.libs import save_brightdata_usage
+from swiss_exp_tracker.pipeline_agentic.libs import save_tavily_usage
+from swiss_exp_tracker.pipeline_agentic.libs import serpapi_web_search
+from swiss_exp_tracker.pipeline_agentic.libs import tavily_web_search
 
 
-load_dotenv(override=True)
+class WebSearchTool(Enum):
+    BRIGHT_DATA = "bright_data"
+    TAVILY = "tavily"
+    SERPAPI = "serpapi"
+    PERSON = "person"
 
 
-def _env_flag(name: str, default: bool = False) -> bool:
-    value = os.getenv(name)
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
+class SearchToolResult(BaseModel):
+    summary: str
+    tool_used: WebSearchTool
 
 
-_TAVILY_FREE_CREDIT_LIMIT = 1000
-_tavily_free_credits_used = 0
-_serpapi_quota_exceeded = False
-_TAVILY_USAGE_FILE = os.getenv(
-    "TAVILY_USAGE_FILE",
-    ".tavily_usage.json",
-)
+def _tool_result(summary: str, tool_used: WebSearchTool) -> SearchToolResult:
+    return SearchToolResult(
+        summary=summary,
+        tool_used=tool_used,
+    )
 
 
-def _current_tavily_credit_period() -> str:
-    """Return period key used to track free-credit usage across days.
-
-    Default is monthly period (`YYYY-MM`) to align with typical billing cycles.
-    Set `TAVILY_CREDIT_PERIOD=lifetime` to never auto-reset.
-    """
-    period_mode = os.getenv("TAVILY_CREDIT_PERIOD", "monthly").strip().lower()
-    if period_mode == "lifetime":
-        return "lifetime"
-    return date.today().strftime("%Y-%m")
-
-
-def _load_tavily_usage() -> int:
-    """Load Tavily free-credit usage from disk for the active period."""
-    try:
-        with open(_TAVILY_USAGE_FILE, encoding="utf-8") as file_handle:
-            raw_payload = json.load(file_handle)
-    except FileNotFoundError:
-        return 0
-    except Exception:
-        return 0
-
-    if not isinstance(raw_payload, dict):
-        return 0
-    payload = cast("dict[str, Any]", raw_payload)
-
-    period = str(payload.get("period", ""))
-    used_raw = payload.get("used", 0)
-    if period != _current_tavily_credit_period():
-        return 0
-
-    try:
-        return max(0, int(used_raw))
-    except Exception:
-        return 0
-
-
-def _save_tavily_usage(used: int) -> None:
-    """Persist Tavily free-credit usage for the active period."""
-    payload = {
-        "period": _current_tavily_credit_period(),
-        "used": max(0, int(used)),
-        "limit": _TAVILY_FREE_CREDIT_LIMIT,
-    }
-    try:
-        with open(_TAVILY_USAGE_FILE, "w", encoding="utf-8") as file_handle:
-            json.dump(payload, file_handle)
-    except Exception:
-        return
-
-
-def _tavily_api_search(query: str, payg_mode: bool) -> str:
-    """Search via Tavily API and return normalized result/fallback signals."""
-    api_key = os.getenv("TAVILY_API_KEY")
-    if not api_key:
-        return "TAVILY_UNAVAILABLE: TAVILY_API_KEY is missing."
-
-    try:
-        payload: dict[str, str | int | bool] = {
-            "api_key": api_key,
-            "query": query,
-            "search_depth": "basic",
-            "max_results": 5,
-            "topic": "general",
-            "include_answer": False,
-            "include_raw_content": False,
-        }
-        if payg_mode:
-            payload["auto_parameters"] = True
-
-        response = requests.post(
-            "https://api.tavily.com/search",
-            json=payload,
-            timeout=20,
-        )
-        response.raise_for_status()
-        data = response.json()
-    except Exception as exc:
-        return f"TAVILY_UNAVAILABLE: request failed ({exc})."
-
-    error_msg = str(data.get("error", "") or "").lower()
-    if error_msg:
-        if "credit" in error_msg or "limit" in error_msg or "quota" in error_msg:
-            return "TAVILY_CREDITS_EXCEEDED"
-        return f"TAVILY_UNAVAILABLE: {data.get('error')}"
-
-    results = data.get("results", [])
-    if not results:
-        return "TAVILY_UNAVAILABLE: no results"
-
-    lines: list[str] = []
-    for item in results[:5]:
-        title = str(item.get("title", "")).strip()
-        snippet = str(item.get("content", "")).strip()
-        link = str(item.get("url", "")).strip()
-        if title or snippet:
-            lines.append(f"- {title} | {snippet} | {link}")
-
-    if not lines:
-        return "TAVILY_UNAVAILABLE: no parseable results"
-    return "TAVILY_RESULTS\n" + "\n".join(lines)
-
-
-def _serpapi_search_impl(query: str) -> str:
-    """Search the web with SerpAPI. Returns fallback signal when key/quota is unavailable."""
-    global _serpapi_quota_exceeded
-
-    api_key = os.getenv("SERPAPI_API_KEY")
-    if not api_key:
-        return "SERPAPI_UNAVAILABLE: SERPAPI_API_KEY is missing."
-
-    try:
-        request_params: dict[str, str | int] = {
-            "engine": "google",
-            "q": query,
-            "api_key": api_key,
-            "num": 5,
-            "hl": "de",
-            "gl": "ch",
-        }
-        response = requests.get(
-            "https://serpapi.com/search.json",
-            params=request_params,
-            timeout=20,
-        )
-        response.raise_for_status()
-        payload = response.json()
-    except Exception as exc:
-        return f"SERPAPI_UNAVAILABLE: request failed ({exc})."
-
-    error_msg = str(payload.get("error", "")).lower()
-    if error_msg:
-        if "run out" in error_msg or "limit" in error_msg or "quota" in error_msg:
-            _serpapi_quota_exceeded = True
-            return "SERPAPI_QUOTE_EXCEEDED"
-        return f"SERPAPI_UNAVAILABLE: {payload.get('error')}"
-
-    results = payload.get("organic_results", [])
-    if not results:
-        return "SERPAPI_UNAVAILABLE: no results"
-
-    lines: list[str] = []
-    for item in results[:5]:
-        title = str(item.get("title", "")).strip()
-        snippet = str(item.get("snippet", "")).strip()
-        link = str(item.get("link", "")).strip()
-        if title or snippet:
-            lines.append(f"- {title} | {snippet} | {link}")
-
-    if not lines:
-        return "SERPAPI_UNAVAILABLE: no parseable results"
-    return "SERPAPI_RESULTS\n" + "\n".join(lines)
+_brightdata_free_credits_used: int = 0
+_tavily_free_credits_used: int = 0
 
 
 @function_tool
-def serpapi_search(query: str) -> str:
-    """Search the web with SerpAPI."""
-    return _serpapi_search_impl(query)
+def search_web(query: str) -> SearchToolResult:
+    """Search the web using the best available provider.
 
-
-@function_tool
-def search_with_fallback(query: str) -> str:
-    """Search using Tavily first, then SerpAPI, then Tavily pay-as-you-go.
-
-    Policy:
-    1) Tavily free tier until configured credit budget is used.
-    2) SerpAPI until SERPAPI_QUOTE_EXCEEDED.
-    3) Tavily again in pay-as-you-go mode.
+    Policy (in order):
+    1) Bright Data free tier  — up to 5 000 requests/month.
+    2) Tavily free tier       — up to 1 000 requests/month.
+    3) SerpAPI                — until monthly quota is exceeded.
     """
-    global _tavily_free_credits_used
+    global _brightdata_free_credits_used, _tavily_free_credits_used
 
+    # Lazy-load persisted credit counters on first call.
+    if _brightdata_free_credits_used == 0:
+        _brightdata_free_credits_used = load_brightdata_usage()
     if _tavily_free_credits_used == 0:
-        _tavily_free_credits_used = _load_tavily_usage()
+        _tavily_free_credits_used = load_tavily_usage()
 
-    tavily_free_active = _tavily_free_credits_used < _TAVILY_FREE_CREDIT_LIMIT
+    # ── 1. Bright Data free tier ──────────────────────────────────────────────
+    if _brightdata_free_credits_used < BRIGHT_DATA_FREE_CREDIT_LIMIT:
+        bd_result = brightdata_web_search(query)
+        if bd_result.startswith("BRIGHTDATA_RESULTS"):
+            _brightdata_free_credits_used += 1
+            save_brightdata_usage(_brightdata_free_credits_used)
+            return _tool_result(
+                summary=bd_result.removeprefix("BRIGHTDATA_RESULTS\n"),
+                tool_used=WebSearchTool.BRIGHT_DATA,
+            )
+        if bd_result == "BRIGHTDATA_CREDITS_EXCEEDED":
+            _brightdata_free_credits_used = BRIGHT_DATA_FREE_CREDIT_LIMIT
+            save_brightdata_usage(_brightdata_free_credits_used)
+        # Any other BRIGHTDATA_UNAVAILABLE → fall through to next provider.
 
-    if tavily_free_active:
-        tavily_result = _tavily_api_search(query, payg_mode=False)
+    # ── 2. Tavily free tier ───────────────────────────────────────────────────
+    if _tavily_free_credits_used < TAVILY_FREE_CREDIT_LIMIT:
+        tavily_result = tavily_web_search(query)
         if tavily_result.startswith("TAVILY_RESULTS"):
             _tavily_free_credits_used += 1
-            _save_tavily_usage(_tavily_free_credits_used)
-            return (
-                f"SEARCH_PROVIDER=tavily_free\n"
-                f"TAVILY_FREE_CREDITS_USED={_tavily_free_credits_used}\n"
-                + tavily_result
+            save_tavily_usage(_tavily_free_credits_used)
+            return _tool_result(
+                summary=tavily_result.removeprefix("TAVILY_RESULTS\n"),
+                tool_used=WebSearchTool.TAVILY,
             )
         if tavily_result == "TAVILY_CREDITS_EXCEEDED":
-            _tavily_free_credits_used = _TAVILY_FREE_CREDIT_LIMIT
-            _save_tavily_usage(_tavily_free_credits_used)
+            _tavily_free_credits_used = TAVILY_FREE_CREDIT_LIMIT
+            save_tavily_usage(_tavily_free_credits_used)
+        # Any TAVILY_UNAVAILABLE → fall through to SerpAPI.
 
-    if not _serpapi_quota_exceeded:
-        serp_result = _serpapi_search_impl(query)
+    # ── 3. SerpAPI ────────────────────────────────────────────────────────────
+    if not is_serpapi_quota_exceeded():
+        serp_result = serpapi_web_search(query)
         if serp_result.startswith("SERPAPI_RESULTS"):
-            return "SEARCH_PROVIDER=serpapi\n" + serp_result
-        if serp_result == "SERPAPI_QUOTE_EXCEEDED":
-            payg_result = _tavily_api_search(query, payg_mode=True)
-            return "SEARCH_PROVIDER=tavily_payg\n" + payg_result
-        if serp_result.startswith("SERPAPI_UNAVAILABLE"):
-            payg_result = _tavily_api_search(query, payg_mode=True)
-            return "SEARCH_PROVIDER=tavily_payg\n" + payg_result
+            return _tool_result(
+                summary=serp_result.removeprefix("SERPAPI_RESULTS\n"),
+                tool_used=WebSearchTool.SERPAPI,
+            )
+        # SERPAPI_QUOTE_EXCEEDED or SERPAPI_UNAVAILABLE are returned as-is so
+        # the agent can report no results were found.
+        return _tool_result(
+            summary=serp_result,
+            tool_used=WebSearchTool.SERPAPI,
+        )
 
-    payg_result = _tavily_api_search(query, payg_mode=True)
-    return "SEARCH_PROVIDER=tavily_payg\n" + payg_result
-
-
-BASE_INSTRUCTIONS = (
-    "You are a helpful assistent. Given a Merchant, which can be a store, gas station, Restaurant, Bar, Golf Club, company, you will search the web for"
-    "that term and give a concsie summary of that Merchant. The summary must contain following information:"
-    "- Name of the Merchant"
-    "- Location of the Merchant"
-    "- What the merchant is doing or selling: What is the main business? Do they have side products or services?"
-    "- If possible search for typical products or services they offer"
-    "- What are typical characteristics of the customers."
-    "- How many stores do they have?"
-    "Please return only a summary of the points and no information which isn't necessary for the summary."
-    "The idea behind the summary to get a good overview about how the Merchant could be categorized."
-    "Keep in mind that most transactions are coming from switzerland"
-)
+    return _tool_result(
+        summary="SEARCH_UNAVAILABLE: all providers exhausted or unavailable.",
+        tool_used=WebSearchTool.SERPAPI,
+    )
 
 
-def get_instructions_with_tools_use(base_instructions: str) -> tuple[str, list[Any]]:
-    use_normal_websearch = _env_flag("USE_NORMAL_WEBSEARCH", default=False)
-    if use_normal_websearch:
-        return (
-            base_instructions
-            + "Always call search_with_fallback exactly once before writing the summary."
-        ), [search_with_fallback]
-    return (
-        base_instructions
-        + "Always call search_with_fallback exactly once before writing the summary."
-        + "This tool already applies policy: Tavily free credits first, then SerpAPI until SERPAPI_QUOTE_EXCEEDED, then Tavily pay-as-you-go."
-    ), [search_with_fallback]
+BASE_INSTRUCTIONS = """
+    You are a merchant intelligence assistant.
 
+    Your task is to analyze a given merchant name (store, gas station, restaurant, bar, golf club, company, or similar business).
 
-INSTRUCTIONS, TOOLS = get_instructions_with_tools_use(BASE_INSTRUCTIONS)
+    Workflow:
+    1. Call `search_web` exactly once using the merchant name as the search query.
+    2. Analyze the returned search results.
+    3. Generate a concise and structured merchant summary.
+
+    The search tool automatically selects the best provider:
+    Bright Data free (5,000/month) -> Tavily free (1,000/month) -> SerpAPI.
+
+    Return the result in a full text summary that includes the following information when available:
+    - Name of the Merchant
+    - Location of the Merchant
+    - What the merchant is doing or selling: What is the main business? Do they have side products or services?
+    - If possible, typical products or services they offer.
+    - Typical characteristics of the customers.
+    - How many stores do they have?
+
+    Rules:
+    - Always call `search_web` exactly once before generating the summary.
+    - Use only information supported by search results.
+    - Do not invent facts.
+    - If information is unavailable, use "Unknown".
+    - Keep responses concise and factual.
+    - Focus on usefulness for Switzerland-based transaction classification when relevant.
+"""
+
 
 summary_agent = Agent(
     name="Summary Agent",
-    instructions=INSTRUCTIONS,
-    tools=TOOLS,
+    instructions=BASE_INSTRUCTIONS,
+    tools=[search_web],
     model="gpt-4o-mini",
     model_settings=ModelSettings(tool_choice="required"),
+    output_type=SearchToolResult,
 )

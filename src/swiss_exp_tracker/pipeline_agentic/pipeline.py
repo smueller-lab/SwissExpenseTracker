@@ -5,6 +5,8 @@ import asyncio
 from datetime import datetime
 from typing import Any
 
+from tqdm import tqdm
+
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import Transaction
 from swiss_exp_tracker.pipeline_agentic.merchant_manager import MerchantManager
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
@@ -23,6 +25,7 @@ def load_pending_transactions() -> list[Transaction]:
         rows = db.execute(
             """
             SELECT 
+                id,
                 date,
                 merchant_normalized,
                 booking_text,
@@ -37,6 +40,7 @@ def load_pending_transactions() -> list[Transaction]:
 
     for row in rows:
         (
+            refined_id,
             date_str,
             merchant,
             booking_text,
@@ -53,11 +57,12 @@ def load_pending_transactions() -> list[Transaction]:
         # Create Transaction object using model_validate for flexible input
         transaction = Transaction.model_validate(
             {
+                "refined_id": refined_id,
                 "Date": transaction_date,
                 "merchant": merchant,
                 "Booking text": booking_text,
                 "ZKB reference": reference,
-                "Balance CHF": None,  # Not stored in refined table
+                "Balance CHF": None,
                 "amount_chf": amount,
                 "is_person": bool(is_person),
             }
@@ -72,7 +77,7 @@ def load_pending_transactions() -> list[Transaction]:
 transactions = load_pending_transactions()
 
 # For testing, process only a subset of transactions
-transactions = transactions[100:105].copy()
+transactions = transactions[:1000].copy()
 
 
 # Step 2: For each transaction, run the agentic pipeline and store results in database
@@ -80,12 +85,16 @@ async def run_all_transactions(transactions: list[Transaction]) -> None:
     manager = MerchantManager()
     results: list[dict[Any, Any]] = []
 
-    for _, transaction in enumerate(transactions, 1):
-        async for step in manager.run(transaction):
-            if isinstance(step, dict):
-                results.append(step)
+    with tqdm(
+        total=len(transactions), unit="tx", desc="Enriching transactions"
+    ) as pbar:
+        for transaction in transactions:
+            merchant_label = transaction.merchant or transaction.booking_text or "?"
+            pbar.set_postfix_str(merchant_label[:40], refresh=True)
+            async for step in manager.run(transaction):
+                if isinstance(step, dict):
+                    results.append(step)
+            pbar.update(1)
 
 
 asyncio.run(run_all_transactions(transactions))
-
-# Step 3: Mark transactions as processed in database

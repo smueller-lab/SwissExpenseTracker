@@ -59,10 +59,29 @@ class MerchantResult:
                     merchant_result.matched_merchant,
                     int(merchant_result.cache_hit),
                     merchant_result.similarity,
-                    merchant_result.search_tool,
+                    (
+                        merchant_result.search_tool.value
+                        if merchant_result.search_tool
+                        else None
+                    ),
                     merchant_result.category_main,
                     merchant_result.category_second,
                     merchant_result.city,
                 ),
+            )
+            db.commit()
+
+    def mark_transaction_enriched(self, refined_id: int | None) -> None:
+        """Update transactions_refined.enrichment_status to 'enriched' for the given row id."""
+        if refined_id is None:
+            return
+        with sqlite3.connect(self.path_db) as db:
+            db.execute(
+                """
+                UPDATE transactions_refined
+                SET enrichment_status = 'enriched'
+                WHERE id = ?
+                """,
+                (refined_id,),
             )
             db.commit()
