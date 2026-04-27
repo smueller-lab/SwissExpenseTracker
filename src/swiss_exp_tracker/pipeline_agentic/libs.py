@@ -206,54 +206,51 @@ def save_tavily_usage(used: int) -> None:
 
 
 def tavily_web_search(query: str) -> str:
-    """Search via the Tavily MCP server and return normalised results.
+    """Search via the Tavily REST API directly (no MCP overhead).
 
-    Uses ``tavily_mcp()`` from the MCP server registry.
     Requires TAVILY_API_KEY to be set in .env.
     """
     if not API_KEYS.tavily_api_key:
         return "TAVILY_UNAVAILABLE: TAVILY_API_KEY is missing."
 
-    async def _search() -> str:
-        from swiss_exp_tracker.pipeline_agentic.mcp_servers import tavily_mcp
+    try:
+        response = requests.post(
+            "https://api.tavily.com/search",
+            json={
+                "api_key": API_KEYS.tavily_api_key,
+                "query": query,
+                "search_depth": "basic",
+                "max_results": 5,
+            },
+            timeout=5.0,  # fail fast — if Tavily is slow, fall through to SerpAPI
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:
+        return f"TAVILY_UNAVAILABLE: request failed ({exc})."
 
-        server = tavily_mcp()
-        try:
-            async with server:
-                result = await server.call_tool("tavily-search", {"query": query})
-        except BaseExceptionGroup as eg:
-            causes = "; ".join(str(e) for e in eg.exceptions)
-            return f"TAVILY_UNAVAILABLE: request failed ({causes})."
-        except Exception as exc:
-            return f"TAVILY_UNAVAILABLE: request failed ({exc})."
+    error = str(payload.get("error", "")).lower()
+    if error:
+        if any(p in error for p in ("credit", "quota", "limit", "exceeded")):
+            return "TAVILY_CREDITS_EXCEEDED"
+        return f"TAVILY_UNAVAILABLE: {payload.get('error')}"
 
-        if not result.content:
-            return "TAVILY_UNAVAILABLE: no results."
+    results = payload.get("results", [])
+    if not results:
+        return "TAVILY_UNAVAILABLE: no results."
 
-        lines: list[str] = []
-        for item in result.content:
-            text = getattr(item, "text", None)
-            if text:
-                stripped = str(text).strip()
-                lower = stripped.lower()
-                if any(
-                    phrase in lower
-                    for phrase in (
-                        "credit limit exceeded",
-                        "out of credits",
-                        "quota exceeded",
-                    )
-                ):
-                    return "TAVILY_CREDITS_EXCEEDED"
-                if stripped:
-                    lines.append(stripped)
+    lines: list[str] = []
+    for r in results:
+        title = r.get("title", "")
+        content = r.get("content", "")
+        url = r.get("url", "")
+        if content:
+            lines.append(f"{title}: {content} ({url})")
 
-        if not lines:
-            return "TAVILY_UNAVAILABLE: no parseable results."
+    if not lines:
+        return "TAVILY_UNAVAILABLE: no parseable results."
 
-        return "TAVILY_RESULTS\n" + "\n".join(lines)
-
-    return asyncio.run(_search())
+    return "TAVILY_RESULTS\n" + "\n".join(lines)
 
 
 def serpapi_web_search(query: str) -> str:

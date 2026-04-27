@@ -167,6 +167,8 @@ class CategorySecond(StrEnum):
     RETAIL_DEPARTMENT = "Department Store"
     RETAIL_SHOES = "Shoes"
     RETAIL_FURNITURE = "Furniture"
+    RETAIL_DRUG_STORE = "Drug Store"
+    RETAIL_PHOTOGRAPHY = "Photography"
 
     # GROCERIES
     # Use for food shopping and drink retailers.
@@ -201,12 +203,14 @@ class CategorySecond(StrEnum):
     # Use for public/paid transport rides and tickets (train, bus, taxi, metro, ferry, bike rental).
     # Long-distance travel bookings (flight/hotel/car rental for trips) belong to TRAVEL_*.
     # Parking fees belong to CAR_PARKING, not TRANSPORT_PARKING.
+    # Fuel always belongs to CAR_FUEL, not TRANSPORT_FUEL, even if it's for a trip. We want to capture fuel expenses under car ownership, not travel.
     TRANSPORT_TRAIN = "Train"
     TRANSPORT_BUS = "Bus"
     TRANSPORT_TAXI = "Taxi"
     TRANSPORT_METRO = "Metro"
     TRANSPORT_BIKE = "Bike Rental"
     TRANSPORT_FERRY = "Ferry"
+    TRANSPORT_CABLE_CAR = "Cable Car"
 
     # TRAVEL
     # Use for trip planning and travel bookings (flight, accommodation, car rental, ticket platforms).
