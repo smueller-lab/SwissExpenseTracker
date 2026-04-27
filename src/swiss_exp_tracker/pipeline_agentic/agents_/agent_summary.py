@@ -47,9 +47,9 @@ def search_web(query: str) -> SearchToolResult:
     """Search the web using the best available provider.
 
     Policy (in order):
-    1) Bright Data free tier  — up to 5 000 requests/month.
-    2) Tavily free tier       — up to 1 000 requests/month.
-    3) SerpAPI                — until monthly quota is exceeded.
+    1) Tavily free tier       — up to 1 000 requests/month (direct REST, fast).
+    2) SerpAPI                — until monthly quota is exceeded (direct REST, fast).
+    3) Bright Data free tier  — up to 5 000 requests/month (MCP, slow fallback).
     """
     global _brightdata_free_credits_used, _tavily_free_credits_used
 
@@ -59,22 +59,7 @@ def search_web(query: str) -> SearchToolResult:
     if _tavily_free_credits_used == 0:
         _tavily_free_credits_used = load_tavily_usage()
 
-    # ── 1. Bright Data free tier ──────────────────────────────────────────────
-    if _brightdata_free_credits_used < BRIGHT_DATA_FREE_CREDIT_LIMIT:
-        bd_result = brightdata_web_search(query)
-        if bd_result.startswith("BRIGHTDATA_RESULTS"):
-            _brightdata_free_credits_used += 1
-            save_brightdata_usage(_brightdata_free_credits_used)
-            return _tool_result(
-                summary=bd_result.removeprefix("BRIGHTDATA_RESULTS\n"),
-                tool_used=WebSearchTool.BRIGHT_DATA,
-            )
-        if bd_result == "BRIGHTDATA_CREDITS_EXCEEDED":
-            _brightdata_free_credits_used = BRIGHT_DATA_FREE_CREDIT_LIMIT
-            save_brightdata_usage(_brightdata_free_credits_used)
-        # Any other BRIGHTDATA_UNAVAILABLE → fall through to next provider.
-
-    # ── 2. Tavily free tier ───────────────────────────────────────────────────
+    # ── 1. Tavily free tier (direct REST) ────────────────────────────────────
     if _tavily_free_credits_used < TAVILY_FREE_CREDIT_LIMIT:
         tavily_result = tavily_web_search(query)
         if tavily_result.startswith("TAVILY_RESULTS"):
@@ -89,7 +74,7 @@ def search_web(query: str) -> SearchToolResult:
             save_tavily_usage(_tavily_free_credits_used)
         # Any TAVILY_UNAVAILABLE → fall through to SerpAPI.
 
-    # ── 3. SerpAPI ────────────────────────────────────────────────────────────
+    # ── 2. SerpAPI (direct REST) ──────────────────────────────────────────────
     if not is_serpapi_quota_exceeded():
         serp_result = serpapi_web_search(query)
         if serp_result.startswith("SERPAPI_RESULTS"):
@@ -97,12 +82,21 @@ def search_web(query: str) -> SearchToolResult:
                 summary=serp_result.removeprefix("SERPAPI_RESULTS\n"),
                 tool_used=WebSearchTool.SERPAPI,
             )
-        # SERPAPI_QUOTE_EXCEEDED or SERPAPI_UNAVAILABLE are returned as-is so
-        # the agent can report no results were found.
-        return _tool_result(
-            summary=serp_result,
-            tool_used=WebSearchTool.SERPAPI,
-        )
+        # SERPAPI_QUOTE_EXCEEDED or SERPAPI_UNAVAILABLE → fall through.
+
+    # ── 3. Bright Data free tier (MCP, slow) ─────────────────────────────────
+    if _brightdata_free_credits_used < BRIGHT_DATA_FREE_CREDIT_LIMIT:
+        bd_result = brightdata_web_search(query)
+        if bd_result.startswith("BRIGHTDATA_RESULTS"):
+            _brightdata_free_credits_used += 1
+            save_brightdata_usage(_brightdata_free_credits_used)
+            return _tool_result(
+                summary=bd_result.removeprefix("BRIGHTDATA_RESULTS\n"),
+                tool_used=WebSearchTool.BRIGHT_DATA,
+            )
+        if bd_result == "BRIGHTDATA_CREDITS_EXCEEDED":
+            _brightdata_free_credits_used = BRIGHT_DATA_FREE_CREDIT_LIMIT
+            save_brightdata_usage(_brightdata_free_credits_used)
 
     return _tool_result(
         summary="SEARCH_UNAVAILABLE: all providers exhausted or unavailable.",
@@ -121,7 +115,7 @@ BASE_INSTRUCTIONS = """
     3. Generate a concise and structured merchant summary.
 
     The search tool automatically selects the best provider:
-    Bright Data free (5,000/month) -> Tavily free (1,000/month) -> SerpAPI.
+    Tavily free (1,000/month) -> SerpAPI free (250/month) -> Bright Data free (5,000/month, slow).
 
     Return the result in a full text summary that includes the following information when available:
     - Name of the Merchant

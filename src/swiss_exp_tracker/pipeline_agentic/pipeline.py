@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import time
 
 from datetime import datetime
-from typing import Any
 
 from tqdm import tqdm
 
@@ -77,24 +77,42 @@ def load_pending_transactions() -> list[Transaction]:
 transactions = load_pending_transactions()
 
 # For testing, process only a subset of transactions
-transactions = transactions[:1000].copy()
+transactions = transactions[:100].copy()
 
 
 # Step 2: For each transaction, run the agentic pipeline and store results in database
-async def run_all_transactions(transactions: list[Transaction]) -> None:
+async def run_all_transactions(
+    transactions: list[Transaction], concurrency: int = 5
+) -> None:
+    """Process transactions concurrently.
+
+    ``concurrency`` controls how many transactions run in parallel.
+    Keep it low (3-8) to avoid hitting API rate limits on the web-search
+    providers and the OpenAI API.
+    """
     manager = MerchantManager()
-    results: list[dict[Any, Any]] = []
+    semaphore = asyncio.Semaphore(concurrency)
+    t_start = time.perf_counter()
 
     with tqdm(
         total=len(transactions), unit="tx", desc="Enriching transactions"
     ) as pbar:
-        for transaction in transactions:
-            merchant_label = transaction.merchant or transaction.booking_text or "?"
-            pbar.set_postfix_str(merchant_label[:40], refresh=True)
-            async for step in manager.run(transaction):
-                if isinstance(step, dict):
-                    results.append(step)
-            pbar.update(1)
+
+        async def process_one(transaction: Transaction) -> None:
+            async with semaphore:
+                merchant_label = transaction.merchant or transaction.booking_text or "?"
+                pbar.set_postfix_str(merchant_label[:40], refresh=True)
+                async for _step in manager.run(transaction):
+                    pass  # steps are logged inside manager.run via print
+                pbar.update(1)
+
+        await asyncio.gather(*(process_one(tx) for tx in transactions))
+
+    elapsed = time.perf_counter() - t_start
+    tqdm.write(
+        f"\nDone. {len(transactions)} transactions in {elapsed:.1f}s "
+        f"({elapsed / len(transactions):.2f}s/tx avg)"
+    )
 
 
 asyncio.run(run_all_transactions(transactions))
