@@ -20,7 +20,7 @@ class Transaction(BaseModel):
 
     refined_id: int | None = Field(
         default=None,
-        description="Primary key of the row in transactions_refined",
+        description="Primary key of the row in transactions_rfn",
     )
     Date: date | None = Field(description="date of the transaction")
     merchant: str | None = Field(
@@ -98,6 +98,7 @@ class CategoryMain(StrEnum):
     EDUCATION = "Education"  # online classes and courses. Udemly
     PAYMENT_SERVICES = "Payment Services"  # credit card payments services
     INVESTING = "Investing"  # Revolut, TrueWealth
+    POSTAL_SERVICES = "Postal Services"  # Swiss Post, parcel shipping, letters, stamps
     FRIEND = "Friend"  # All bookings with personal names and/or a phone number. (Remove phone number)
 
 
@@ -243,6 +244,10 @@ class CategorySecond(StrEnum):
     # INVESTING
     # Use for brokerage/investment platform related transactions.
     INVESTING_BROKERAGE = "Brokerage"
+
+    # POSTAL SERVICES
+    # Use for postal and shipping services (sending letters, parcels, buying stamps).
+    POSTAL_POST_OFFICE = "Post Office"
 
     # FRIEND
     # Use for person-to-person transfers, reimbursements and bill splits.

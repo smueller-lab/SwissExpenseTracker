@@ -42,19 +42,15 @@ def run_ingestion() -> dict[str, Any]:
 
     logger.info("[pipeline] Stage 1: landing")
     landing_result = run_landing()
-    logger.info("           %s", landing_result)
 
     logger.info("[pipeline] Stage 2: raw")
     raw_result = run_raw()
-    logger.info("           %s", raw_result)
 
     logger.info("[pipeline] Stage 3: refined")
     refined_result = run_refined()
-    logger.info("           %s", refined_result)
 
     logger.info("[pipeline] Stage 4: postprocess")
     postprocess_result = run_postprocess()
-    logger.info("           %s", postprocess_result)
 
     return {
         "landing": landing_result,

@@ -47,7 +47,7 @@ def _insert_landing_row(file_id: int, source_type: SourceType, raw_json: str) ->
     with get_connection() as db:
         db.execute(
             """
-			INSERT INTO transactions_landing (
+			INSERT INTO transactions_lnd (
 				file_id,
 				source_type,
 				raw_json,

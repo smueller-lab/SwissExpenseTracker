@@ -38,7 +38,7 @@ def create_all_tables() -> None:
 
         db.execute(
             """
-			CREATE TABLE IF NOT EXISTS transactions_landing (
+			CREATE TABLE IF NOT EXISTS transactions_lnd (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				file_id INTEGER NOT NULL,
 				source_type TEXT NOT NULL,
@@ -60,14 +60,14 @@ def create_all_tables() -> None:
 				source_file TEXT NOT NULL,
 				created_at TEXT NOT NULL,
 				processed INTEGER NOT NULL DEFAULT 0,
-				FOREIGN KEY (landing_id) REFERENCES transactions_landing(id)
+				FOREIGN KEY (landing_id) REFERENCES transactions_lnd(id)
 			)
 			"""
         )
 
         db.execute(
             """
-			CREATE TABLE IF NOT EXISTS transactions_refined (
+			CREATE TABLE IF NOT EXISTS transactions_rfn (
 				id INTEGER PRIMARY KEY AUTOINCREMENT,
 				raw_id INTEGER NOT NULL,
 				source_type TEXT NOT NULL,
@@ -88,13 +88,11 @@ def create_all_tables() -> None:
 
         refined_columns = {
             str(column[1])
-            for column in db.execute(
-                "PRAGMA table_info(transactions_refined)"
-            ).fetchall()
+            for column in db.execute("PRAGMA table_info(transactions_rfn)").fetchall()
         }
         if "is_person" not in refined_columns:
             db.execute(
-                "ALTER TABLE transactions_refined ADD COLUMN is_person INTEGER NOT NULL DEFAULT 0"
+                "ALTER TABLE transactions_rfn ADD COLUMN is_person INTEGER NOT NULL DEFAULT 0"
             )
 
         db.execute(
@@ -106,7 +104,7 @@ def create_all_tables() -> None:
         db.execute(
             """
 			CREATE INDEX IF NOT EXISTS idx_landing_file_processed
-			ON transactions_landing(file_id, processed)
+			ON transactions_lnd(file_id, processed)
 			"""
         )
         db.execute(
@@ -118,7 +116,7 @@ def create_all_tables() -> None:
         db.execute(
             """
 			CREATE INDEX IF NOT EXISTS idx_refined_enrichment_status
-			ON transactions_refined(enrichment_status)
+			ON transactions_rfn(enrichment_status)
 			"""
         )
 

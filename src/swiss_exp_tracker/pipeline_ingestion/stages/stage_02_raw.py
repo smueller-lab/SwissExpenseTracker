@@ -16,7 +16,7 @@ from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 def _load_unprocessed_landing_rows(source_type: SourceType) -> list[LandingRow]:
     query = """
         SELECT tl.id, tl.file_id, tl.source_type, tl.raw_json, f.filename
-        FROM transactions_landing tl
+        FROM transactions_lnd tl
         JOIN ingested_files f ON f.id = tl.file_id
         WHERE tl.processed = 0
           AND tl.source_type = f.source_type
@@ -81,7 +81,7 @@ def process_raw_source(source_type: SourceType) -> dict[str, int]:
             )
 
             db.execute(
-                "UPDATE transactions_landing SET processed = 1 WHERE id = ?",
+                "UPDATE transactions_lnd SET processed = 1 WHERE id = ?",
                 (row.landing_id,),
             )
 
@@ -91,7 +91,7 @@ def process_raw_source(source_type: SourceType) -> dict[str, int]:
 
         for file_id in processed_file_ids:
             unprocessed_count = db.execute(
-                "SELECT COUNT(*) FROM transactions_landing WHERE file_id = ? AND processed = 0",
+                "SELECT COUNT(*) FROM transactions_lnd WHERE file_id = ? AND processed = 0",
                 (file_id,),
             ).fetchone()
             if unprocessed_count is None or int(unprocessed_count[0]) > 0:
