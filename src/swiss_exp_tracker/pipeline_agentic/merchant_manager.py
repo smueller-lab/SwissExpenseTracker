@@ -114,7 +114,9 @@ class MerchantManager:
         self, merchant: MerchantExtractor
     ) -> SearchToolResult:
         """Get merchant summary. Returns (summary, search_tool_used)."""
-        result = await Runner.run(summary_agent, merchant.model_dump_json())
+        result = await Runner.run(
+            summary_agent, merchant.model_dump_json(), max_turns=10
+        )
         return result.final_output_as(SearchToolResult)
 
     async def get_merchant_metadata(
@@ -129,5 +131,7 @@ class MerchantManager:
             merchant_summary=summary,
         )
 
-        result = await Runner.run(metadata_agent, agent_input.model_dump_json())
+        result = await Runner.run(
+            metadata_agent, agent_input.model_dump_json(), max_turns=10
+        )
         return result.final_output_as(MerchantMetaData)

@@ -1,0 +1,148 @@
+interactions:
+- request:
+    body: '{"query": "Migros", "type": "auto", "numResults": 5, "contents": {"summary":
+      {"query": "Migros"}}}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate, zstd
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '98'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.5
+    method: POST
+    uri: https://api.exa.ai/search
+  response:
+    body:
+      string: "{\"requestId\":\"42c14a018b835c45353c23f8c65ea8f1\",\"resolvedSearchType\":\"\",\"results\":[{\"id\":\"https://www.migros.ch/\",\"title\":\"Migros\",\"url\":\"https://www.migros.ch/\",\"summary\":\"Summary:\\nMigros
+        is a major Swiss retailer and supermarket chain. The page appears to be the
+        Migros homepage with branding and navigation elements, but the provided text
+        is limited and includes some interface artifacts (e.g., \u201CClose dialog
+        box,\u201D version numbers). The core takeaway for the user query \u201CMigros\u201D
+        is that this is the official Migros site, likely offering access to product
+        shopping, store information, customer accounts, promotions, and services typical
+        of Migros\u2019 online presence. For a more precise summary, please provide
+        additional context or text from the page (e.g., sections on groceries, online
+        shop, or loyalty programs).\",\"image\":\"https://www.migros.ch/assets/mgb-favicons/icon-512x512.png\",\"favicon\":\"https://www.migros.ch/assets/mgb-favicons/favicon-32x32.png\"},{\"id\":\"https://corporate.migros.ch/en\",\"title\":\"About
+        the Migros Group | Migros\",\"url\":\"https://corporate.migros.ch/en\",\"summary\":\"Migros
+        is a Swiss cooperative with a strong focus on responsibility, sustainability,
+        and community impact. The corporate site highlights:\\n\\n- About the Migros
+        Group: overview of governance, family of topics, and strategic focus.\\n-
+        Our purpose: \u201CWhenever we take responsibility, it benefits the world\u201D
+        and enables customers to contribute to positive change.\\n- Key areas of work:
+        Sustainability, vision, organization, and news, plus governance and membership.\\n-
+        Becoming a cooperative member: customers can become co-owners, gaining influence
+        and benefits beyond typical shopping.\\n- Current topics and stories: initiatives
+        and interviews on price developments, medicines availability, animal welfare
+        (Pamela the model cow), festival partnerships, and public discussions about
+        pricing and policy.\\n\\nIf you\u2019re exploring Migros generally, this page
+        points you to core sections (Sustainability, Story, Annual Report, and Becoming
+        a cooperative member) and provides recent updates and thematic stories.\",\"image\":\"https://corporate.migros.ch/_next/static/media/mLogo.abe368b1.svg\",\"favicon\":\"https://corporate.migros.ch/favicon.ico\"},{\"id\":\"https://report.migros.ch/\",\"title\":\"Migros
+        \u2013 Annual Report 2025\",\"url\":\"https://report.migros.ch/\",\"summary\":\"Migros
+        \u2013 Annual Report 2025: Key takeaway\\n\\n- Financials: Migros Group generated
+        CHF 31.916 billion in sales in 2025, signaling strong overall performance
+        and growth.\\n- Strategic direction: Adoption of Vision 2035 to guide long-term
+        development.\\n- Core performance: Non-Food Retail delivered notable growth
+        (+13.6%) in 2025, highlighting robust expansion in that segment.\\n- Health
+        & care: Increased commitment to sustainable, integrated health care initiatives
+        in 2025.\\n- People & culture: Targeted programs launched to support experienced
+        employees, reinforcing focus on talent and inclusion.\\n- Social responsibility:
+        Invested CHF 138 million in voluntary social initiatives, underscoring a strong
+        emphasis on community impact.\\n- Members & structure: Migros remained closely
+        connected to its base with over 2.3 million cooperative members by end-2025.\\n-
+        Highlights: The report emphasizes \u201Csurprising highlights\u201D for 2025,
+        reflecting notable achievements and developments across the group.\\n\\nIf
+        you want, I can pull out the top 3-5 most relevant details for a specific
+        query (e.g., financial performance, member numbers, or sustainability initiatives).\",\"image\":\"https://report.migros.ch/2025/app/plugins/nhs-seo/web/assets/no-image.png?width=1200&height=628&mode=crop\",\"favicon\":\"https://report.migros.ch/2025/app/themes/migros-ar-theme/dist/favicons/favicon.ico\"},{\"id\":\"https://www.migros.ch/en\",\"title\":\"Migros
+        supermarket \u2013 Order online and get it delivered to your home ...\",\"url\":\"https://www.migros.ch/en\",\"summary\":\"Migros
+        is a Swiss supermarket and retailer offering online ordering and home delivery.
+        The site provides access to grocery shopping, product catalogs, and store-related
+        services. If you\u2019re looking to browse or purchase groceries from Migros,
+        the homepage leads you to order online for home delivery and explore their
+        various departments and promotions.\",\"image\":\"https://www.migros.ch/assets/mgb-favicons/icon-512x512.png\",\"favicon\":\"https://www.migros.ch/assets/mgb-favicons/favicon-32x32.png\"},{\"id\":\"https://corporate.migros.ch/en/about-us/organisation\",\"title\":\"Organisation
+        of Migros | Migros\",\"url\":\"https://corporate.migros.ch/en/about-us/organisation\",\"summary\":\"Migros
+        Organization overview\\n\\n- What it is: A Swiss cooperative-based retail
+        and food company with a federated structure. The site explains how Migros\u2019
+        organization works, its departments, hierarchy, and governance.\\n- How it\u2019s
+        organized: An interactive visual chart showing the corporate structure, department
+        collaboration, and reporting lines across the Migros Group.\\n- Governing
+        documents: Access to key statutes, regulations, and rulings including Statutes
+        2024, contracts, organizational rules, and 2024 election regulations.\\n-
+        Everyday life at Migros: A behind-the-scenes look at projects, work-life balance,
+        apprentices in leadership tasks, and cultural/career stories. Highlights include:\\n
+        \ - Performance reviews and transformation updates\\n  - Mini Migros and youth
+        engagement\\n  - Apprentices running a Migros store and lessons learned\\n
+        \ - Production insights (e.g., how Migros bread is made)\\n  - Product history
+        and education about Migros own-brand products\\n  - Social initiatives like
+        food waste reduction and charitable actions\\n  - Environmental efforts (e.g.,
+        making refrigeration greener, improving air conditioning)\\n- Notable stories
+        and topical content: Obituaries of key figures, behind-the-scenes at meat
+        counters, seasonal customer insights, and staff perspectives on balancing
+        work and family life.\\n- Related entities: The Federation of Migros Cooperatives,
+        Migros Supermarket Ltd, Cooperatives, and the broader Migros Group.\\n\\nIf
+        you\u2019re looking for a quick sense of Migros\u2019 structure and governance,
+        start with the organizational chart and then explore the statutory documents.
+        For culture, employee stories, and sustainability initiatives, browse the
+        \u201CFrom our everyday life\u201D and story sections.\",\"image\":\"https://corporate.migros.ch/_next/static/media/mLogo.abe368b1.svg\",\"favicon\":\"https://corporate.migros.ch/favicon.ico\"}],\"searchTime\":15.4,\"costDollars\":{\"total\":0.012,\"search\":{\"neural\":0.007},\"summary\":0.005}}"
+    headers:
+      CF-RAY:
+      - 9f5e39a55c1fbc12-ZRH
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Sun, 03 May 2026 09:26:37 GMT
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      access-control-allow-credentials:
+      - 'true'
+      access-control-expose-headers:
+      - PAYMENT-REQUIRED,PAYMENT-RESPONSE,payment-required,payment-response
+      cf-cache-status:
+      - DYNAMIC
+      content-length:
+      - '6538'
+      content-security-policy:
+      - frame-ancestors 'self'
+      cross-origin-opener-policy:
+      - same-origin
+      cross-origin-resource-policy:
+      - same-origin
+      etag:
+      - W/"198a-GZi9u2pfMawAYPf6Ro3jP4vk7d0"
+      origin-agent-cluster:
+      - ?1
+      referrer-policy:
+      - no-referrer
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains
+      vary:
+      - Origin
+      x-content-type-options:
+      - nosniff
+      x-dns-prefetch-control:
+      - 'off'
+      x-download-options:
+      - noopen
+      x-exa-queue-ms:
+      - '0'
+      x-exa-queued:
+      - 'false'
+      x-frame-options:
+      - DENY
+      x-permitted-cross-domain-policies:
+      - none
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+version: 1

@@ -19,7 +19,7 @@ class MerchantResult:
         os.makedirs(self.dr_db, exist_ok=True)
 
     def save_merchant_result(self, merchant_result: MetadataResult) -> None:
-        table_name = "Merchant_Metadata"
+        table_name = "merchant_metadata_raw"
         with sqlite3.connect(self.path_db) as db:
             db.execute(
                 f"""
@@ -72,13 +72,13 @@ class MerchantResult:
             db.commit()
 
     def mark_transaction_enriched(self, refined_id: int | None) -> None:
-        """Update transactions_refined.enrichment_status to 'enriched' for the given row id."""
+        """Update transactions_rfn.enrichment_status to 'enriched' for the given row id."""
         if refined_id is None:
             return
         with sqlite3.connect(self.path_db) as db:
             db.execute(
                 """
-                UPDATE transactions_refined
+                UPDATE transactions_rfn
                 SET enrichment_status = 'enriched'
                 WHERE id = ?
                 """,

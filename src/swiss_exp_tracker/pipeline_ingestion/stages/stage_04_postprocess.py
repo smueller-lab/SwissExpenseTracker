@@ -14,7 +14,7 @@ def _clean_credit_card_payments(db: sqlite3.Connection) -> int:
     zkb_rows = db.execute(
         """
         SELECT id, amount
-        FROM transactions_refined
+        FROM transactions_rfn
         WHERE source_type = ?
           AND transaction_type = ?
           AND (
@@ -29,7 +29,7 @@ def _clean_credit_card_payments(db: sqlite3.Connection) -> int:
     viseca_rows = db.execute(
         """
         SELECT id, amount
-        FROM transactions_refined
+        FROM transactions_rfn
         WHERE source_type = ?
           AND transaction_type = ?
           AND (
@@ -64,7 +64,7 @@ def _clean_credit_card_payments(db: sqlite3.Connection) -> int:
 
     placeholders = ",".join("?" for _ in ids_to_delete)
     db.execute(
-        f"DELETE FROM transactions_refined WHERE id IN ({placeholders})",
+        f"DELETE FROM transactions_rfn WHERE id IN ({placeholders})",
         tuple(ids_to_delete),
     )
     return len(ids_to_delete) // 2
@@ -73,7 +73,7 @@ def _clean_credit_card_payments(db: sqlite3.Connection) -> int:
 def _fill_viseca_credit_card_fee_text(db: sqlite3.Connection) -> int:
     cursor = db.execute(
         """
-        UPDATE transactions_refined
+        UPDATE transactions_rfn
         SET booking_text = ?,
             merchant_normalized = ?
         WHERE source_type = ?

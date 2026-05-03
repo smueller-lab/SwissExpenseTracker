@@ -107,7 +107,7 @@ def _load_unprocessed_raw_rows(source_type: SourceType) -> list[RawRow]:
     query = """
 		SELECT tr.id, tr.landing_id, tl.file_id, tr.source_type, tr.raw_json, tr.source_file
 		FROM transactions_raw tr
-		JOIN transactions_landing tl ON tl.id = tr.landing_id
+		JOIN transactions_lnd tl ON tl.id = tr.landing_id
 		WHERE tr.processed = 0
 		  AND tr.source_type = ?
 		ORDER BY tr.id
@@ -240,12 +240,12 @@ def _is_duplicate(
     date_iso: str | None,
     amount: float,
 ) -> bool:
-    """Find duplicates in transactions_refined based on reference, date, and amount."""
+    """Find duplicates in transactions_rfn based on reference, date, and amount."""
     params: tuple[str, float] | tuple[str, str, float]
     if date_iso is None:
         query = """
 			SELECT 1
-			FROM transactions_refined
+			FROM transactions_rfn
 			WHERE reference = ?
 			  AND date IS NULL
 			  AND amount = ?
@@ -255,7 +255,7 @@ def _is_duplicate(
     else:
         query = """
 			SELECT 1
-			FROM transactions_refined
+			FROM transactions_rfn
 			WHERE reference = ?
 			  AND date = ?
 			  AND amount = ?
@@ -290,7 +290,7 @@ def _clean_debit_ebanking(
 
     Returns the cleaned transaction row. Parent helper rows return `None`
     because they only provide context for following detail rows and should not
-    be inserted into `transactions_refined`.
+    be inserted into `transactions_rfn`.
     """
     booking_text = zkb_model.BookingText.strip()
 
@@ -335,7 +335,7 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
     3. Parse each raw row into its source model and apply source-specific rules.
     4. Skip rows that should not become refined records (duplicates, exchange
        legs, topups, helper parent rows) while still marking them processed.
-    5. Insert normalized rows into `transactions_refined` and mark raw rows as
+    5. Insert normalized rows into `transactions_rfn` and mark raw rows as
        processed.
     6. Promote ingested file status to `refined` when all file rows are fully
        processed.
@@ -459,7 +459,7 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
 
             db.execute(
                 """
-				INSERT INTO transactions_refined (
+				INSERT INTO transactions_rfn (
 					raw_id,
 					source_type,
 					date,
@@ -500,7 +500,7 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
                 """
 				SELECT COUNT(*)
 				FROM transactions_raw tr
-				JOIN transactions_landing tl ON tl.id = tr.landing_id
+				JOIN transactions_lnd tl ON tl.id = tr.landing_id
 				WHERE tl.file_id = ?
 				  AND tr.processed = 0
 				""",

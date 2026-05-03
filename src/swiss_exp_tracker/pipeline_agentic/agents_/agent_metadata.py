@@ -39,8 +39,9 @@ Each entry lists the main category, typical examples, usage guidance, and valid 
 Use only for sports activities, clubs, equipment and memberships.
 Sub-categories: Tennis | Golf | Padel | Bike | Fitness | Running | Swimming
 
-**Entertainment** (e.g. Spotify, Festival, concert, cinema, theatre)
+**Entertainment** (e.g. Spotify, Festival, concert, cinema, theatre, sports event)
 Use for leisure/consumption entertainment (streaming, events, cinema, theatre, spectator sports).
+Any visit in a sports stadium or hall for watching an event belongs to Entertainment, not Sport.
 Sub-categories: Music Streaming | Events & Concerts | Sports | Cinema | Theatre | TV & Streaming
 
 **Telecommunication** (e.g. GoMo, Sunrise, Salt)
@@ -78,11 +79,12 @@ Sub-categories: Rent | Utilities | Maintenance
 
 **Car** (e.g. car purchase, service, gas station, parking)
 Use for vehicle operation and ownership costs (fuel, parking, service, wash, car taxes). Car insurance premiums belong to Insurance, not Car.
-'Raststätte' is typical german word for highway service stations, which often include fuel, food and parking. Classify based on the dominant expense. If fuel is dominant → Car; if food is dominant → Restaurant; if parking is dominant → Car.
+'Raststätte' is typical german word for highway gas station, which often include fuel, food and parking. Classify based on the dominant expense. If fuel is dominant → Car; if food is dominant → Restaurant; if parking is dominant → Car.
 Sub-categories: Purchase | Service & Repair | Fuel | Parking | Wash | Tax
 
 **Transport** (e.g. Train, Bus, SBB, Deutsche Bahn — all transportation except flights)
 Use for public/paid transport rides and tickets. Long-distance trip bookings → Travel. Parking fees → Car. Fuel → Car.
+Parking belongs to Car, not Transport, even if it's at a train station or airport.
 Sub-categories: Train | Bus | Taxi | Metro | Bike Rental | Ferry | Cable Car 
 
 **Travel** (e.g. accommodation, flight, car rental, booking.com, Airbnb, Hotel)
@@ -105,6 +107,10 @@ Sub-categories: Payment Fees | Currency Exchange | Transfer Fees
 Use for brokerage/investment platform related transactions.
 Sub-categories: Brokerage
 
+**Postal Services** (e.g. Swiss Post, Die Post, La Poste)
+Use for postal and shipping services (sending letters, parcels, buying stamps). Do not use for PostFinance financial transactions — those belong to Payment Services.
+Sub-categories: Post Office
+
 **Friend**
 All bookings with personal names and/or a phone number (remove the phone number). Use for person-to-person transfers, reimbursements and bill splits.
 Sub-categories: Support Payment
@@ -116,6 +122,9 @@ Sub-categories: Support Payment
 - Use Travel for flight/hotel/car rental bookings, and Transport for local/public rides (train, bus, taxi, metro, ferry).
 - Use Healthcare for care providers (doctor, dentist, pharmacy, therapy), not insurance products.
 - Name of the Merchant and category_main cannot be None.
+- When most of the components in summary are unknown, guess based on the merchant name"
+- Sporting Goods & Merchandising always belong to RETAIL_SPORTS and not into the SPORT category. Only actual sports activities, clubs, equipment rentals and memberships belong to SPORT.
+- If the merchant contains a personal name and the merchant summary does not indicate a specific store or is unknown, classify as Friend. Don't try to assume the it's a store"
 """
 
 

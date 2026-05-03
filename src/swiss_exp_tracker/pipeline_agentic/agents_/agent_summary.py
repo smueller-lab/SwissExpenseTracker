@@ -7,22 +7,29 @@ from agents import ModelSettings
 from agents import function_tool
 from pydantic import BaseModel
 
-from swiss_exp_tracker.pipeline_agentic.libs import BRIGHT_DATA_FREE_CREDIT_LIMIT
+from swiss_exp_tracker.pipeline_agentic.libs import BRAVE_SEARCH_FREE_CREDIT_LIMIT
+from swiss_exp_tracker.pipeline_agentic.libs import EXA_FREE_CREDIT_LIMIT
+from swiss_exp_tracker.pipeline_agentic.libs import SCRAPE_DO_FREE_CREDIT_LIMIT
 from swiss_exp_tracker.pipeline_agentic.libs import TAVILY_FREE_CREDIT_LIMIT
-from swiss_exp_tracker.pipeline_agentic.libs import brightdata_web_search
-from swiss_exp_tracker.pipeline_agentic.libs import is_serpapi_quota_exceeded
-from swiss_exp_tracker.pipeline_agentic.libs import load_brightdata_usage
+from swiss_exp_tracker.pipeline_agentic.libs import brave_web_search
+from swiss_exp_tracker.pipeline_agentic.libs import exa_web_search
+from swiss_exp_tracker.pipeline_agentic.libs import load_brave_usage
+from swiss_exp_tracker.pipeline_agentic.libs import load_exa_usage
+from swiss_exp_tracker.pipeline_agentic.libs import load_scrape_do_usage
 from swiss_exp_tracker.pipeline_agentic.libs import load_tavily_usage
-from swiss_exp_tracker.pipeline_agentic.libs import save_brightdata_usage
+from swiss_exp_tracker.pipeline_agentic.libs import save_brave_usage
+from swiss_exp_tracker.pipeline_agentic.libs import save_exa_usage
+from swiss_exp_tracker.pipeline_agentic.libs import save_scrape_do_usage
 from swiss_exp_tracker.pipeline_agentic.libs import save_tavily_usage
-from swiss_exp_tracker.pipeline_agentic.libs import serpapi_web_search
+from swiss_exp_tracker.pipeline_agentic.libs import scrape_do_web_search
 from swiss_exp_tracker.pipeline_agentic.libs import tavily_web_search
 
 
 class WebSearchTool(Enum):
-    BRIGHT_DATA = "bright_data"
     TAVILY = "tavily"
-    SERPAPI = "serpapi"
+    EXA = "exa"
+    BRAVE = "brave"
+    SCRAPE_DO = "scrape_do"
     PERSON = "person"
 
 
@@ -38,8 +45,10 @@ def _tool_result(summary: str, tool_used: WebSearchTool) -> SearchToolResult:
     )
 
 
-_brightdata_free_credits_used: int = 0
 _tavily_free_credits_used: int = 0
+_exa_free_credits_used: int = 0
+_brave_free_credits_used: int = 0
+_scrape_do_free_credits_used: int = 0
 
 
 @function_tool
@@ -47,19 +56,26 @@ def search_web(query: str) -> SearchToolResult:
     """Search the web using the best available provider.
 
     Policy (in order):
-    1) Tavily free tier       — up to 1 000 requests/month (direct REST, fast).
-    2) SerpAPI                — until monthly quota is exceeded (direct REST, fast).
-    3) Bright Data free tier  — up to 5 000 requests/month (MCP, slow fallback).
+    1) Tavily free tier       — up to 1 000 requests/month (direct REST).
+    2) Exa free tier          — up to 1 000 requests/month (direct REST).
+    3) Brave Search free tier — up to 1 000 requests/month (direct REST).
+    4) Scrape.do free tier    — up to 1 000 requests/month (direct REST).
+    5) Exa as-you-go          — pay-per-use fallback.
+    6) Tavily as-you-go       — pay-per-use fallback.
     """
-    global _brightdata_free_credits_used, _tavily_free_credits_used
+    global _tavily_free_credits_used, _exa_free_credits_used, _brave_free_credits_used, _scrape_do_free_credits_used
 
     # Lazy-load persisted credit counters on first call.
-    if _brightdata_free_credits_used == 0:
-        _brightdata_free_credits_used = load_brightdata_usage()
     if _tavily_free_credits_used == 0:
         _tavily_free_credits_used = load_tavily_usage()
+    if _exa_free_credits_used == 0:
+        _exa_free_credits_used = load_exa_usage()
+    if _brave_free_credits_used == 0:
+        _brave_free_credits_used = load_brave_usage()
+    if _scrape_do_free_credits_used == 0:
+        _scrape_do_free_credits_used = load_scrape_do_usage()
 
-    # ── 1. Tavily free tier (direct REST) ────────────────────────────────────
+    # ── 1. Tavily free tier ───────────────────────────────────────────────────
     if _tavily_free_credits_used < TAVILY_FREE_CREDIT_LIMIT:
         tavily_result = tavily_web_search(query)
         if tavily_result.startswith("TAVILY_RESULTS"):
@@ -72,35 +88,76 @@ def search_web(query: str) -> SearchToolResult:
         if tavily_result == "TAVILY_CREDITS_EXCEEDED":
             _tavily_free_credits_used = TAVILY_FREE_CREDIT_LIMIT
             save_tavily_usage(_tavily_free_credits_used)
-        # Any TAVILY_UNAVAILABLE → fall through to SerpAPI.
+        # Any TAVILY_UNAVAILABLE → fall through to Exa.
 
-    # ── 2. SerpAPI (direct REST) ──────────────────────────────────────────────
-    if not is_serpapi_quota_exceeded():
-        serp_result = serpapi_web_search(query)
-        if serp_result.startswith("SERPAPI_RESULTS"):
+    # ── 2. Exa free tier ─────────────────────────────────────────────────────
+    if _exa_free_credits_used < EXA_FREE_CREDIT_LIMIT:
+        exa_result = exa_web_search(query)
+        if exa_result.startswith("EXA_RESULTS"):
+            _exa_free_credits_used += 1
+            save_exa_usage(_exa_free_credits_used)
             return _tool_result(
-                summary=serp_result.removeprefix("SERPAPI_RESULTS\n"),
-                tool_used=WebSearchTool.SERPAPI,
+                summary=exa_result.removeprefix("EXA_RESULTS\n"),
+                tool_used=WebSearchTool.EXA,
             )
-        # SERPAPI_QUOTE_EXCEEDED or SERPAPI_UNAVAILABLE → fall through.
+        if exa_result == "EXA_CREDITS_EXCEEDED":
+            _exa_free_credits_used = EXA_FREE_CREDIT_LIMIT
+            save_exa_usage(_exa_free_credits_used)
+        # Any EXA_UNAVAILABLE → fall through to Brave Search.
 
-    # ── 3. Bright Data free tier (MCP, slow) ─────────────────────────────────
-    if _brightdata_free_credits_used < BRIGHT_DATA_FREE_CREDIT_LIMIT:
-        bd_result = brightdata_web_search(query)
-        if bd_result.startswith("BRIGHTDATA_RESULTS"):
-            _brightdata_free_credits_used += 1
-            save_brightdata_usage(_brightdata_free_credits_used)
+    # ── 3. Brave Search free tier ────────────────────────────────────────────
+    if _brave_free_credits_used < BRAVE_SEARCH_FREE_CREDIT_LIMIT:
+        brave_result = brave_web_search(query)
+        if brave_result.startswith("BRAVE_RESULTS"):
+            _brave_free_credits_used += 1
+            save_brave_usage(_brave_free_credits_used)
             return _tool_result(
-                summary=bd_result.removeprefix("BRIGHTDATA_RESULTS\n"),
-                tool_used=WebSearchTool.BRIGHT_DATA,
+                summary=brave_result.removeprefix("BRAVE_RESULTS\n"),
+                tool_used=WebSearchTool.BRAVE,
             )
-        if bd_result == "BRIGHTDATA_CREDITS_EXCEEDED":
-            _brightdata_free_credits_used = BRIGHT_DATA_FREE_CREDIT_LIMIT
-            save_brightdata_usage(_brightdata_free_credits_used)
+        if brave_result == "BRAVE_CREDITS_EXCEEDED":
+            _brave_free_credits_used = BRAVE_SEARCH_FREE_CREDIT_LIMIT
+            save_brave_usage(_brave_free_credits_used)
+        # Any BRAVE_UNAVAILABLE → fall through to Scrape.do.
+
+    # ── 4. Scrape.do free tier ───────────────────────────────────────────────
+    if _scrape_do_free_credits_used < SCRAPE_DO_FREE_CREDIT_LIMIT:
+        scrapedo_result = scrape_do_web_search(query)
+        if scrapedo_result.startswith("SCRAPEDO_RESULTS"):
+            _scrape_do_free_credits_used += 1
+            save_scrape_do_usage(_scrape_do_free_credits_used)
+            return _tool_result(
+                summary=scrapedo_result.removeprefix("SCRAPEDO_RESULTS\n"),
+                tool_used=WebSearchTool.SCRAPE_DO,
+            )
+        if scrapedo_result == "SCRAPEDO_CREDITS_EXCEEDED":
+            _scrape_do_free_credits_used = SCRAPE_DO_FREE_CREDIT_LIMIT
+            save_scrape_do_usage(_scrape_do_free_credits_used)
+        # Any SCRAPEDO_UNAVAILABLE → fall through to as-you-go.
+
+    # ── 5. Exa as-you-go (pay-per-use fallback) ──────────────────────────────
+    exa_result = exa_web_search(query)
+    if exa_result.startswith("EXA_RESULTS"):
+        _exa_free_credits_used += 1
+        save_exa_usage(_exa_free_credits_used)
+        return _tool_result(
+            summary=exa_result.removeprefix("EXA_RESULTS\n"),
+            tool_used=WebSearchTool.EXA,
+        )
+
+    # ── 6. Tavily as-you-go (pay-per-use fallback) ───────────────────────────
+    tavily_result = tavily_web_search(query)
+    if tavily_result.startswith("TAVILY_RESULTS"):
+        _tavily_free_credits_used += 1
+        save_tavily_usage(_tavily_free_credits_used)
+        return _tool_result(
+            summary=tavily_result.removeprefix("TAVILY_RESULTS\n"),
+            tool_used=WebSearchTool.TAVILY,
+        )
 
     return _tool_result(
         summary="SEARCH_UNAVAILABLE: all providers exhausted or unavailable.",
-        tool_used=WebSearchTool.SERPAPI,
+        tool_used=WebSearchTool.TAVILY,
     )
 
 
@@ -115,7 +172,7 @@ BASE_INSTRUCTIONS = """
     3. Generate a concise and structured merchant summary.
 
     The search tool automatically selects the best provider:
-    Tavily free (1,000/month) -> SerpAPI free (250/month) -> Bright Data free (5,000/month, slow).
+    Tavily free (1,000/month) -> Exa free (1,000/month) -> Brave Search free (1,000/month) -> Scrape.do free (1,000/month) -> Exa as-you-go -> Tavily as-you-go.
 
     Return the result in a full text summary that includes the following information when available:
     - Name of the Merchant
@@ -127,6 +184,7 @@ BASE_INSTRUCTIONS = """
 
     Rules:
     - Always call `search_web` exactly once before generating the summary.
+    - High probability that the merchant is based in Switzerland, but not guaranteed. Focus on Switzerland-relevant information when available.
     - Use only information supported by search results.
     - Do not invent facts.
     - If information is unavailable, use "Unknown".

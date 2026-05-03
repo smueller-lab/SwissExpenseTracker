@@ -15,7 +15,7 @@ from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 def load_pending_transactions() -> list[Transaction]:
     """Step 1: Load transactions from database where enrichment is pending.
 
-    Reads all rows from transactions_refined table where enrichment_status = 'PENDING'
+    Reads all rows from transactions_rfn table where enrichment_status = 'PENDING'
     and converts them to Transaction objects for processing.
     """
     pending_transactions: list[Transaction] = []
@@ -32,7 +32,7 @@ def load_pending_transactions() -> list[Transaction]:
                 reference,
                 amount,
                 is_person
-            FROM transactions_refined
+            FROM transactions_rfn
             WHERE enrichment_status = 'pending'
             ORDER BY created_at ASC
             """
@@ -73,13 +73,6 @@ def load_pending_transactions() -> list[Transaction]:
     return pending_transactions
 
 
-# Step 1: Load unprocessed transactions from database and convert to Transaction objects
-transactions = load_pending_transactions()
-
-# For testing, process only a subset of transactions
-transactions = transactions[:100].copy()
-
-
 # Step 2: For each transaction, run the agentic pipeline and store results in database
 async def run_all_transactions(
     transactions: list[Transaction], concurrency: int = 5
@@ -92,6 +85,7 @@ async def run_all_transactions(
     """
     manager = MerchantManager()
     semaphore = asyncio.Semaphore(concurrency)
+    merchant_locks: dict[str, asyncio.Lock] = {}
     t_start = time.perf_counter()
 
     with tqdm(
@@ -99,7 +93,14 @@ async def run_all_transactions(
     ) as pbar:
 
         async def process_one(transaction: Transaction) -> None:
-            async with semaphore:
+            merchant_key = (
+                (transaction.merchant or transaction.booking_text or "").strip().lower()
+            )
+            if merchant_key not in merchant_locks:
+                merchant_locks[merchant_key] = asyncio.Lock()
+            merchant_lock = merchant_locks[merchant_key]
+
+            async with semaphore, merchant_lock:
                 merchant_label = transaction.merchant or transaction.booking_text or "?"
                 pbar.set_postfix_str(merchant_label[:40], refresh=True)
                 async for _step in manager.run(transaction):
@@ -113,6 +114,3 @@ async def run_all_transactions(
         f"\nDone. {len(transactions)} transactions in {elapsed:.1f}s "
         f"({elapsed / len(transactions):.2f}s/tx avg)"
     )
-
-
-asyncio.run(run_all_transactions(transactions))
