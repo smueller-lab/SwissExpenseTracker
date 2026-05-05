@@ -31,8 +31,8 @@ class MerchantResult:
                     cache_hit INTEGER NOT NULL,
                     similarity REAL,
                     search_tool TEXT,
-                    category_main TEXT NOT NULL,
-                    category_second TEXT NOT NULL,
+                    category_main TEXT,
+                    category_second TEXT,
                     city TEXT
                 )
                 """

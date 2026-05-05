@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 
 from datetime import datetime
@@ -10,6 +11,9 @@ from tqdm import tqdm
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import Transaction
 from swiss_exp_tracker.pipeline_agentic.merchant_manager import MerchantManager
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
+
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def load_pending_transactions() -> list[Transaction]:

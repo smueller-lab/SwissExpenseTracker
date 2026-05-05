@@ -17,7 +17,7 @@ import sqlite3
 
 from tqdm import tqdm
 
-from swiss_exp_tracker.config import work_place
+from swiss_exp_tracker.config import work_places
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
 
@@ -29,9 +29,27 @@ oj = os.path.join
 # Key   : matched_merchant (case-insensitive exact match)
 # Value : (category_main, category_second, city_override or None)
 # ---------------------------------------------------------------------------
-CORRECTIONS: dict[str, tuple[str, str, str | None]] = {
-    work_place: (CategoryMain.SALARY.value, CategorySecond.SALARY_MAIN.value, None),
-}
+# Exact-match corrections: matched_merchant (case-insensitive) -> (category_main, category_second, city_override)
+CORRECTIONS: dict[str, tuple[str, str, str | None]] = {}
+
+# Containment corrections: if any substring in the list is contained in matched_merchant,
+# the correction is applied (case-insensitive).
+CONTAINMENT_CORRECTIONS: list[tuple[list[str], tuple[str, str, str | None]]] = [
+    (work_places, (CategoryMain.SALARY.value, CategorySecond.SALARY_MAIN.value, None)),
+]
+
+# SWITZERLAND FIRST
+# Parkingpay App, Transport, Parking -> should be Car_Parking
+# Liegenschaft Neumarkt, Housing Rent -> Idk
+# Raststätte Knonauer Amt, Car Service Reapi -> should be Fueling
+
+# Restaurant Parking is not possible
+# add SPA to categories
+# Any place that serve food should be restaurant except for Bar
+
+# datsport, Swiss Ski, schweizer schwimmverband to Salary
+
+# Car, car washing
 
 
 def run_post_clean() -> None:
@@ -57,8 +75,8 @@ def run_post_clean() -> None:
                 cache_hit INTEGER NOT NULL,
                 similarity REAL,
                 search_tool TEXT,
-                category_main TEXT NOT NULL,
-                category_second TEXT NOT NULL,
+                category_main TEXT,
+                category_second TEXT,
                 city TEXT
             )
             """
@@ -84,12 +102,23 @@ def run_post_clean() -> None:
         ).fetchall()
 
         corrections_lookup = {k.lower(): v for k, v in CORRECTIONS.items()}
+        containment_corrections = [
+            ([s.lower() for s in patterns], correction)
+            for patterns, correction in CONTAINMENT_CORRECTIONS
+        ]
 
         rows_inserted = 0
 
         for row in raw_rows:
             merchant_key = (row["matched_merchant"] or "").lower()
+
+            # Exact match first, then containment
             correction = corrections_lookup.get(merchant_key)
+            if correction is None:
+                for patterns, corr in containment_corrections:
+                    if any(p in merchant_key for p in patterns):
+                        correction = corr
+                        break
 
             if correction:
                 category_main, category_second, city_override = correction

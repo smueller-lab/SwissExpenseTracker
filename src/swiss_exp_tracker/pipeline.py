@@ -12,10 +12,12 @@ Run from the project root:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from swiss_exp_tracker.pipeline_agentic.clean_pipeline_output import run_post_clean
 from swiss_exp_tracker.pipeline_agentic.pipeline import load_pending_transactions
+from swiss_exp_tracker.pipeline_agentic.pipeline import run_all_transactions
 from swiss_exp_tracker.pipeline_agentic.transactions_use import run_transactions_use
 from swiss_exp_tracker.pipeline_ingestion.pipeline import run_ingestion
 
@@ -37,8 +39,7 @@ def main() -> None:
     logger.info("=== Stage 2: Agentic enrichment ===")
     transactions = load_pending_transactions()
     if transactions:
-        # asyncio.run(run_all_transactions(transactions))
-        pass
+        asyncio.run(run_all_transactions(transactions))
     else:
         logger.info("No pending transactions — skipping enrichment.")
 
