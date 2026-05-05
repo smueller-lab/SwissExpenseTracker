@@ -149,6 +149,7 @@ class CategorySecond(StrEnum):
     HEALTHCARE_PHARMACY = "Pharmacy"
     HEALTHCARE_THERAPY = "Therapy"
     HEALTHCARE_INSURANCE = "Health Insurance"
+    HEALTHCARE_SPA = "Spa & Wellness"
 
     # GOVERNMENT
     # Use for taxes, public fees, fines and administrative public services.
@@ -170,6 +171,7 @@ class CategorySecond(StrEnum):
     RETAIL_FURNITURE = "Furniture"
     RETAIL_DRUG_STORE = "Drug Store"
     RETAIL_PHOTOGRAPHY = "Photography"
+    RETAIL_BOOK_STORE = "Book Store"
 
     # GROCERIES
     # Use for food shopping and drink retailers.
@@ -257,10 +259,10 @@ class CategorySecond(StrEnum):
 class MerchantMetaData(BaseModel):
     name: str = Field(description="The name of the Merchant")
 
-    category_main: CategoryMain = Field(
+    category_main: CategoryMain | None = Field(
         description="Choose the most appropriate main merchant category"
     )
-    category_second: CategorySecond | str = Field(
+    category_second: CategorySecond | str | None = Field(
         description="Choose the second category which belongs to one category_main. If none matches you can create your own one."
     )
     city: str | None = Field(description="City/town from the booking text")
@@ -286,8 +288,8 @@ class MetadataResult(BaseModel):
     cache_hit: bool
     similarity: float | None
     search_tool: WebSearchTool | None
-    category_main: str
-    category_second: str
+    category_main: str | None
+    category_second: str | None
     city: str | None
 
 

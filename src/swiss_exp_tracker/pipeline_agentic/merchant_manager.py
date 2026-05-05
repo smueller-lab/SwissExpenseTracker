@@ -6,6 +6,9 @@ from datetime import datetime
 from agents import Runner
 from agents import gen_trace_id
 from agents import trace
+from agents.exceptions import MaxTurnsExceeded
+from agents.exceptions import OutputGuardrailTripwireTriggered
+from tqdm import tqdm
 
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_metadata import metadata_agent
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import SearchToolResult
@@ -68,7 +71,11 @@ class MerchantManager:
                         cache_hit=True,
                         similarity=similarity,
                         search_tool=None,
-                        category_main=cached_metadata.category_main.value,
+                        category_main=(
+                            cached_metadata.category_main.value
+                            if cached_metadata.category_main is not None
+                            else None
+                        ),
                         category_second=cached_metadata.category_second,
                         city=cached_metadata.city,
                     )
@@ -88,9 +95,14 @@ class MerchantManager:
                 )
                 yield "Got Metadata"
 
-            # 6. Save merchant metadata to store
-            self.store.save(merchant.merchant, search_result.summary, merchant_metadata)
-            yield f"Saved {merchant.merchant} to store"
+            # 6. Save merchant metadata to store (skip if categories are unknown)
+            if merchant_metadata.category_main is not None:
+                self.store.save(
+                    merchant.merchant, search_result.summary, merchant_metadata
+                )
+                yield f"Saved {merchant.merchant} to store"
+            else:
+                yield f"Skipped store save for '{merchant.merchant}' (no category)"
 
             # 7. Save results to relational db
             result = MetadataResult(
@@ -100,7 +112,11 @@ class MerchantManager:
                 cache_hit=False,
                 similarity=None,
                 search_tool=search_result.tool_used,
-                category_main=merchant_metadata.category_main.value,
+                category_main=(
+                    merchant_metadata.category_main.value
+                    if merchant_metadata.category_main is not None
+                    else None
+                ),
                 category_second=merchant_metadata.category_second,
                 city=merchant_metadata.city,
             )
@@ -114,10 +130,19 @@ class MerchantManager:
         self, merchant: MerchantExtractor
     ) -> SearchToolResult:
         """Get merchant summary. Returns (summary, search_tool_used)."""
-        result = await Runner.run(
-            summary_agent, merchant.model_dump_json(), max_turns=10
-        )
-        return result.final_output_as(SearchToolResult)
+        try:
+            result = await Runner.run(
+                summary_agent, merchant.model_dump_json(), max_turns=10
+            )
+            return result.final_output_as(SearchToolResult)
+        except MaxTurnsExceeded:
+            tqdm.write(
+                f"[WARN] MaxTurnsExceeded for summary of '{merchant.merchant}' — returning fallback"
+            )
+            return SearchToolResult(
+                summary=f"Summary unavailable for '{merchant.merchant}' (max turns exceeded).",
+                tool_used=WebSearchTool.PERSON,
+            )
 
     async def get_merchant_metadata(
         self, merchant: MerchantExtractor, transaction: Transaction, summary: str
@@ -131,7 +156,30 @@ class MerchantManager:
             merchant_summary=summary,
         )
 
-        result = await Runner.run(
-            metadata_agent, agent_input.model_dump_json(), max_turns=10
+        max_retries = 3
+        for attempt in range(1, max_retries + 1):
+            try:
+                result = await Runner.run(
+                    metadata_agent, agent_input.model_dump_json(), max_turns=10
+                )
+                return result.final_output_as(MerchantMetaData)
+            except OutputGuardrailTripwireTriggered:
+                tqdm.write(
+                    f"[WARN] Guardrail triggered for '{merchant.merchant}' "
+                    f"(attempt {attempt}/{max_retries}) — retrying"
+                )
+            except MaxTurnsExceeded:
+                tqdm.write(
+                    f"[WARN] MaxTurnsExceeded for metadata of '{merchant.merchant}' "
+                    f"(attempt {attempt}/{max_retries}) — retrying"
+                )
+
+        tqdm.write(
+            f"[WARN] All {max_retries} attempts failed for '{merchant.merchant}' — returning fallback"
         )
-        return result.final_output_as(MerchantMetaData)
+        return MerchantMetaData(
+            name=merchant.merchant,
+            category_main=None,
+            category_second=None,
+            city=None,
+        )

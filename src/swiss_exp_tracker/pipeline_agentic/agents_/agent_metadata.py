@@ -49,13 +49,15 @@ Use for telecom contracts and providers (mobile, internet, TV subscriptions).
 Sub-categories: Mobile | Internet | TV Subscription
 
 **Restaurant** (restaurants; not groceries)
+Any place that servers food and drinks go to Restaurant, and any place with food should be Dining like food hall, food court.
 Use for food & drink consumption (eat-in, takeaway, cafe, bar, delivery).
 Takeaway → Fast Food | bar/pub → Bar | cafe/bakery → Cafe
 Sub-categories: Dining | Fast Food | Cafe | Bar | Food Delivery
 
 **Healthcare** (e.g. Sanitas, medicine, Apotheke, Dentist)
 Use for medical care, treatment, pharmacy and personal care providers. Insurance products belong to Insurance, not Healthcare.
-Sub-categories: Doctor | Dentist | Hairdresser | Optician | Pharmacy | Therapy | Health Insurance
+Spa & Welness like Spa, Sauna, Massage belongs to Healthcare.
+Sub-categories: Doctor | Dentist | Hairdresser | Optician | Pharmacy | Therapy | Health Insurance | Spa & Wellness
 
 **Government** (e.g. Taxes)
 Use for taxes, public fees, fines and administrative public services.
@@ -63,7 +65,7 @@ Sub-categories: Taxes | Government Fees | Fines | Vehicle Registration | Adminis
 
 **Retail** (e.g. Manor, Ochsner Sport, Ochsner Shoes — all kinds of stores for clothes/goods; no grocery stores)
 Use for non-grocery consumer goods stores.
-Sub-categories: Clothing | Sport | Electronics | Home Goods | Garden | Department Store | Shoes | Furniture | Drug Store | Photography
+Sub-categories: Clothing | Sport | Electronics | Home Goods | Garden | Department Store | Shoes | Furniture | Drug Store | Photography | Book store
 
 **Groceries** (e.g. Migros, Coop, Aldi, LIDL, migrolino, Denner)
 Use for food shopping and drink retailers. Never classify groceries as Retail.
@@ -79,12 +81,12 @@ Sub-categories: Rent | Utilities | Maintenance
 
 **Car** (e.g. car purchase, service, gas station, parking)
 Use for vehicle operation and ownership costs (fuel, parking, service, wash, car taxes). Car insurance premiums belong to Insurance, not Car.
-'Raststätte' is typical german word for highway gas station, which often include fuel, food and parking. Classify based on the dominant expense. If fuel is dominant → Car; if food is dominant → Restaurant; if parking is dominant → Car.
+'Raststätte' is a typical german word for highway gas station, which often include fuel, food and parking. Classify based on the dominant expense. If fuel is dominant → Car; if food is dominant → Restaurant; if parking is dominant → Car.
 Sub-categories: Purchase | Service & Repair | Fuel | Parking | Wash | Tax
 
 **Transport** (e.g. Train, Bus, SBB, Deutsche Bahn — all transportation except flights)
 Use for public/paid transport rides and tickets. Long-distance trip bookings → Travel. Parking fees → Car. Fuel → Car.
-Parking belongs to Car, not Transport, even if it's at a train station or airport.
+Parking belongs to Car, never Transport, even if it's at a train station or airport.
 Sub-categories: Train | Bus | Taxi | Metro | Bike Rental | Ferry | Cable Car 
 
 **Travel** (e.g. accommodation, flight, car rental, booking.com, Airbnb, Hotel)
