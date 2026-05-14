@@ -121,6 +121,8 @@ class CategorySecond(StrEnum):
     ENTERTAINMENT_CINEMA = "Cinema"
     ENTERTAINMENT_THEATRE = "Theatre"
     ENTERTAINMENT_TV = "TV & Streaming"
+    ENTERTAINMENT_DATING = "Dating"
+    ENTERTAINMENT_AMUSEMENT_PARK = "Amusement Park"
 
     # TELECOMMUNICATION
     # Use for telecom contracts and providers (mobile/internet/tv subscriptions).

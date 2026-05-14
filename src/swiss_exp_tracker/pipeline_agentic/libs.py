@@ -181,7 +181,7 @@ def exa_web_search(query: str) -> str:
     if not lines:
         return "EXA_UNAVAILABLE: no parseable results."
 
-    return "EXA_RESULTS\n" + "\n".join(lines)
+    return f"EXA_RESULTS:{len(lines)}\n" + "\n".join(lines)
 
 
 def load_brave_usage() -> int:

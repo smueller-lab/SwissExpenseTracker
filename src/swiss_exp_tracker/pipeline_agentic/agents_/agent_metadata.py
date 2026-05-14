@@ -36,13 +36,16 @@ Use the following reference to select category_main and category_second.
 Each entry lists the main category, typical examples, usage guidance, and valid sub-categories.
 
 **Sport** (e.g. Tennis, Golf, Padel, Migros Golfpark)
-Use only for sports activities, clubs, equipment and memberships.
+Use only for sports activities, clubs, and memberships that was executed by the person the transaction belongs to.
+A sporting event was not executed by the person, so it belongs to Entertainment, not Sport. E.g. a ticket for a football match or a concert in a stadium belongs to Entertainment, not Sport.
+Any sporting goods store or merchandising belongs to Retail not Sport. E.g. Ochsner Sport → Retail, not Sport; but a golf club membership or tennis club membership → Sport.
 Sub-categories: Tennis | Golf | Padel | Bike | Fitness | Running | Swimming
 
 **Entertainment** (e.g. Spotify, Festival, concert, cinema, theatre, sports event)
 Use for leisure/consumption entertainment (streaming, events, cinema, theatre, spectator sports).
 Any visit in a sports stadium or hall for watching an event belongs to Entertainment, not Sport.
-Sub-categories: Music Streaming | Events & Concerts | Sports | Cinema | Theatre | TV & Streaming
+Any visit to a Bar, Restaurant or Food Court inside a stadium or sports hall belongs to Restaurant, not Entertainment.
+Sub-categories: Music Streaming | Events & Concerts | Sports | Cinema | Theatre | TV & Streaming | Dating | Amusement Park
 
 **Telecommunication** (e.g. GoMo, Sunrise, Salt)
 Use for telecom contracts and providers (mobile, internet, TV subscriptions).
@@ -50,7 +53,8 @@ Sub-categories: Mobile | Internet | TV Subscription
 
 **Restaurant** (restaurants; not groceries)
 Any place that servers food and drinks go to Restaurant, and any place with food should be Dining like food hall, food court.
-Use for food & drink consumption (eat-in, takeaway, cafe, bar, delivery).
+Use for food & drink consumption always go to Restaurant (eat-in, takeaway, Cafe, Bar, delivery).
+Every Bar belongs to Restaurants also when it's not a Restaurant itself but the main category is still Restaurant.
 Takeaway → Fast Food | bar/pub → Bar | cafe/bakery → Cafe
 Sub-categories: Dining | Fast Food | Cafe | Bar | Food Delivery
 
@@ -81,7 +85,7 @@ Sub-categories: Rent | Utilities | Maintenance
 
 **Car** (e.g. car purchase, service, gas station, parking)
 Use for vehicle operation and ownership costs (fuel, parking, service, wash, car taxes). Car insurance premiums belong to Insurance, not Car.
-'Raststätte' is a typical german word for highway gas station, which often include fuel, food and parking. Classify based on the dominant expense. If fuel is dominant → Car; if food is dominant → Restaurant; if parking is dominant → Car.
+'Raststätte', 'raststaette' is a typical german word for highway gas station, which often include fuel, food and parking. Classify based on the dominant expense. If fuel is dominant → Car; if food is dominant → Restaurant.
 Sub-categories: Purchase | Service & Repair | Fuel | Parking | Wash | Tax
 
 **Transport** (e.g. Train, Bus, SBB, Deutsche Bahn — all transportation except flights)
@@ -115,6 +119,8 @@ Sub-categories: Post Office
 
 **Friend**
 All bookings with personal names and/or a phone number (remove the phone number). Use for person-to-person transfers, reimbursements and bill splits.
+Booking must contain a real persons name and cannot contain company indicators like GmbH, AG, Inc, etc. If the name contains an item like bakery, vital, jus or similar then it cannot be a person.
+Examples: "Anna's Bakery" -> Bakery and not Friend, "fureinander" -> no real name but could be company, "peter max" -> real name so friend
 Sub-categories: Support Payment
 
 ## Warnings

@@ -56,8 +56,8 @@ def run_post_clean() -> None:
     """Read merchant_metadata_raw, apply corrections, write merchant_metadata_rfn.
 
     - Takes the latest raw row per ``zkb_reference`` (highest ``id``).
-    - Rows already present in ``merchant_metadata_rfn`` (by ``zkb_reference``)
-      are skipped so the function is safe to call repeatedly.
+    - New zkb_references are inserted; existing rfn rows are updated when the
+      raw entry is newer (higher ``id``) than when rfn was last written.
     """
     path_db = oj("./database", "transactions.db")
 
@@ -82,7 +82,8 @@ def run_post_clean() -> None:
             """
         )
 
-        # Latest raw row per zkb_reference, excluding already-processed ones
+        # Latest raw row per zkb_reference — include rows not yet in rfn
+        # AND rows where the raw entry is newer than the existing rfn row
         raw_rows = db.execute(
             """
             SELECT r.*
@@ -96,6 +97,11 @@ def run_post_clean() -> None:
                 SELECT zkb_reference
                 FROM merchant_metadata_rfn
                 WHERE zkb_reference IS NOT NULL
+            )
+            OR r.created_at > (
+                SELECT MAX(rfn.created_at)
+                FROM merchant_metadata_rfn rfn
+                WHERE rfn.zkb_reference = r.zkb_reference
             )
             ORDER BY r.created_at DESC
             """
@@ -128,6 +134,12 @@ def run_post_clean() -> None:
                 category_second = row["category_second"]
                 city = row["city"]
 
+            # Remove any existing rfn row for this reference before inserting
+            # the updated one (handles the upsert case for existing references).
+            db.execute(
+                "DELETE FROM merchant_metadata_rfn WHERE zkb_reference = ?",
+                (row["zkb_reference"],),
+            )
             db.execute(
                 """
                 INSERT INTO merchant_metadata_rfn (
