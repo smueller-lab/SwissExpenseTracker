@@ -168,128 +168,102 @@ _Coming soon..._
 
 ## 🔁 Pipeline
 
-The full pipeline transforms raw bank CSV exports into a clean, categorised, analysis-ready dataset. It is split into two distinct sub-pipelines that run in sequence.
-
-```
-Bank CSVs
-    │
-    ▼
-┌─────────────────────────┐
-│  Pipeline: Ingestion    │  src/swiss_exp_tracker/pipeline_ingestion/
-└─────────────────────────┘
-    │
-    ▼
-┌─────────────────────────┐
-│  Pipeline: Agentic      │  src/swiss_exp_tracker/pipeline_agentic/
-└─────────────────────────┘
-    │
-    ▼
-  transactions_use  (SQLite — analysis-ready)
-```
-
-Run the full pipeline from the project root:
+Drop your bank CSV exports into the landing zone and run one command — the pipeline takes care of the rest:
 
 ```bash
-python -m swiss_exp_tracker.pipeline
+poetry run python src/swiss_exp_tracker/pipeline.py
+```
+
+```
+ Bank CSV exports  (ZKB · Viseca · Revolut)
+         │
+         ▼
+ ┌───────────────────────────────────────────────────────┐
+ │  1 · INGESTION PIPELINE                               │
+ │                                                       │
+ │  lnd → raw → refined → postprocess                   │
+ │                                                       │
+ │  • Detects new files by MD5 hash (no re-imports)     │
+ │  • Validates rows with source-specific Pydantic models│
+ │  • Normalises merchant names & flags P2P transfers    │
+ │  • Removes credit-card settlement duplicates          │
+ └───────────────────────────────────────────────────────┘
+         │
+         │  transactions_rfn  (pending enrichment)
+         ▼
+ ┌───────────────────────────────────────────────────────┐
+ │  2 · AGENTIC ENRICHMENT PIPELINE                      │
+ │                                                       │
+ │  For each pending transaction:                        │
+ │                                                       │
+ │  ① Vector-store cache hit?  ──yes──► reuse metadata  │
+ │            │ no                                       │
+ │            ▼                                          │
+ │  ② Summary Agent  searches the web for merchant info │
+ │            │                                          │
+ │  ③ Metadata Agent  extracts category + city          │
+ │            │                                          │
+ │  ④ Cache result in ChromaDB for future transactions  │
+ └───────────────────────────────────────────────────────┘
+         │
+         │  merchant_metadata_rfn  (categories + city)
+         ▼
+ ┌───────────────────────────────────────────────────────┐
+ │  3 · FINAL JOIN                                       │
+ │                                                       │
+ │  transactions_rfn  ✕  merchant_metadata_rfn           │
+ │          └──────────────────► transactions_use        │
+ └───────────────────────────────────────────────────────┘
+         │
+         ▼
+  📊 Dashboard  (analysis-ready)
 ```
 
 ---
 
-### Stage 1 — Ingestion Pipeline
+### Stage 1 — Ingestion
 
-**Location:** `src/swiss_exp_tracker/pipeline_ingestion/`
+Raw CSV files are loaded and passed through four sequential sub-stages, each writing to its own SQLite table:
 
-Responsible for loading raw bank files into SQLite and producing clean, normalised transaction rows. Runs four sequential stages:
-
-| # | Stage                 | Table                | What happens                                                                                                                                             |
-| - | --------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1 | **Landing**     | `transactions_lnd` | Raw CSV files are detected, read, and stored as JSON rows. Each file is tracked in `ingested_files` to prevent double-ingestion.                       |
-| 2 | **Raw**         | `transactions_raw` | Landing rows are parsed and source-typed (ZKB_DEBIT, VISECA, REVOLUT). A source-specific adapter normalises fields.                                      |
-| 3 | **Refined**     | `transactions_rfn` | Raw rows are deduplicated, merchant names are normalised, person-to-person transfers are flagged, and each row receives `enrichment_status = pending`. |
-| 4 | **Postprocess** | `transactions_rfn` | Credit card settlement pairs are removed and Viseca fee rows are corrected in-place.                                                                     |
+| # | Sub-stage | Table | What happens |
+|---|-----------|-------|--------------|
+| 1 | **Landing** | `transactions_lnd` | Files are scanned; only new ones (by MD5 hash) are ingested |
+| 2 | **Raw** | `transactions_raw` | Each row is validated against a source-specific Pydantic model |
+| 3 | **Refined** | `transactions_rfn` | Fields are unified, merchant names normalised, P2P transfers flagged |
+| 4 | **Postprocess** | `transactions_rfn` | Credit-card settlement duplicates removed; Viseca fee labels corrected |
 
 ---
 
-### Stage 2 — Agentic Enrichment Pipeline
+### Stage 2 — Agentic Enrichment
 
-**Location:** `src/swiss_exp_tracker/pipeline_agentic/`
+Bank transaction texts alone are often too cryptic to categorise reliably. This stage uses an AI-agent pipeline to look up what each merchant actually is.
 
-An AI-powered pipeline that enriches each pending transaction with merchant metadata (category, city) using a multi-agent architecture built on the **OpenAI Agents SDK**.
+**Why agents + web search?** Merchant names from bank statements are frequently abbreviated, mangled, or entirely unknown to a static lookup table. A web search finds the actual business — its type, city, and category — which an LLM then structures into the data model. Results are cached in a local ChromaDB vector store so each merchant is only looked up once, no matter how many transactions it appears in.
 
-#### How it works
+**Web search — free-tier-first fallback chain:**
 
-For every pending transaction the `MerchantManager` runs the following steps:
+| Priority | Provider | Free quota |
+|----------|----------|------------|
+| 1 | Tavily | 1 000 requests / month |
+| 2 | Brave Search | 1 000 requests / month |
+| 3 | Scrape.do | 1 000 requests / month |
+| 4 | Exa | 500 credits / month |
+| 5–6 | Exa / Tavily pay-as-you-go | unlimited |
 
-```
-Transaction
-    │
-    ├─► Person shortcut — if flagged as person-to-person, assign Friend category directly
-    │
-    ├─► Vector store cache — ChromaDB lookup by merchant name
-    │       hit  → reuse stored metadata
-    │       miss → continue
-    │
-    ├─► Summary Agent — searches the web for merchant info
-    │       Tool: search_web()  (function tool called by the agent)
-    │
-    ├─► Metadata Agent — extracts category_main, category_second, city from summary
-    │
-    ├─► Vector store save — cache result for future transactions
-    │
-    └─► DB save — write to merchant_metadata_raw, mark transaction as enriched
-```
+Monthly credit usage is tracked in the `api_usage` table so the pipeline never exceeds configured limits.
 
-#### Web Search — Fallback Chain
-
-The `search_web` tool tries providers in order, consuming free credits first before falling back to pay-as-you-go:
-
-| Priority | Provider               | Credits            |
-| -------- | ---------------------- | ------------------ |
-| 1        | **Tavily**       | 1 000 free / month |
-| 2        | **Exa**          | 1 000 free / month |
-| 3        | **Brave Search** | 1 000 free / month |
-| 4        | **Scrape.do**    | 1 000 free / month |
-| 5        | Exa (pay-as-you-go)    | unlimited          |
-| 6        | Tavily (pay-as-you-go) | unlimited          |
-
-API credit usage is persisted in the `api_usage` SQLite table (per provider, per month) so limits are respected across runs.
-
-#### Concurrency & Deduplication
-
-Transactions are processed concurrently (default: 5 workers). A per-merchant `asyncio.Lock` ensures that two transactions from the same merchant are never enriched simultaneously — the second waits for the first to finish and then hits the vector store cache.
-
-#### Post-clean
-
-After enrichment, `run_post_clean()` copies rows from `merchant_metadata_raw` into `merchant_metadata_rfn`, applying any manual corrections defined in the `CORRECTIONS` dict inside `clean_pipeline_output.py`.
+**Concurrency:** 5 transactions are enriched in parallel to keep web-search latency manageable. Unique merchants are prioritised first so that by the time a repeated merchant appears, its cache entry is already warm.
 
 ---
 
 ### Stage 3 — Final Join
 
-**Location:** `src/swiss_exp_tracker/pipeline_agentic/transactions_use.py`
-
-Joins `transactions_rfn` (all transaction fields) with `merchant_metadata_rfn` (categories + city) into the final analysis table `transactions_use`.
-
-**Schema of `transactions_use`:**
-
-| Column               | Description                                    |
-| -------------------- | ---------------------------------------------- |
-| `transaction_id`   | FK to `transactions_rfn`                     |
-| `source_type`      | ZKB_DEBIT / VISECA / REVOLUT                   |
-| `date`             | Transaction date                               |
-| `amount`           | Amount in CHF (negative = expense)             |
-| `transaction_type` | expense / income                               |
-| `currency`         | Original currency                              |
-| `reference`        | Bank reference number                          |
-| `merchant`         | Cleaned merchant name                          |
-| `category_main`    | Top-level category (e.g. Groceries, Transport) |
-| `category_second`  | Sub-category (e.g. Supermarket, Train)         |
-| `city`             | City of the merchant                           |
+`transactions_rfn` (transaction fields) is joined with `merchant_metadata_rfn` (categories + city) to produce `transactions_use` — the single table consumed by the dashboard.
 
 ---
 
 ### Categories
 
-Transactions are labelled with a two-level category system defined in `data_models/merchant.py`:
+Transactions are labelled with a two-level category hierarchy:
 
 **Main categories:** Sport · Entertainment · Telecommunication · Restaurant · Healthcare · Government · Retail · Groceries · Salary · Housing · Car · Transport · Travel · Insurance · Education · Payment Services · Investing · Postal Services · Friend

@@ -125,14 +125,15 @@ def test_exa_web_search_returns_results(vcr: Any) -> None:
         f"Unexpected Exa response prefix: {result[:80]}"
     )
 
-    body = result.removeprefix("EXA_RESULTS\n")
+    header, _, body = result.partition("\n")
+    num_results = int(header.removeprefix("EXA_RESULTS:"))
     assert body.strip(), "Exa result body is empty"
     assert _contains_keyword(body), (
         f"Exa result does not mention expected keywords. Got:\n{body[:300]}"
     )
 
     if vcr.record_mode in _RECORDING_MODES:
-        save_exa_usage(used_before + 1)
+        save_exa_usage(used_before + num_results * 10)
 
 
 # ── Brave Search ──────────────────────────────────────────────────────────────

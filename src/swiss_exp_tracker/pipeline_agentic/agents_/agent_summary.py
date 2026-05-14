@@ -57,11 +57,11 @@ def search_web(query: str) -> SearchToolResult:
 
     Policy (in order):
     1) Tavily free tier       — up to 1 000 requests/month (direct REST).
-    2) Exa free tier          — up to 1 000 requests/month (direct REST).
-    3) Brave Search free tier — up to 1 000 requests/month (direct REST).
-    4) Scrape.do free tier    — up to 1 000 requests/month (direct REST).
-    5) Exa as-you-go          — pay-per-use fallback.
-    6) Tavily as-you-go       — pay-per-use fallback.
+    2) Brave Search free tier — up to 1 000 requests/month (direct REST).
+    3) Scrape.do free tier    — up to 1 000 requests/month (direct REST).
+    4) Exa free tier          — 10 credits/result, lowest priority free tier.
+    5) Tavily as-you-go       — pay-per-use fallback.
+    6) Exa as-you-go          — pay-per-use fallback (last resort).
     """
     global _tavily_free_credits_used, _exa_free_credits_used, _brave_free_credits_used, _scrape_do_free_credits_used
 
@@ -88,24 +88,9 @@ def search_web(query: str) -> SearchToolResult:
         if tavily_result == "TAVILY_CREDITS_EXCEEDED":
             _tavily_free_credits_used = TAVILY_FREE_CREDIT_LIMIT
             save_tavily_usage(_tavily_free_credits_used)
-        # Any TAVILY_UNAVAILABLE → fall through to Exa.
+        # Any TAVILY_UNAVAILABLE → fall through to Brave Search.
 
-    # ── 2. Exa free tier ─────────────────────────────────────────────────────
-    if _exa_free_credits_used < EXA_FREE_CREDIT_LIMIT:
-        exa_result = exa_web_search(query)
-        if exa_result.startswith("EXA_RESULTS"):
-            _exa_free_credits_used += 1
-            save_exa_usage(_exa_free_credits_used)
-            return _tool_result(
-                summary=exa_result.removeprefix("EXA_RESULTS\n"),
-                tool_used=WebSearchTool.EXA,
-            )
-        if exa_result == "EXA_CREDITS_EXCEEDED":
-            _exa_free_credits_used = EXA_FREE_CREDIT_LIMIT
-            save_exa_usage(_exa_free_credits_used)
-        # Any EXA_UNAVAILABLE → fall through to Brave Search.
-
-    # ── 3. Brave Search free tier ────────────────────────────────────────────
+    # ── 2. Brave Search free tier ────────────────────────────────────────────
     if _brave_free_credits_used < BRAVE_SEARCH_FREE_CREDIT_LIMIT:
         brave_result = brave_web_search(query)
         if brave_result.startswith("BRAVE_RESULTS"):
@@ -120,7 +105,7 @@ def search_web(query: str) -> SearchToolResult:
             save_brave_usage(_brave_free_credits_used)
         # Any BRAVE_UNAVAILABLE → fall through to Scrape.do.
 
-    # ── 4. Scrape.do free tier ───────────────────────────────────────────────
+    # ── 3. Scrape.do free tier ───────────────────────────────────────────────
     if _scrape_do_free_credits_used < SCRAPE_DO_FREE_CREDIT_LIMIT:
         scrapedo_result = scrape_do_web_search(query)
         if scrapedo_result.startswith("SCRAPEDO_RESULTS"):
@@ -133,19 +118,26 @@ def search_web(query: str) -> SearchToolResult:
         if scrapedo_result == "SCRAPEDO_CREDITS_EXCEEDED":
             _scrape_do_free_credits_used = SCRAPE_DO_FREE_CREDIT_LIMIT
             save_scrape_do_usage(_scrape_do_free_credits_used)
-        # Any SCRAPEDO_UNAVAILABLE → fall through to as-you-go.
+        # Any SCRAPEDO_UNAVAILABLE → fall through to Exa free tier.
 
-    # ── 5. Exa as-you-go (pay-per-use fallback) ──────────────────────────────
-    exa_result = exa_web_search(query)
-    if exa_result.startswith("EXA_RESULTS"):
-        _exa_free_credits_used += 1
-        save_exa_usage(_exa_free_credits_used)
-        return _tool_result(
-            summary=exa_result.removeprefix("EXA_RESULTS\n"),
-            tool_used=WebSearchTool.EXA,
-        )
+    # ── 4. Exa free tier ─────────────────────────────────────────────────────
+    if _exa_free_credits_used < EXA_FREE_CREDIT_LIMIT:
+        exa_result = exa_web_search(query)
+        if exa_result.startswith("EXA_RESULTS:"):
+            header, _, summary = exa_result.partition("\n")
+            num_results = int(header.removeprefix("EXA_RESULTS:"))
+            _exa_free_credits_used += num_results * 10
+            save_exa_usage(_exa_free_credits_used)
+            return _tool_result(
+                summary=summary,
+                tool_used=WebSearchTool.EXA,
+            )
+        if exa_result == "EXA_CREDITS_EXCEEDED":
+            _exa_free_credits_used = EXA_FREE_CREDIT_LIMIT
+            save_exa_usage(_exa_free_credits_used)
+        # Any EXA_UNAVAILABLE → fall through to as-you-go.
 
-    # ── 6. Tavily as-you-go (pay-per-use fallback) ───────────────────────────
+    # ── 5. Tavily as-you-go (pay-per-use fallback) ───────────────────────────
     tavily_result = tavily_web_search(query)
     if tavily_result.startswith("TAVILY_RESULTS"):
         _tavily_free_credits_used += 1
@@ -153,6 +145,18 @@ def search_web(query: str) -> SearchToolResult:
         return _tool_result(
             summary=tavily_result.removeprefix("TAVILY_RESULTS\n"),
             tool_used=WebSearchTool.TAVILY,
+        )
+
+    # ── 6. Exa as-you-go (pay-per-use fallback, last resort) ─────────────────
+    exa_result = exa_web_search(query)
+    if exa_result.startswith("EXA_RESULTS:"):
+        header, _, summary = exa_result.partition("\n")
+        num_results = int(header.removeprefix("EXA_RESULTS:"))
+        _exa_free_credits_used += num_results * 10
+        save_exa_usage(_exa_free_credits_used)
+        return _tool_result(
+            summary=summary,
+            tool_used=WebSearchTool.EXA,
         )
 
     return _tool_result(
@@ -163,6 +167,11 @@ def search_web(query: str) -> SearchToolResult:
 
 BASE_INSTRUCTIONS = """
     You are a merchant intelligence assistant with concentration on Switzerland-based transactions.
+
+    ### Warning
+
+    Most transactions will come from switzerland so always prioritize searching for Switzerland-based information first. If not found try multiple times in switzerland before going to other countries.
+    Only if you really cannot find a merchant in switzerland, you can search in other countries.
 
     Your task is to analyze a given merchant name (store, gas station, restaurant, bar, golf club, company, or similar business).
 

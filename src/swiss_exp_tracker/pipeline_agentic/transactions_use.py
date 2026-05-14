@@ -41,7 +41,7 @@ def run_transactions_use() -> None:
                 -- merchant metadata fields
                 merchant TEXT NOT NULL,
                 category_main TEXT NOT NULL,
-                category_second TEXT NOT NULL,
+                category_second TEXT,
                 city TEXT
             )
             """
