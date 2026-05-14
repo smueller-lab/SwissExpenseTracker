@@ -1,0 +1,58 @@
+interactions:
+- request:
+    body: '{"query": "Migros", "search_depth": "basic", "max_results": 5}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate, zstd
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '135'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.5
+    method: POST
+    uri: https://api.tavily.com/search
+  response:
+    body:
+      string: "{\"query\":\"Migros\",\"follow_up_questions\":null,\"answer\":null,\"images\":[],\"results\":[{\"url\":\"https://en.wikipedia.org/wiki/Migros\",\"title\":\"Migros
+        - Wikipedia\",\"content\":\"Migros is Switzerland's largest retail company,
+        its largest supermarket chain and largest employer. It is also one of the
+        forty largest retailers in the\",\"score\":0.90692574,\"raw_content\":null},{\"url\":\"https://play.google.com/store/apps/details?id=com.inomera.sm\",\"title\":\"Migros
+        - Grocery & Food - Apps on Google Play\",\"content\":\"Download the Migros
+        app now to shop, order food and make your life easier! Enjoy online shopping
+        with Migros quality and assurance.\",\"score\":0.6172364,\"raw_content\":null},{\"url\":\"https://www.facebook.com/tritonnews/videos/check-out-this-floating-grocery-store-captured-by-brookedevard-in-t%C3%BCrkiye-its-a-/530402692999664/\",\"title\":\"Check
+        out this floating grocery store, captured by @brookedevard in ...\",\"content\":\"It's
+        a full-fledged supermarket, Migros, that sails through the sea, offering everything
+        from fresh produce to snacks, ice cream, and even baby supplies.\",\"score\":0.57894874,\"raw_content\":null},{\"url\":\"https://www.migros.ch/en\",\"title\":\"Migros
+        supermarket \u2013 Order online and get it delivered to your home ...\",\"content\":\"Order
+        fresh and frozen food and everything for your household online. 12500 Migros
+        products and brand products at Migros prices.\",\"score\":0.5634506,\"raw_content\":null},{\"url\":\"https://www.migros.com.tr/?srsltid=AfmBOoq7I5akni8WJ_5VgGsXCHN79CzmMKiV_eEOtM9IbmC9CyavL9ZT\",\"title\":\"Migros
+        Sanal Market | Online Market Al\u0131\u015Fveri\u015Fi\",\"content\":\"##
+        Migros'u Ke\u015Ffet. Serenay'\u0131n Favori Cilt Bak\u0131m\u0131! ## Migros.
+        Ki\u015Fisel Verilerin Korunmas\u0131 Hakk\u0131nda Ayd\u0131nlatma Metni.
+        Ki\u015Fisel Verilerin Korunmas\u0131 ve \u0130\u015Flenmesi Politikas\u0131.
+        ## Kurumsal. ## Pop\xFCler Sayfalar. ## Migros'ta Yenilikler. ## Mobil Uygulamalar.
+        Migros Mobil Uygulamas\u0131 App Store. Migros Mobil Uygulamas\u0131 Google
+        Play. Migros Mobil Uygulamas\u0131 App Gallery. ## Bizi Takip Edin. ## Dijital
+        Dergilerimiz.\",\"score\":0.53692055,\"raw_content\":null}],\"response_time\":0.0,\"request_id\":\"113e7990-e9a7-4662-a735-2dd779d77e40\"}"
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '2115'
+      Content-Type:
+      - application/json
+      Date:
+      - Sun, 03 May 2026 09:26:37 GMT
+      content-security-policy:
+      - default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self';
+        style-src 'self';base-uri 'self';form-action 'self'; require-trusted-types-for
+        'script'; upgrade-insecure-requests;
+    status:
+      code: 200
+      message: OK
+version: 1

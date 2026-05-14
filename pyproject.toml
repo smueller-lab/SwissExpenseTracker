@@ -1,17 +1,18 @@
 [tool.poetry]
-name = "expenseanalysis"
+name = "swiss_exp_tracker"
 version = "0.1.0"
 description = "Swiss ExpenseTracker tool"
 authors = ["Sebastian Müller <you@example.com>"]
 readme = "README.md"
 license = "MIT"  # You can change this or remove if undecided
-package-mode=false
+packages = [{include = "swiss_exp_tracker", from = "src"}, {include = "tests"}]
 
 [tool.poetry.dependencies]
 python = ">=3.12"
 numpy = "^2.3.1"
 pandas = "^2.3.0"
-openai = "^1.93.0"
+openai = ">=2.26.0,<3"
+openai-agents = "^0.12.5"
 fuzzywuzzy = "^0.18.0"
 python-dotenv = "^1.1.1"
 pyarrow = "^20.0.0"
@@ -21,10 +22,91 @@ nbformat = "^5.10.4"
 dash = "^3.2.0"
 scikit-learn = "^1.7.2"
 dash-ag-grid = "^32.3.2"
+chromadb = "^1.5.5"
 
 [tool.poetry.group.dev.dependencies]
 kaleido = "^1.1.0"
+ruff = "^0.11.0"
+black = "^25.1.0"
+mypy = "^1.15.0"
+pre-commit = "^4.2.0"
+types-tqdm = "^4.67.3.20260408"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+extend-exclude = []
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+extend-select = [
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "ERA", # flake8-eradicate/eradicate
+    "I",   # isort
+    "N",   # pep8-naming
+    "PIE", # flake8-pie
+    "PGH", # pygrep
+    "RUF", # ruff checks
+    "SIM", # flake8-simplify
+    "T20", # flake8-print
+    "TCH", # flake8-type-checking
+    "TID", # flake8-tidy-imports
+    "UP",  # pyupgrade
+]
+ignore = [
+    "TC003",  # move into type checking block
+    "TC001",  # move into type checking block
+    "TC002",  # move into type checking block
+    "ERA001", # Found commented-out code
+]
+extend-safe-fixes = [
+    "TCH", # move import from and to TYPE_CHECKING blocks
+]
+unfixable = [
+    "ERA", # do not autoremove commented out code
+]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.isort]
+force-single-line = true
+lines-between-types = 1
+lines-after-imports = 2
+known-first-party = ["swiss_exp_tracker", "app", "Pipeline"]
+required-imports = ["from __future__ import annotations"]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src"]
+strict = true
+plugins = ["pydantic.mypy"]
+enable_error_code = [
+    "ignore-without-code",
+    "redundant-expr",
+    "truthy-bool",
+]
+
+[[tool.mypy.overrides]]
+module = ["pandas", "pandas.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tqdm", "tqdm.*"]
+ignore_missing_imports = true
+
+[tool.pyright]
+include = ["src"]
+typeCheckingMode = "strict"
+reportUnknownMemberType = "none"
+executionEnvironments = [
+  { root = "." },
+]
