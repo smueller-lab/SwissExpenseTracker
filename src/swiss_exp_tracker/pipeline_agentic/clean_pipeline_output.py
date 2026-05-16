@@ -17,6 +17,11 @@ import sqlite3
 
 from tqdm import tqdm
 
+from swiss_exp_tracker.config import CAR_FUEL_1
+from swiss_exp_tracker.config import HOUSING_RENT_2
+from swiss_exp_tracker.config import RESTAURANT_BAKERY_1
+from swiss_exp_tracker.config import RETAIL_SPORTS_1
+from swiss_exp_tracker.config import SPORT_GOLF_1
 from swiss_exp_tracker.config import work_places
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
@@ -30,12 +35,32 @@ oj = os.path.join
 # Value : (category_main, category_second, city_override or None)
 # ---------------------------------------------------------------------------
 # Exact-match corrections: matched_merchant (case-insensitive) -> (category_main, category_second, city_override)
-CORRECTIONS: dict[str, tuple[str, str, str | None]] = {}
+CORRECTIONS: dict[str, tuple[str, str, str | None]] = {
+    "revolut": (
+        CategoryMain.PAYMENT_SERVICES.value,
+        CategorySecond.PAYMENT_MONEY_TRANSFER.value,
+        None,
+    ),
+}
 
 # Containment corrections: if any substring in the list is contained in matched_merchant,
 # the correction is applied (case-insensitive).
 CONTAINMENT_CORRECTIONS: list[tuple[list[str], tuple[str, str, str | None]]] = [
     (work_places, (CategoryMain.SALARY.value, CategorySecond.SALARY_MAIN.value, None)),
+    (
+        HOUSING_RENT_2,
+        (CategoryMain.HOUSING.value, CategorySecond.HOUSING_RENT.value, None),
+    ),
+    (SPORT_GOLF_1, (CategoryMain.SPORT.value, CategorySecond.SPORT_GOLF.value, None)),
+    (CAR_FUEL_1, (CategoryMain.CAR.value, CategorySecond.CAR_FUEL.value, None)),
+    (
+        RETAIL_SPORTS_1,
+        (CategoryMain.RETAIL.value, CategorySecond.RETAIL_SPORTS.value, None),
+    ),
+    (
+        RESTAURANT_BAKERY_1,
+        (CategoryMain.RESTAURANT.value, CategorySecond.RESTAURANT_CAFE.value, None),
+    ),
 ]
 
 # SWITZERLAND FIRST
@@ -46,8 +71,6 @@ CONTAINMENT_CORRECTIONS: list[tuple[list[str], tuple[str, str, str | None]]] = [
 # Restaurant Parking is not possible
 # add SPA to categories
 # Any place that serve food should be restaurant except for Bar
-
-# datsport, Swiss Ski, schweizer schwimmverband to Salary
 
 # Car, car washing
 
@@ -81,6 +104,13 @@ def run_post_clean() -> None:
             )
             """
         )
+
+        table_exists = db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='merchant_metadata_raw'"
+        ).fetchone()
+        if not table_exists:
+            tqdm.write("post_clean: merchant_metadata_raw not found, skipping")
+            return
 
         # Latest raw row per zkb_reference — include rows not yet in rfn
         # AND rows where the raw entry is newer than the existing rfn row
@@ -165,3 +195,72 @@ def run_post_clean() -> None:
         db.commit()
 
     tqdm.write(f"post_clean: {rows_inserted} rows written to merchant_metadata_rfn")
+
+    _apply_corrections_to_existing_rfn()
+
+
+def _apply_corrections_to_existing_rfn() -> None:
+    """Apply CORRECTIONS and CONTAINMENT_CORRECTIONS to all existing rfn rows.
+
+    Re-runs the correction logic over every row already in ``merchant_metadata_rfn``
+    so that newly added rules take effect without requiring raw rows to be re-enriched.
+    """
+    path_db = oj("./database", "transactions.db")
+
+    corrections_lookup = {k.lower(): v for k, v in CORRECTIONS.items()}
+    containment_corrections = [
+        ([s.lower() for s in patterns], correction)
+        for patterns, correction in CONTAINMENT_CORRECTIONS
+    ]
+
+    with sqlite3.connect(path_db) as db:
+        db.row_factory = sqlite3.Row
+
+        table_exists = db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='merchant_metadata_rfn'"
+        ).fetchone()
+        if not table_exists:
+            tqdm.write(
+                "post_clean: merchant_metadata_rfn not found, skipping corrections"
+            )
+            return
+
+        rows = db.execute("SELECT * FROM merchant_metadata_rfn").fetchall()
+
+        rows_updated = 0
+        for row in rows:
+            merchant_key = (row["matched_merchant"] or "").lower()
+
+            correction = corrections_lookup.get(merchant_key)
+            if correction is None:
+                for patterns, corr in containment_corrections:
+                    if any(p in merchant_key for p in patterns):
+                        correction = corr
+                        break
+
+            if correction is None:
+                continue
+
+            category_main, category_second, city_override = correction
+            city = city_override if city_override is not None else row["city"]
+
+            if (
+                row["category_main"] == category_main
+                and row["category_second"] == category_second
+                and row["city"] == city
+            ):
+                continue  # already correct, skip
+
+            db.execute(
+                """
+                UPDATE merchant_metadata_rfn
+                SET category_main = ?, category_second = ?, city = ?
+                WHERE id = ?
+                """,
+                (category_main, category_second, city, row["id"]),
+            )
+            rows_updated += 1
+
+        db.commit()
+
+    tqdm.write(f"post_clean: {rows_updated} existing rfn rows corrected")

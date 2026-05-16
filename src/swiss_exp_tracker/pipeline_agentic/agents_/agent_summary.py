@@ -7,22 +7,22 @@ from agents import ModelSettings
 from agents import function_tool
 from pydantic import BaseModel
 
-from swiss_exp_tracker.pipeline_agentic.libs import BRAVE_SEARCH_FREE_CREDIT_LIMIT
-from swiss_exp_tracker.pipeline_agentic.libs import EXA_FREE_CREDIT_LIMIT
-from swiss_exp_tracker.pipeline_agentic.libs import SCRAPE_DO_FREE_CREDIT_LIMIT
-from swiss_exp_tracker.pipeline_agentic.libs import TAVILY_FREE_CREDIT_LIMIT
-from swiss_exp_tracker.pipeline_agentic.libs import brave_web_search
-from swiss_exp_tracker.pipeline_agentic.libs import exa_web_search
-from swiss_exp_tracker.pipeline_agentic.libs import load_brave_usage
-from swiss_exp_tracker.pipeline_agentic.libs import load_exa_usage
-from swiss_exp_tracker.pipeline_agentic.libs import load_scrape_do_usage
-from swiss_exp_tracker.pipeline_agentic.libs import load_tavily_usage
-from swiss_exp_tracker.pipeline_agentic.libs import save_brave_usage
-from swiss_exp_tracker.pipeline_agentic.libs import save_exa_usage
-from swiss_exp_tracker.pipeline_agentic.libs import save_scrape_do_usage
-from swiss_exp_tracker.pipeline_agentic.libs import save_tavily_usage
-from swiss_exp_tracker.pipeline_agentic.libs import scrape_do_web_search
-from swiss_exp_tracker.pipeline_agentic.libs import tavily_web_search
+from swiss_exp_tracker.pipeline_agentic.web_search import BRAVE_SEARCH_FREE_CREDIT_LIMIT
+from swiss_exp_tracker.pipeline_agentic.web_search import EXA_FREE_CREDIT_LIMIT
+from swiss_exp_tracker.pipeline_agentic.web_search import SCRAPE_DO_FREE_CREDIT_LIMIT
+from swiss_exp_tracker.pipeline_agentic.web_search import TAVILY_FREE_CREDIT_LIMIT
+from swiss_exp_tracker.pipeline_agentic.web_search import brave_web_search
+from swiss_exp_tracker.pipeline_agentic.web_search import exa_web_search
+from swiss_exp_tracker.pipeline_agentic.web_search import load_brave_usage
+from swiss_exp_tracker.pipeline_agentic.web_search import load_exa_usage
+from swiss_exp_tracker.pipeline_agentic.web_search import load_scrape_do_usage
+from swiss_exp_tracker.pipeline_agentic.web_search import load_tavily_usage
+from swiss_exp_tracker.pipeline_agentic.web_search import save_brave_usage
+from swiss_exp_tracker.pipeline_agentic.web_search import save_exa_usage
+from swiss_exp_tracker.pipeline_agentic.web_search import save_scrape_do_usage
+from swiss_exp_tracker.pipeline_agentic.web_search import save_tavily_usage
+from swiss_exp_tracker.pipeline_agentic.web_search import scrape_do_web_search
+from swiss_exp_tracker.pipeline_agentic.web_search import tavily_web_search
 
 
 class WebSearchTool(Enum):
@@ -31,6 +31,7 @@ class WebSearchTool(Enum):
     BRAVE = "brave"
     SCRAPE_DO = "scrape_do"
     PERSON = "person"
+    NO_WEBSEARCH = "no_websearch"
 
 
 class SearchToolResult(BaseModel):
@@ -60,7 +61,7 @@ def search_web(query: str) -> SearchToolResult:
     2) Brave Search free tier — up to 1 000 requests/month (direct REST).
     3) Scrape.do free tier    — up to 1 000 requests/month (direct REST).
     4) Exa free tier          — 10 credits/result, lowest priority free tier.
-    5) Tavily as-you-go       — pay-per-use fallback.
+    5) Brave Search as-you-go — pay-per-use fallback.
     6) Exa as-you-go          — pay-per-use fallback (last resort).
     """
     global _tavily_free_credits_used, _exa_free_credits_used, _brave_free_credits_used, _scrape_do_free_credits_used
@@ -93,9 +94,17 @@ def search_web(query: str) -> SearchToolResult:
     # ── 2. Brave Search free tier ────────────────────────────────────────────
     if _brave_free_credits_used < BRAVE_SEARCH_FREE_CREDIT_LIMIT:
         brave_result = brave_web_search(query)
-        if brave_result.startswith("BRAVE_RESULTS"):
+        _brave_api_called = not any(
+            brave_result.startswith(p)
+            for p in (
+                "BRAVE_UNAVAILABLE: BRAVE_SEARCH_API_KEY",
+                "BRAVE_UNAVAILABLE: request failed",
+            )
+        )
+        if _brave_api_called:
             _brave_free_credits_used += 1
             save_brave_usage(_brave_free_credits_used)
+        if brave_result.startswith("BRAVE_RESULTS"):
             return _tool_result(
                 summary=brave_result.removeprefix("BRAVE_RESULTS\n"),
                 tool_used=WebSearchTool.BRAVE,
@@ -137,14 +146,22 @@ def search_web(query: str) -> SearchToolResult:
             save_exa_usage(_exa_free_credits_used)
         # Any EXA_UNAVAILABLE → fall through to as-you-go.
 
-    # ── 5. Tavily as-you-go (pay-per-use fallback) ───────────────────────────
-    tavily_result = tavily_web_search(query)
-    if tavily_result.startswith("TAVILY_RESULTS"):
-        _tavily_free_credits_used += 1
-        save_tavily_usage(_tavily_free_credits_used)
+    # ── 5. Brave Search as-you-go (pay-per-use fallback) ─────────────────────
+    brave_result = brave_web_search(query)
+    _brave_api_called = not any(
+        brave_result.startswith(p)
+        for p in (
+            "BRAVE_UNAVAILABLE: BRAVE_SEARCH_API_KEY",
+            "BRAVE_UNAVAILABLE: request failed",
+        )
+    )
+    if _brave_api_called:
+        _brave_free_credits_used += 1
+        save_brave_usage(_brave_free_credits_used)
+    if brave_result.startswith("BRAVE_RESULTS"):
         return _tool_result(
-            summary=tavily_result.removeprefix("TAVILY_RESULTS\n"),
-            tool_used=WebSearchTool.TAVILY,
+            summary=brave_result.removeprefix("BRAVE_RESULTS\n"),
+            tool_used=WebSearchTool.BRAVE,
         )
 
     # ── 6. Exa as-you-go (pay-per-use fallback, last resort) ─────────────────
@@ -161,7 +178,7 @@ def search_web(query: str) -> SearchToolResult:
 
     return _tool_result(
         summary="SEARCH_UNAVAILABLE: all providers exhausted or unavailable.",
-        tool_used=WebSearchTool.TAVILY,
+        tool_used=WebSearchTool.BRAVE,
     )
 
 
@@ -181,7 +198,7 @@ BASE_INSTRUCTIONS = """
     3. Generate a concise and structured merchant summary.
 
     The search tool automatically selects the best provider:
-    Tavily free (1,000/month) -> Exa free (1,000/month) -> Brave Search free (1,000/month) -> Scrape.do free (1,000/month) -> Exa as-you-go -> Tavily as-you-go.
+    Tavily free (1,000/month) -> Brave Search free (1,000/month) -> Scrape.do free (1,000/month) -> Exa free (1,000/month) -> Brave Search as-you-go -> Exa as-you-go.
 
     Return the result in a full text summary that includes the following information when available:
     - Name of the Merchant
