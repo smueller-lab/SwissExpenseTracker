@@ -244,6 +244,7 @@ class CategorySecond(StrEnum):
     PAYMENT_FEES = "Payment Fees"
     PAYMENT_CURRENCY = "Currency Exchange"
     PAYMENT_TRANSFER = "Transfer Fees"
+    PAYMENT_MONEY_TRANSFER = "Money Transfer"
 
     # INVESTING
     # Use for brokerage/investment platform related transactions.

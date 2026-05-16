@@ -27,6 +27,7 @@ class Currency(Enum):
     DKK = "DKK"
     MAD = "MAD"
     TRY = "TRY"
+    PLN = "PLN"
 
 
 class EnrichmentStatus(Enum):

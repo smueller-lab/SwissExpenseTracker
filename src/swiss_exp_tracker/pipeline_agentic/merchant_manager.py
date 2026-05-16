@@ -141,7 +141,7 @@ class MerchantManager:
             )
             return SearchToolResult(
                 summary=f"Summary unavailable for '{merchant.merchant}' (max turns exceeded).",
-                tool_used=WebSearchTool.PERSON,
+                tool_used=WebSearchTool.NO_WEBSEARCH,
             )
 
     async def get_merchant_metadata(

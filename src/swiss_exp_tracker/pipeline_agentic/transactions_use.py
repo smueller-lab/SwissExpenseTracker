@@ -15,6 +15,23 @@ import sqlite3
 
 from tqdm import tqdm
 
+from swiss_exp_tracker.config import HOUSING_RENT_1
+from swiss_exp_tracker.config import HOUSING_RENT_2
+from swiss_exp_tracker.config import HOUSING_RENT_2_ROOMMATE_OFFSET
+from swiss_exp_tracker.config import HOUSING_RENT_AMOUNTS_1
+from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
+from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
+
+
+# Merchant-name substrings + allowed amounts → (category_main, category_second)
+AMOUNT_CORRECTIONS: list[tuple[list[str], list[float], tuple[str, str]]] = [
+    (
+        HOUSING_RENT_1,
+        HOUSING_RENT_AMOUNTS_1,
+        (CategoryMain.HOUSING.value, CategorySecond.HOUSING_RENT.value),
+    ),
+]
+
 
 oj = os.path.join
 
@@ -99,3 +116,162 @@ def run_transactions_use() -> None:
         db.commit()
 
     tqdm.write(f"transactions_use: {len(rows)} rows written")
+
+    _sync_categories_from_rfn()
+
+
+def _sync_categories_from_rfn() -> None:
+    """Update existing transactions_use rows whose rfn categories changed."""
+    path_db = oj("./database", "transactions.db")
+
+    with sqlite3.connect(path_db) as db:
+        db.row_factory = sqlite3.Row
+
+        rows = db.execute(
+            """
+            SELECT tu.id, m.category_main, m.category_second, m.city
+            FROM transactions_use tu
+            JOIN merchant_metadata_rfn m ON m.zkb_reference = tu.reference
+            WHERE tu.category_main  != m.category_main
+               OR COALESCE(tu.category_second, '') != COALESCE(m.category_second, '')
+               OR COALESCE(tu.city, '')            != COALESCE(m.city, '')
+            """
+        ).fetchall()
+
+        for row in rows:
+            db.execute(
+                """
+                UPDATE transactions_use
+                SET category_main = ?, category_second = ?, city = ?
+                WHERE id = ?
+                """,
+                (row["category_main"], row["category_second"], row["city"], row["id"]),
+            )
+
+        db.commit()
+
+    tqdm.write(f"transactions_use: {len(rows)} rows synced from rfn")
+
+    _apply_amount_corrections()
+
+
+def _apply_amount_corrections() -> None:
+    """Apply merchant+amount based category overrides to transactions_use."""
+    path_db = oj("./database", "transactions.db")
+
+    with sqlite3.connect(path_db) as db:
+        db.row_factory = sqlite3.Row
+        rows = db.execute(
+            "SELECT id, merchant, amount, category_main, category_second FROM transactions_use"
+        ).fetchall()
+
+        rows_updated = 0
+        for row in rows:
+            merchant_key = (row["merchant"] or "").lower()
+            amount = row["amount"]
+
+            for patterns, amounts, (cat_main, cat_second) in AMOUNT_CORRECTIONS:
+                if (
+                    any(p.lower() in merchant_key for p in patterns)
+                    and amount in amounts
+                ):
+                    if (
+                        row["category_main"] == cat_main
+                        and row["category_second"] == cat_second
+                    ):
+                        break
+                    db.execute(
+                        "UPDATE transactions_use SET category_main = ?, category_second = ? WHERE id = ?",
+                        (cat_main, cat_second, row["id"]),
+                    )
+                    rows_updated += 1
+                    break
+
+        db.commit()
+
+    tqdm.write(f"transactions_use: {rows_updated} rows corrected by amount")
+
+    _apply_shared_housing_roommate_offset()
+
+
+def _apply_shared_housing_roommate_offset() -> None:
+    """Subtract roommate's share from Shared housing rent and remove the matching income row.
+
+    Idempotent: resets Shared housing amounts from transactions_rfn before applying, so
+    repeated runs always produce the same result even if income rows were
+    re-inserted by a previous run_transactions_use() call.
+    """
+    path_db = oj("./database", "transactions.db")
+
+    like_clauses = " OR ".join(
+        f"lower(tu.merchant) LIKE '%{p.lower()}%'" for p in HOUSING_RENT_2
+    )
+
+    with sqlite3.connect(path_db) as db:
+        db.row_factory = sqlite3.Row
+
+        # Reset Shared housing amounts to the original source value (transactions_rfn)
+        db.execute(
+            f"""
+            UPDATE transactions_use
+            SET amount = (
+                SELECT t.amount
+                FROM transactions_rfn t
+                WHERE t.reference = transactions_use.reference
+            )
+            WHERE {like_clauses.replace("tu.", "")}
+            """
+        )
+
+        shared_housing_rows = db.execute(
+            f"""
+            SELECT tu.id, tu.date, tu.amount
+            FROM transactions_use tu
+            WHERE ({like_clauses})
+              AND tu.category_main = 'Housing'
+              AND tu.category_second = 'Rent'
+            ORDER BY tu.date
+            """
+        ).fetchall()
+
+        # First Shared housing row per month
+        shared_housing_by_month: dict[str, tuple[int, float]] = {}
+        for row in shared_housing_rows:
+            month_key = row["date"][:7]
+            if month_key not in shared_housing_by_month:
+                shared_housing_by_month[month_key] = (
+                    int(row["id"]),
+                    float(row["amount"]),
+                )
+
+        income_rows = db.execute(
+            "SELECT id, date FROM transactions_use WHERE amount = ? AND transaction_type = 'INCOME'",
+            (HOUSING_RENT_2_ROOMMATE_OFFSET,),
+        ).fetchall()
+
+        rows_adjusted = 0
+        ids_to_delete: list[int] = []
+        for income in income_rows:
+            month_key = income["date"][:7]
+            if month_key in shared_housing_by_month:
+                shared_housing_id, shared_housing_amount = shared_housing_by_month[
+                    month_key
+                ]
+                db.execute(
+                    "UPDATE transactions_use SET amount = ? WHERE id = ?",
+                    (
+                        shared_housing_amount - HOUSING_RENT_2_ROOMMATE_OFFSET,
+                        shared_housing_id,
+                    ),
+                )
+                ids_to_delete.append(income["id"])
+                rows_adjusted += 1
+
+        for income_id in ids_to_delete:
+            db.execute("DELETE FROM transactions_use WHERE id = ?", (income_id,))
+
+        db.commit()
+
+    tqdm.write(
+        f"transactions_use: {rows_adjusted} Shared housing roommate offsets applied"
+    )
