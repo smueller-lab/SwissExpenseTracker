@@ -45,7 +45,8 @@ Sub-categories: Tennis | Golf | Padel | Bike | Fitness | Running | Swimming
 Use for leisure/consumption entertainment (streaming, events, cinema, theatre, spectator sports).
 Any visit in a sports stadium or hall for watching an event belongs to Entertainment, not Sport.
 Any visit to a Bar, Restaurant or Food Court inside a stadium or sports hall belongs to Restaurant, not Entertainment.
-Sub-categories: Music Streaming | Events & Concerts | Sports | Cinema | Theatre | TV & Streaming | Dating | Amusement Park
+Places for pool, billiard, arcade games, bowling, darts, escape room go under Entertainment, Game Hall.
+Sub-categories: Music Streaming | Events & Concerts | Sports | Cinema | Theatre | TV & Streaming | Dating | Amusement Park | Game Hall
 
 **Telecommunication** (e.g. GoMo, Sunrise, Salt)
 Use for telecom contracts and providers (mobile, internet, TV subscriptions).

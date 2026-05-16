@@ -37,7 +37,7 @@ def main() -> None:
 
     # ── Stage 2: Agentic enrichment ───────────────────────────────────────────
     logger.info("=== Stage 2: Agentic enrichment ===")
-    transactions = load_pending_transactions()
+    transactions = load_pending_transactions()[:1000]
     if transactions:
         asyncio.run(run_all_transactions(transactions))
     else:
