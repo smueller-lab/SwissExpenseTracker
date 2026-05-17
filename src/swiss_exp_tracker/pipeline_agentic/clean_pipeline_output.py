@@ -41,6 +41,11 @@ CORRECTIONS: dict[str, tuple[str, str, str | None]] = {
         CategorySecond.PAYMENT_MONEY_TRANSFER.value,
         None,
     ),
+    "p corporate hospitality": (
+        CategoryMain.ENTERTAINMENT.value,
+        CategorySecond.ENTERTAINMENT_SPORTS.value,
+        None,
+    ),
 }
 
 # Containment corrections: if any substring in the list is contained in matched_merchant,

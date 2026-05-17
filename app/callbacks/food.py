@@ -1,20 +1,31 @@
-from dash import Input, Output, ctx
+from __future__ import annotations
+
+from typing import Any
+from typing import Literal
+
+from dash import Input
+from dash import Output
+from dash import ctx
+
 from app.vis.figure import Fig
+
+
 F = Fig()
 
 
-def register_callbacks(app, data):
-    @app.callback(
+def register_callbacks(app: Any, data: Any) -> None:
+    @app.callback(  # type: ignore[untyped-decorator]
         Output("fig-Food", "figure"),
         Output("fig-Food-monthly", "className"),
         Output("fig-Food-yearly", "className"),
         Input("fig-Food-monthly", "n_clicks"),
         Input("fig-Food-yearly", "n_clicks"),
     )
-    def update_FoodPlot(n_monthly, n_yearly):
-
+    def update_FoodPlot(
+        n_monthly: int | None, n_yearly: int | None
+    ) -> tuple[Any, str, str]:
         trigger = ctx.triggered_id
-
+        freq: Literal["Monthly", "Yearly"]
         if trigger == "fig-Food-yearly":
             freq = "Yearly"
             monthly_class = "btn-toggle"
@@ -25,5 +36,4 @@ def register_callbacks(app, data):
             yearly_class = "btn-toggle"
 
         fig = F.fig_BarFood(data.pdf_Food, freq)
-
         return fig, monthly_class, yearly_class
