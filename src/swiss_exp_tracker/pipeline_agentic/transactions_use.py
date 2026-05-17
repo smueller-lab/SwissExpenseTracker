@@ -59,10 +59,18 @@ def run_transactions_use() -> None:
                 merchant TEXT NOT NULL,
                 category_main TEXT NOT NULL,
                 category_second TEXT,
-                city TEXT
+                city TEXT,
+                balance_chf REAL
             )
             """
         )
+
+        use_columns = {
+            str(col[1])
+            for col in db.execute("PRAGMA table_info(transactions_use)").fetchall()
+        }
+        if "balance_chf" not in use_columns:
+            db.execute("ALTER TABLE transactions_use ADD COLUMN balance_chf REAL")
 
         rows = db.execute(
             """
@@ -77,7 +85,8 @@ def run_transactions_use() -> None:
                 m.matched_merchant  AS merchant,
                 m.category_main,
                 m.category_second,
-                m.city
+                m.city,
+                t.balance_chf
             FROM transactions_rfn t
             JOIN merchant_metadata_rfn m ON m.zkb_reference = t.reference
             WHERE t.enrichment_status = 'enriched'
@@ -95,8 +104,8 @@ def run_transactions_use() -> None:
                 INSERT INTO transactions_use (
                     transaction_id, source_type, date, amount, transaction_type,
                     currency, reference,
-                    merchant, category_main, category_second, city
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    merchant, category_main, category_second, city, balance_chf
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     row["transaction_id"],
@@ -110,6 +119,7 @@ def run_transactions_use() -> None:
                     row["category_main"],
                     row["category_second"],
                     row["city"],
+                    row["balance_chf"],
                 ),
             )
 
@@ -117,6 +127,7 @@ def run_transactions_use() -> None:
 
     tqdm.write(f"transactions_use: {len(rows)} rows written")
 
+    _backfill_balance_chf_use()
     _sync_categories_from_rfn()
 
 
@@ -275,3 +286,24 @@ def _apply_shared_housing_roommate_offset() -> None:
     tqdm.write(
         f"transactions_use: {rows_adjusted} Shared housing roommate offsets applied"
     )
+
+
+def _backfill_balance_chf_use() -> None:
+    """Propagate balance_chf from transactions_rfn into existing transactions_use rows."""
+    path_db = oj("./database", "transactions.db")
+
+    with sqlite3.connect(path_db) as db:
+        db.execute(
+            """
+            UPDATE transactions_use
+            SET balance_chf = (
+                SELECT t.balance_chf
+                FROM transactions_rfn t
+                WHERE t.reference = transactions_use.reference
+            )
+            WHERE balance_chf IS NULL
+            """
+        )
+        db.commit()
+
+    tqdm.write("transactions_use: balance_chf backfilled from transactions_rfn")

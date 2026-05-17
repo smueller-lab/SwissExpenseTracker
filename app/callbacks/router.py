@@ -1,19 +1,23 @@
-from dash import Input, Output
-from app.layout.home import layout as home_layout
+from __future__ import annotations
+
+from typing import Any
+
+from dash import Input
+from dash import Output
+
 from app.layout.food import layout as food_layout
 from app.layout.groceries import layout as groceries_layout
-from app.layout.vacation import layout as vacation_layout
-from app.layout.transport import layout as transport_layout
+from app.layout.home import layout as home_layout
 from app.layout.sport import layout as sport_layout
+from app.layout.transport import layout as transport_layout
+from app.layout.vacation import layout as vacation_layout
 
 
-def register_callbacks(app, data):
-
-    @app.callback(
-        Output("page-content", "children"),
-        Input("url", "pathname")
+def register_callbacks(app: Any, data: Any) -> None:
+    @app.callback(  # type: ignore[untyped-decorator]
+        Output("page-content", "children"), Input("url", "pathname")
     )
-    def display_page(pth):
+    def display_page(pth: str) -> Any:
         if pth == "/":
             return home_layout(data)
         elif pth == "/groceries":
@@ -28,8 +32,7 @@ def register_callbacks(app, data):
             return sport_layout(data)
         return home_layout(data)
 
-
-    @app.callback(
+    @app.callback(  # type: ignore[untyped-decorator]
         [
             Output("link-home", "className"),
             Output("link-groceries", "className"),
@@ -38,9 +41,9 @@ def register_callbacks(app, data):
             Output("link-transport", "className"),
             Output("link-sport", "className"),
         ],
-        Input("url", "pathname")
+        Input("url", "pathname"),
     )
-    def highlight_active_tab(pth):
+    def highlight_active_tab(pth: str) -> list[str]:
         default = "menu-link"
         active = "menu-link active"
         return [

@@ -392,6 +392,11 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
                     continue
                 source_model = cleaned_zkb_model
 
+            # Extract running balance for ZKB rows (NULL for all other sources)
+            balance_chf: float | None = None
+            if source_type == SourceType.ZKB_DEBIT:
+                balance_chf = cast("ZKBTransaction", source_model).Balance
+
             # Step 3b: Revolut processing
             revolut_chf_signed: float | None = None
             if source_type == SourceType.REVOLUT:
@@ -471,9 +476,10 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
 					currency,
 					reference,
 					enrichment_status,
-					created_at
+					created_at,
+					balance_chf
 				)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 				""",
                 (
                     row.raw_id,
@@ -488,6 +494,7 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
                     reference,
                     enrichment_status,
                     datetime.now().isoformat(),
+                    balance_chf,
                 ),
             )
 

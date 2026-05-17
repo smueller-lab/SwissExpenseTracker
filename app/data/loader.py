@@ -1,63 +1,139 @@
+from __future__ import annotations
+
+import sqlite3
+
+from pathlib import Path
+
 import pandas as pd
-from app.config import FDP, VIS
+
+from app.config import DB_PATH
+from app.config import VIS
+from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANT_NORMALIZE
+from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANTS_TRACKED
+
+
+def _normalize_merchant(merchant: str) -> str:
+    m = merchant.lower()
+    for pattern, canonical in GROCERY_MERCHANT_NORMALIZE:
+        if pattern in m:
+            return canonical
+    return merchant
 
 
 class DataLoader:
-    def __init__(self):
-        self.fdp = FDP()
+    def __init__(self, db_path: Path | str | None = None) -> None:
         self.vis = VIS()
+        self._db_path: Path | str = db_path or DB_PATH
         self._load_all_data()
 
-    
-    def get_scol_DashTable(self, pdf: pd.DataFrame):
-        return [{'name': col, 'id': col, **self.vis.vk_format_col.get(col, {'type': 'text'})} for col in pdf.columns]
-    
+    def get_scol_DashTable(self, pdf: pd.DataFrame) -> list[dict[str, object]]:
+        return [
+            {
+                "name": col,
+                "id": col,
+                **self.vis.vk_format_col.get(col, {"type": "text"}),
+            }
+            for col in pdf.columns
+        ]
 
-    def apply_Variable_show(self, pdf: pd.DataFrame):
-        pdf = pdf.rename(columns=self.vis.vk_Variable_show)
-        return pdf
+    def apply_Variable_show(self, pdf: pd.DataFrame) -> pd.DataFrame:
+        return pdf.rename(columns=self.vis.vk_Variable_show)
 
+    def _load_all_data(self) -> None:
+        with sqlite3.connect(str(self._db_path)) as con:
+            # Raw transactions for ad-hoc queries (get_TopExpenses_Category_Month)
+            self.pdf_Master = pd.read_sql("SELECT * FROM transactions_use", con)
+            self.pdf_Master["date"] = pd.to_datetime(self.pdf_Master["date"])
+            self.pdf_Master = self.pdf_Master.rename(
+                columns={"merchant": "Merchant", "amount": "amount_CHF"}
+            )
 
-    def _load_all_data(self):
-        self.pdf_Master = pd.read_parquet(self.fdp.pth_Master_BankZKB)
-        self.pdf_Balance = pd.read_pickle(self.fdp.pth_table_Balance)
-        self.pdf_Grocery = pd.read_pickle(self.fdp.pth_table_Groceries)
-        self.pdf_Food = pd.read_pickle(self.fdp.pth_table_Food)
-        self.pdf_CatMain = pd.read_pickle(self.fdp.pth_table_CatMain)
-        self.z_StatsTable = pd.read_pickle(self.fdp.pth_table_Stats)
-        self.pdf_TopCat = pd.read_pickle(self.fdp.pth_table_TopCat)
-        self.pdf_Vacation = pd.read_pickle(self.fdp.pth_table_Vacation)
-        self.pdf_Transport = pd.read_pickle(self.fdp.pth_table_Transport)
-        self.pdf_TransportHeatmap = pd.read_pickle(self.fdp.pth_table_TransportHeatmap)
-        self.pdf_Sport = pd.read_pickle(self.fdp.pth_table_Sport)
+            # Per-visit grocery amounts with normalized merchant names (for box plot)
+            pdf_gv = self.pdf_Master[
+                (self.pdf_Master["category_main"] == "Groceries")
+                & (self.pdf_Master["transaction_type"] == "EXPENSE")
+            ].copy()
+            pdf_gv["Merchant"] = pdf_gv["Merchant"].apply(_normalize_merchant)
+            self.pdf_GroceryVisits = pdf_gv[
+                pdf_gv["Merchant"].isin(GROCERY_MERCHANTS_TRACKED)
+            ].reset_index(drop=True)
 
-        self.pdf_TopExpenses = pd.read_pickle(self.fdp.pth_table_TopExpenses)
-        self.pdf_TopExpenses['Date'] = self.pdf_TopExpenses['Date'].dt.strftime('%d-%m-%Y')
-        self.pdf_TopExpenses = self.apply_Variable_show(self.pdf_TopExpenses)
+            # Balance
+            self.pdf_Balance = pd.read_sql("SELECT * FROM dash_balance", con)
+            self.pdf_Balance = self.pdf_Balance.rename(
+                columns={"date": "Date", "balance_chf": "Balance_CHF"}
+            )
+            self.pdf_Balance["Date"] = pd.to_datetime(self.pdf_Balance["Date"])
 
-        self.pdf_NetBalanceMonth = pd.read_pickle(self.fdp.pth_table_NetBalanceMonth)[['Month', 'expense', 'income', 'NetBalance']]
-        self.pdf_NetBalanceMonth = self.apply_Variable_show(self.pdf_NetBalanceMonth)
+            # Groceries
+            self.pdf_Grocery = pd.read_sql("SELECT * FROM dash_groceries", con)
+            self.pdf_Grocery = self.pdf_Grocery.rename(columns={"merchant": "Merchant"})
 
+            # Food
+            self.pdf_Food = pd.read_sql("SELECT * FROM dash_food", con)
 
-    def get_TopExpenses_Category_Month(self, Category: str, Month: str):
+            # Category main (donut)
+            self.pdf_CatMain = pd.read_sql("SELECT * FROM dash_cat_main", con)
+            self.pdf_CatMain = self.pdf_CatMain.rename(columns={"amount": "amount_CHF"})
+
+            # Stats KPIs — stored as single-row table, loaded as Series
+            self.z_StatsTable = pd.read_sql("SELECT * FROM dash_stats", con).iloc[0]
+
+            # Top category comparison
+            self.pdf_TopCat = pd.read_sql("SELECT * FROM dash_top_category", con)
+            self.pdf_TopCat["MonthLast"] = self.pdf_TopCat["MonthLast"].map(
+                lambda s: pd.Period(str(s), "M")
+            )
+
+            # Top 20 expenses
+            self.pdf_TopExpenses = pd.read_sql("SELECT * FROM dash_top_expenses", con)
+            self.pdf_TopExpenses = self.pdf_TopExpenses.rename(
+                columns={"date": "Date", "amount": "amount_CHF", "merchant": "Merchant"}
+            )
+            self.pdf_TopExpenses = self.apply_Variable_show(self.pdf_TopExpenses)
+
+            # Net balance per month
+            self.pdf_NetBalanceMonth = pd.read_sql(
+                "SELECT Month, expense, income, NetBalance FROM dash_net_balance_month",
+                con,
+            )
+            self.pdf_NetBalanceMonth = self.apply_Variable_show(
+                self.pdf_NetBalanceMonth
+            )
+
+            # Vacation
+            self.pdf_Vacation = pd.read_sql("SELECT * FROM dash_vacation", con)
+
+            # Transport
+            self.pdf_Transport = pd.read_sql("SELECT * FROM dash_transport", con)
+            self.pdf_Transport = self.pdf_Transport.rename(
+                columns={"amount": "amount_CHF"}
+            )
+
+            self.pdf_TransportHeatmap = pd.read_sql(
+                "SELECT * FROM dash_transport_heatmap", con
+            )
+            self.pdf_TransportHeatmap = self.pdf_TransportHeatmap.rename(
+                columns={"amount": "amount_CHF"}
+            )
+
+            # Sport
+            self.pdf_Sport = pd.read_sql("SELECT * FROM dash_sport", con)
+
+    def get_TopExpenses_Category_Month(self, Category: str, Month: str) -> pd.DataFrame:
         pdf = self.pdf_Master.copy()
-        pdf['Month'] = pd.to_datetime(pdf['Date']).dt.to_period('M')
-        pdf['Date'] = pdf['Date'].dt.strftime('%d-%m-%Y')
+        pdf["Month"] = pdf["date"].dt.to_period("M")
+        pdf["Date"] = pdf["date"].dt.strftime("%d-%m-%Y")
 
-        # filter pdf for given Category and Month
         pdf = pdf[
-            (pdf['category_main'] == Category) &
-            (pdf['transaction_type'] == 'expense') &
-            (pdf['Month'] == Month)   
+            (pdf["category_main"] == Category)
+            & (pdf["transaction_type"] == "EXPENSE")
+            & (pdf["Month"] == Month)
         ].reset_index(drop=True)
 
-        # sort pdf
-        pdf = pdf.sort_values(by='amount_CHF', ascending=False).head(7)
+        pdf = pdf.sort_values(by="amount_CHF", ascending=False).head(7)
 
-        # select columns
-        s_col = ['Date', 'amount_CHF', 'Merchant', 'category_second', 'MerchantPlace']
-        pdf = pdf[s_col].copy()
+        pdf = pdf.rename(columns={"city": "MerchantPlace"})
 
-        pdf = self.apply_Variable_show(pdf)
-
-        return pdf
+        s_col = ["Date", "amount_CHF", "Merchant", "category_second", "MerchantPlace"]
+        return self.apply_Variable_show(pdf[s_col].copy())
