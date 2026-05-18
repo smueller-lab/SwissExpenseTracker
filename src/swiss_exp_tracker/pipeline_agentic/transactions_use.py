@@ -15,20 +15,45 @@ import sqlite3
 
 from tqdm import tqdm
 
+from swiss_exp_tracker.config import HOUSING_DEPOSIT_1
+from swiss_exp_tracker.config import HOUSING_DEPOSIT_1_MIN_AMOUNT
 from swiss_exp_tracker.config import HOUSING_RENT_1
 from swiss_exp_tracker.config import HOUSING_RENT_2
 from swiss_exp_tracker.config import HOUSING_RENT_2_ROOMMATE_OFFSET
+from swiss_exp_tracker.config import HOUSING_RENT_3
+from swiss_exp_tracker.config import HOUSING_RENT_3_AMOUNTS
 from swiss_exp_tracker.config import HOUSING_RENT_AMOUNTS_1
+from swiss_exp_tracker.config import INVESTING_BROKERAGE_1
+from swiss_exp_tracker.config import INVESTING_BROKERAGE_1_MIN_AMOUNT
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
 
 
-# Merchant-name substrings + allowed amounts → (category_main, category_second)
+# Merchant-name substrings + exact amounts → (category_main, category_second)
 AMOUNT_CORRECTIONS: list[tuple[list[str], list[float], tuple[str, str]]] = [
     (
         HOUSING_RENT_1,
         HOUSING_RENT_AMOUNTS_1,
         (CategoryMain.HOUSING.value, CategorySecond.HOUSING_RENT.value),
+    ),
+    (
+        HOUSING_RENT_3,
+        HOUSING_RENT_3_AMOUNTS,
+        (CategoryMain.HOUSING.value, CategorySecond.HOUSING_RENT.value),
+    ),
+]
+
+# Merchant-name substrings + minimum amount (exclusive) → (category_main, category_second)
+AMOUNT_THRESHOLD_CORRECTIONS: list[tuple[list[str], float, tuple[str, str]]] = [
+    (
+        INVESTING_BROKERAGE_1,
+        INVESTING_BROKERAGE_1_MIN_AMOUNT,
+        (CategoryMain.INVESTING.value, CategorySecond.INVESTING_BROKERAGE.value),
+    ),
+    (
+        HOUSING_DEPOSIT_1,
+        HOUSING_DEPOSIT_1_MIN_AMOUNT,
+        (CategoryMain.HOUSING.value, CategorySecond.HOUSING_DEPOSIT.value),
     ),
 ]
 
@@ -181,22 +206,44 @@ def _apply_amount_corrections() -> None:
             merchant_key = (row["merchant"] or "").lower()
             amount = row["amount"]
 
+            matched = False
             for patterns, amounts, (cat_main, cat_second) in AMOUNT_CORRECTIONS:
                 if (
                     any(p.lower() in merchant_key for p in patterns)
                     and amount in amounts
                 ):
+                    matched = True
                     if (
-                        row["category_main"] == cat_main
-                        and row["category_second"] == cat_second
+                        row["category_main"] != cat_main
+                        or row["category_second"] != cat_second
                     ):
-                        break
-                    db.execute(
-                        "UPDATE transactions_use SET category_main = ?, category_second = ? WHERE id = ?",
-                        (cat_main, cat_second, row["id"]),
-                    )
-                    rows_updated += 1
+                        db.execute(
+                            "UPDATE transactions_use SET category_main = ?, category_second = ? WHERE id = ?",
+                            (cat_main, cat_second, row["id"]),
+                        )
+                        rows_updated += 1
                     break
+
+            if not matched:
+                for (
+                    patterns,
+                    min_amount,
+                    (cat_main, cat_second),
+                ) in AMOUNT_THRESHOLD_CORRECTIONS:
+                    if (
+                        any(p.lower() in merchant_key for p in patterns)
+                        and abs(amount) > min_amount
+                    ):
+                        if (
+                            row["category_main"] != cat_main
+                            or row["category_second"] != cat_second
+                        ):
+                            db.execute(
+                                "UPDATE transactions_use SET category_main = ?, category_second = ? WHERE id = ?",
+                                (cat_main, cat_second, row["id"]),
+                            )
+                            rows_updated += 1
+                        break
 
         db.commit()
 

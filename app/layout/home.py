@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from dash import html
@@ -38,7 +37,7 @@ def layout(data: Any) -> Any:
                 "Avg net Balance 12 mo", data.z_StatsTable["Balance_net_12months"]
             ),
             make_number_card(
-                f"Net Balance ({datetime.today().year})",
+                f"Net Balance ({data.max_data_year})",
                 data.z_StatsTable["Balance_net_currentYear"],
             ),
             ##

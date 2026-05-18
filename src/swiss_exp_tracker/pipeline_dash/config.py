@@ -34,9 +34,16 @@ TRANSPORT_MAIN_CATEGORIES: list[str] = ["Car", "Transport"]
 # Exclude car purchases from transport analytics
 TRANSPORT_EXCLUDE_SECOND: list[str] = ["Purchase"]
 
-# Exclude capital expenditures from all dashboard analytics (car purchase, etc.)
-GLOBAL_EXCLUDE: list[tuple[str, str]] = [
-    ("Car", "Purchase"),
+# Exclude non-expenses from all dashboard analytics.
+# Each entry: (category_main, category_second, merchant_substring_or_None)
+# merchant_substring_or_None: case-insensitive substring match on the merchant
+# column; None means match all merchants.
+GLOBAL_EXCLUDE: list[tuple[str, str, str | None]] = [
+    ("Car", "Purchase", None),
+    # Credit card bill payments (Viseca) — internal account settlement
+    ("Payment Services", "Payment Fees", "Viseca"),
+    # Inter-account money transfers
+    ("Payment Services", "Money Transfer", None),
 ]
 
 SPORT_EXCLUDE_SECOND: list[str] = [
@@ -44,6 +51,12 @@ SPORT_EXCLUDE_SECOND: list[str] = [
     "Unknown",
     "Sports Administration",
     "Sports services",
+]
+
+# Exclude from net-balance and stats expense totals — money movement, not real spending
+NET_BALANCE_EXPENSE_EXCLUDE_MAIN: list[str] = [
+    "Investing",
+    "Salary",
 ]
 
 TOP_EXPENSES_EXCLUDE_MAIN: list[str] = [
@@ -54,5 +67,6 @@ TOP_EXPENSES_EXCLUDE_MAIN: list[str] = [
     "Financial Services",
     "Healthcare",
     "Investing",
+    "Insurance",
     "Payment Services",
 ]
