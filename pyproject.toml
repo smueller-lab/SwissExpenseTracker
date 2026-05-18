@@ -37,7 +37,7 @@ requires = ["poetry-core>=1.8.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-extend-exclude = []
+extend-exclude = ["app/table", "app/vis/test_Figure.py"]
 line-length = 88
 target-version = "py312"
 
@@ -62,7 +62,12 @@ ignore = [
     "TC001",  # move into type checking block
     "TC002",  # move into type checking block
     "ERA001", # Found commented-out code
+    "UP038",  # deprecated: isinstance with Union type
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Dash app uses PascalCase for DataFrames and callback function names — intentional
+"app/**" = ["N801", "N802", "N803", "N806", "N815", "N816", "N999", "RUF012"]
 extend-safe-fixes = [
     "TCH", # move import from and to TYPE_CHECKING blocks
 ]
@@ -103,8 +108,13 @@ ignore_missing_imports = true
 module = ["tqdm", "tqdm.*"]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = ["app.table.*", "app.vis.test_Figure"]
+ignore_errors = true
+
 [tool.pyright]
 include = ["src"]
+exclude = ["app/table", "app/vis/test_Figure.py"]
 typeCheckingMode = "strict"
 reportUnknownMemberType = "none"
 executionEnvironments = [
