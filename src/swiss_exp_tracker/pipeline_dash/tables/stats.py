@@ -4,9 +4,17 @@ import sqlite3
 
 import pandas as pd
 
+from swiss_exp_tracker.pipeline_dash.config import NET_BALANCE_EXPENSE_EXCLUDE_MAIN
+
 
 def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     df = df.copy()
+    df = df[
+        ~(
+            (df["transaction_type"] == "EXPENSE")
+            & (df["category_main"].isin(NET_BALANCE_EXPENSE_EXCLUDE_MAIN))
+        )
+    ]
     df["Month"] = df["date"].dt.to_period("M")
     df["Year"] = df["date"].dt.year
 

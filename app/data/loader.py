@@ -100,6 +100,9 @@ class DataLoader:
             self.pdf_NetBalanceMonth = self.apply_Variable_show(
                 self.pdf_NetBalanceMonth
             )
+            self.max_data_year: int = int(
+                self.pdf_NetBalanceMonth["Month"].str[:4].max()
+            )
 
             # Vacation
             self.pdf_Vacation = pd.read_sql("SELECT * FROM dash_vacation", con)

@@ -89,13 +89,15 @@ def run_dashboard_pipeline(db_path: Path | None = None) -> None:
         df = pd.read_sql("SELECT * FROM transactions_use", con)
         df["date"] = pd.to_datetime(df["date"])
 
-        for cat_main_val, cat_second_val in GLOBAL_EXCLUDE:
-            df = df[
-                ~(
-                    (df["category_main"] == cat_main_val)
-                    & (df["category_second"] == cat_second_val)
+        for cat_main_val, cat_second_val, merchant_substr in GLOBAL_EXCLUDE:
+            mask = (df["category_main"] == cat_main_val) & (
+                df["category_second"] == cat_second_val
+            )
+            if merchant_substr is not None:
+                mask &= df["merchant"].str.contains(
+                    merchant_substr, case=False, na=False
                 )
-            ]
+            df = df[~mask]
 
         builders = [
             ("dash_balance", balance),
