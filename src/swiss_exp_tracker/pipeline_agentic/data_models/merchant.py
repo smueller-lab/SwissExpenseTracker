@@ -187,10 +187,12 @@ class CategorySecond(StrEnum):
     # Use only for employer salary inflows.
     SALARY_MAIN = "Main Salary"
     SALARY_BONUS = "Bonus"
+    SALARY_DONATION = "Donation"
 
     # HOUSING
     # Use for rent, utilities and housing maintenance.
     HOUSING_RENT = "Rent"
+    HOUSING_DEPOSIT = "Deposit"
     HOUSING_UTILITIES = "Utilities"
     HOUSING_MAINTENANCE = "Maintenance"
 

@@ -19,6 +19,7 @@ from swiss_exp_tracker.pipeline_agentic.clean_pipeline_output import run_post_cl
 from swiss_exp_tracker.pipeline_agentic.pipeline import load_pending_transactions
 from swiss_exp_tracker.pipeline_agentic.pipeline import run_all_transactions
 from swiss_exp_tracker.pipeline_agentic.transactions_use import run_transactions_use
+from swiss_exp_tracker.pipeline_dash.pipeline import run_dashboard_pipeline
 from swiss_exp_tracker.pipeline_ingestion.pipeline import run_ingestion
 
 
@@ -50,6 +51,10 @@ def main() -> None:
     # ── Stage 4: Build final analysis table ───────────────────────────────────
     logger.info("=== Stage 4: Build transactions_use ===")
     run_transactions_use()
+
+    # ── Stage 5: Build dashboard tables ───────────────────────────────────────
+    logger.info("=== Stage 5: Build dashboard tables ===")
+    run_dashboard_pipeline()
 
     logger.info("=== Pipeline complete ===")
 

@@ -21,6 +21,7 @@ from swiss_exp_tracker.config import CAR_FUEL_1
 from swiss_exp_tracker.config import HOUSING_RENT_2
 from swiss_exp_tracker.config import RESTAURANT_BAKERY_1
 from swiss_exp_tracker.config import RETAIL_SPORTS_1
+from swiss_exp_tracker.config import SALARY_DONATION_1
 from swiss_exp_tracker.config import SPORT_GOLF_1
 from swiss_exp_tracker.config import work_places
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
@@ -41,12 +42,21 @@ CORRECTIONS: dict[str, tuple[str, str, str | None]] = {
         CategorySecond.PAYMENT_MONEY_TRANSFER.value,
         None,
     ),
+    "p corporate hospitality": (
+        CategoryMain.ENTERTAINMENT.value,
+        CategorySecond.ENTERTAINMENT_SPORTS.value,
+        None,
+    ),
 }
 
 # Containment corrections: if any substring in the list is contained in matched_merchant,
 # the correction is applied (case-insensitive).
 CONTAINMENT_CORRECTIONS: list[tuple[list[str], tuple[str, str, str | None]]] = [
     (work_places, (CategoryMain.SALARY.value, CategorySecond.SALARY_MAIN.value, None)),
+    (
+        SALARY_DONATION_1,
+        (CategoryMain.SALARY.value, CategorySecond.SALARY_DONATION.value, None),
+    ),
     (
         HOUSING_RENT_2,
         (CategoryMain.HOUSING.value, CategorySecond.HOUSING_RENT.value, None),

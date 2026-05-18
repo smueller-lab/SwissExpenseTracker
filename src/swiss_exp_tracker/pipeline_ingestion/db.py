@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 
 from collections.abc import Iterator
@@ -17,6 +18,27 @@ def get_connection() -> Iterator[sqlite3.Connection]:
         db.commit()
     finally:
         db.close()
+
+
+def _backfill_balance_chf_rfn(db: sqlite3.Connection) -> None:
+    """Populate balance_chf for existing ZKB rows from the raw JSON stored in transactions_raw."""
+    rows = db.execute(
+        """
+        SELECT rfn.id, raw.raw_json
+        FROM transactions_rfn rfn
+        JOIN transactions_raw raw ON raw.id = rfn.raw_id
+        WHERE rfn.source_type = 'ZKB_DEBIT'
+          AND rfn.balance_chf IS NULL
+        """
+    ).fetchall()
+    for row_id, raw_json_str in rows:
+        data = json.loads(raw_json_str)
+        balance = data.get("Balance CHF")
+        if balance is not None:
+            db.execute(
+                "UPDATE transactions_rfn SET balance_chf = ? WHERE id = ?",
+                (float(balance), row_id),
+            )
 
 
 def create_all_tables() -> None:
@@ -81,6 +103,7 @@ def create_all_tables() -> None:
 				reference TEXT,
 				enrichment_status TEXT NOT NULL DEFAULT 'pending',
 				created_at TEXT NOT NULL,
+				balance_chf REAL,
 				FOREIGN KEY (raw_id) REFERENCES transactions_raw(id)
 			)
 			"""
@@ -94,6 +117,9 @@ def create_all_tables() -> None:
             db.execute(
                 "ALTER TABLE transactions_rfn ADD COLUMN is_person INTEGER NOT NULL DEFAULT 0"
             )
+        if "balance_chf" not in refined_columns:
+            db.execute("ALTER TABLE transactions_rfn ADD COLUMN balance_chf REAL")
+            _backfill_balance_chf_rfn(db)
 
         db.execute(
             """

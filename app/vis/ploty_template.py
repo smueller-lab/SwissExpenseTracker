@@ -1,18 +1,15 @@
+from __future__ import annotations
+
 import plotly.io as pio
+
 
 myTemp = {
     "layout": {
         "template": "plotly_dark",
         "paper_bgcolor": "#12263A",
         "plot_bgcolor": "#12263A",
-        "font": {
-            "color": "white",
-            "family": "Arial",
-            "size": 14
-        },
-        "title": {
-            "font": {"size": 20, "color": "white"}
-        },
+        "font": {"color": "white", "family": "Arial", "size": 14},
+        "title": {"font": {"size": 20, "color": "white"}},
         "margin": {"l": 40, "r": 40, "t": 20, "b": 40},
         "xaxis": {
             "showgrid": False,
@@ -24,7 +21,7 @@ myTemp = {
             "ticks": "inside",
             "ticklen": 5,
             "tickwidth": 1,
-            "tickcolor": "white"
+            "tickcolor": "white",
         },
         "yaxis": {
             "showgrid": True,
@@ -38,8 +35,8 @@ myTemp = {
             "ticks": "inside",
             "ticklen": 5,
             "tickwidth": 1,
-            "tickcolor": "white"
-        }
+            "tickcolor": "white",
+        },
     },
     "data": {
         "scatter": [
@@ -47,11 +44,11 @@ myTemp = {
                 "marker": {
                     "size": 8,
                     "color": "#19D3F3",
-                    "line": {"color": "white", "width": 0.5}
+                    "line": {"color": "white", "width": 0.5},
                 }
             }
         ]
-    }   
+    },
 }
 
-pio.templates['myTemp'] = myTemp
+pio.templates["myTemp"] = myTemp
