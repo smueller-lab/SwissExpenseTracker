@@ -10,10 +10,12 @@ import pandas as pd
 
 from swiss_exp_tracker.pipeline_dash.config import GLOBAL_EXCLUDE
 from swiss_exp_tracker.pipeline_dash.tables import balance
+from swiss_exp_tracker.pipeline_dash.tables import car
 from swiss_exp_tracker.pipeline_dash.tables import cat_main
 from swiss_exp_tracker.pipeline_dash.tables import food
 from swiss_exp_tracker.pipeline_dash.tables import groceries
 from swiss_exp_tracker.pipeline_dash.tables import net_balance_month
+from swiss_exp_tracker.pipeline_dash.tables import retail
 from swiss_exp_tracker.pipeline_dash.tables import sport
 from swiss_exp_tracker.pipeline_dash.tables import stats
 from swiss_exp_tracker.pipeline_dash.tables import top_category
@@ -111,6 +113,8 @@ def run_dashboard_pipeline(db_path: Path | None = None) -> None:
             ("dash_vacation", vacation),
             ("dash_transport + dash_transport_heatmap", transport),
             ("dash_sport", sport),
+            ("dash_car", car),
+            ("dash_retail + dash_retail_donut + dash_retail_top", retail),
         ]
 
         for table_name, module in builders:

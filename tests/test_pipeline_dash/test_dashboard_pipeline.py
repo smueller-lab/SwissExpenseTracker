@@ -103,7 +103,7 @@ def test_dash_tables_are_non_empty(tmp_db: Path) -> None:
 
 def test_dataloader_initialises_without_error(tmp_db: Path) -> None:
     run_dashboard_pipeline(db_path=tmp_db)
-    from app.data.loader import DataLoader
+    from swiss_exp_tracker.app.data.loader import DataLoader
 
     loader = DataLoader(db_path=tmp_db)
     assert loader.pdf_Balance is not None

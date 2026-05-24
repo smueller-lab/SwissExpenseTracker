@@ -37,7 +37,7 @@ requires = ["poetry-core>=1.8.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-extend-exclude = ["app/table", "app/vis/test_Figure.py"]
+extend-exclude = []
 line-length = 88
 target-version = "py312"
 
@@ -67,7 +67,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 # Dash app uses PascalCase for DataFrames and callback function names — intentional
-"app/**" = ["N801", "N802", "N803", "N806", "N815", "N816", "N999", "RUF012"]
+"src/swiss_exp_tracker/app/**" = ["N801", "N802", "N803", "N806", "N815", "N816", "N999", "RUF012"]
 extend-safe-fixes = [
     "TCH", # move import from and to TYPE_CHECKING blocks
 ]
@@ -82,7 +82,7 @@ ban-relative-imports = "all"
 force-single-line = true
 lines-between-types = 1
 lines-after-imports = 2
-known-first-party = ["swiss_exp_tracker", "app", "Pipeline"]
+known-first-party = ["swiss_exp_tracker"]
 required-imports = ["from __future__ import annotations"]
 
 [tool.black]
@@ -109,12 +109,12 @@ module = ["tqdm", "tqdm.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-module = ["app.table.*", "app.vis.test_Figure"]
-ignore_errors = true
+module = ["plotly", "plotly.*", "dash", "dash.*"]
+ignore_missing_imports = true
+
 
 [tool.pyright]
 include = ["src"]
-exclude = ["app/table", "app/vis/test_Figure.py"]
 typeCheckingMode = "strict"
 reportUnknownMemberType = "none"
 executionEnvironments = [
