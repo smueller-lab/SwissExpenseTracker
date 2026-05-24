@@ -34,6 +34,9 @@ TRANSPORT_MAIN_CATEGORIES: list[str] = ["Car", "Transport"]
 # Exclude car purchases from transport analytics
 TRANSPORT_EXCLUDE_SECOND: list[str] = ["Purchase"]
 
+# Exclude large one-off car costs from the heatmap (they distort the regular commuting signal)
+TRANSPORT_HEATMAP_EXCLUDE_SECOND: list[str] = ["Service & Repair"]
+
 # Exclude non-expenses from all dashboard analytics.
 # Each entry: (category_main, category_second, merchant_substring_or_None)
 # merchant_substring_or_None: case-insensitive substring match on the merchant

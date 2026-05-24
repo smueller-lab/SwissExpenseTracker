@@ -5,6 +5,7 @@ import sqlite3
 import pandas as pd
 
 from swiss_exp_tracker.pipeline_dash.config import TRANSPORT_EXCLUDE_SECOND
+from swiss_exp_tracker.pipeline_dash.config import TRANSPORT_HEATMAP_EXCLUDE_SECOND
 from swiss_exp_tracker.pipeline_dash.config import TRANSPORT_MAIN_CATEGORIES
 
 
@@ -28,7 +29,10 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     ].sum()
     transport_sum.to_sql("dash_transport", con, if_exists="replace", index=False)
 
-    heatmap = pdf.groupby(["Year", "Month_num"], as_index=False)["amount"].sum()
+    pdf_heatmap = pdf[
+        ~pdf["category_second"].isin(TRANSPORT_HEATMAP_EXCLUDE_SECOND)
+    ].copy()
+    heatmap = pdf_heatmap.groupby(["Year", "Month_num"], as_index=False)["amount"].sum()
     heatmap["Month_name"] = pd.to_datetime(
         heatmap["Month_num"], format="%m"
     ).dt.month_name()

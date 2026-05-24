@@ -4,14 +4,15 @@ import sqlite3
 
 import pandas as pd
 
-from swiss_exp_tracker.pipeline_dash.config import SPORT_EXCLUDE_SECOND
+
+CAR_EXCLUDE_SECOND: list[str] = ["Purchase", "Car Rental"]
 
 
 def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     pdf = df[
-        (df["transaction_type"] == "EXPENSE") & (df["category_main"] == "Sport")
+        (df["transaction_type"] == "EXPENSE") & (df["category_main"] == "Car")
     ].copy()
-    pdf = pdf[~pdf["category_second"].isin(SPORT_EXCLUDE_SECOND)].copy()
+    pdf = pdf[~pdf["category_second"].isin(CAR_EXCLUDE_SECOND)].copy()
 
     pdf["Year"] = pdf["date"].dt.year
     pdf["MonthYear"] = pdf["date"].dt.to_period("M")
@@ -19,12 +20,12 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     yearly = (
         pdf.groupby(["Year", "category_second"], as_index=False)[["amount"]]
         .sum()
-        .rename(columns={"amount": "Total", "category_second": "category_sport"})
+        .rename(columns={"amount": "Total", "category_second": "category_car"})
     )
     monthly = (
         pdf.groupby(["MonthYear", "category_second"], as_index=False)[["amount"]]
         .sum()
-        .rename(columns={"amount": "Total", "category_second": "category_sport"})
+        .rename(columns={"amount": "Total", "category_second": "category_car"})
     )
 
     result = pd.concat(
@@ -34,4 +35,4 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
         ]
     ).drop(columns=["Year", "MonthYear"])
 
-    result.to_sql("dash_sport", con, if_exists="replace", index=False)
+    result.to_sql("dash_car", con, if_exists="replace", index=False)
