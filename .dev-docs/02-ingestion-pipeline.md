@@ -35,17 +35,24 @@ Landing Zone (filesystem)
   remove credit-card double-bookings, fill missing texts
 ```
 
+The positions pipeline runs as Stage 5 inside `run_ingestion()` and writes to a
+separate `positions.db`. See [Swissquote Positions Pipeline](#swissquote-positions-pipeline).
+
 ---
 
 ## Entry Points
 
 | File | Purpose |
 |------|---------|
-| `pipeline_ingestion/pipeline.py` | `run_ingestion()` — runs all four stages in sequence |
-| `pipeline_ingestion/stages/stage_01_landing.py` | `run_landing()` |
-| `pipeline_ingestion/stages/stage_02_raw.py` | `run_raw()` |
-| `pipeline_ingestion/stages/stage_03_refined.py` | `run_refined()` |
-| `pipeline_ingestion/stages/stage_04_postprocess.py` | `run_postprocess()` |
+| `pipeline_ingestion/pipeline.py` | `run_ingestion()` — runs all stages in sequence |
+| `pipeline_ingestion/stages/transactions/stage_01_landing.py` | `run_landing()` |
+| `pipeline_ingestion/stages/transactions/stage_02_raw.py` | `run_raw()` |
+| `pipeline_ingestion/stages/transactions/stage_03_refined.py` | `run_refined()` |
+| `pipeline_ingestion/stages/transactions/stage_04_postprocess.py` | `run_postprocess()` |
+| `pipeline_ingestion/stages/positions/stage_01_landing.py` | `run_positions_landing()` |
+| `pipeline_ingestion/stages/positions/stage_02_raw.py` | `run_positions_raw()` |
+| `pipeline_ingestion/stages/positions/stage_03_rfn.py` | `run_positions_rfn()` |
+| `pipeline_ingestion/stages/positions/stage_04_use.py` | `run_positions_use()` |
 
 ---
 
@@ -58,19 +65,19 @@ Defined as `SourceType` (`StrEnum`) in `data_models/source_type.py`.
 | `ZKB_DEBIT` | ZKB current account CSV |
 | `VISECA` | Viseca credit card CSV |
 | `REVOLUT` | Revolut account statement CSV |
-| `SWISSQUOTE` | Swissquote brokerage export (reserved) |
+| `SWISSQUOTE` | Swissquote positions XLS snapshot |
 
 The mapping from `SourceType` to Pydantic validation model is in
-`data_models/data_sources.py → SOURCE_MODEL_MAP`.
+`data_models/data_sources.py → SOURCE_MODEL_MAP` (transactions only).
 
-Each source also has a corresponding **Adapter** (`adapters/adapters.py`) that
+Each transaction source also has a corresponding **Adapter** (`adapters/adapters.py`) that
 converts the source-specific validated model to the common `UnifiedTransaction`.
 
 ---
 
 ## Stage 1 — Landing
 
-**File:** `stages/stage_01_landing.py`
+**File:** `stages/transactions/stage_01_landing.py`
 
 1. Scans each source's sub-folder inside the landing zone (`lnd/`).
 2. Computes an **MD5 hash** for each file and checks against `ingested_files`.
@@ -85,7 +92,7 @@ Delimiter detection is automatic (comma / semicolon).
 
 ## Stage 2 — Raw
 
-**File:** `stages/stage_02_raw.py`
+**File:** `stages/transactions/stage_02_raw.py`
 
 1. Loads all `transactions_lnd` rows where `processed = 0`.
 2. Validates each row's JSON against the source-specific Pydantic model
@@ -101,7 +108,7 @@ transformation logic runs.
 
 ## Stage 3 — Refined
 
-**File:** `stages/stage_03_refined.py`
+**File:** `stages/transactions/stage_03_refined.py`
 
 The heaviest stage. For each unprocessed `transactions_raw` row:
 
@@ -127,7 +134,7 @@ The heaviest stage. For each unprocessed `transactions_raw` row:
 
 ## Stage 4 — Postprocess
 
-**File:** `stages/stage_04_postprocess.py`
+**File:** `stages/transactions/stage_04_postprocess.py`
 
 Cleans up known data quality issues in `transactions_rfn`:
 
@@ -142,7 +149,7 @@ Cleans up known data quality issues in `transactions_rfn`:
 
 ---
 
-## Database Tables
+## Database Tables — `transactions.db`
 
 All tables live in `database/transactions.db`. Created by `db.py → create_all_tables()`.
 
@@ -235,7 +242,201 @@ a source-specific model `S` into a `UnifiedTransaction`.
 | Constant | Value |
 |----------|-------|
 | `INGESTION_DB_PATH` | `<project_root>/database/transactions.db` |
+| `POSITIONS_DB_PATH` | `<project_root>/database/positions.db` |
 | `LANDING_ZONE_DIR` | `DIR_BOX / "lnd"` (from `user_config.py`) |
 
 `user_config.py` (not in version control) defines `DIR_BOX` — the root of the
 local data folder where bank exports are dropped.
+
+---
+
+---
+
+# Swissquote Positions Pipeline
+
+Positions are snapshot-based (one file = one day's holdings), not event-based transactions.
+They live in a separate `database/positions.db` — no shared schema with `transactions.db`,
+no merchant enrichment, no agentic pipeline.
+
+`run_positions_pipeline()` in `pipeline.py` is called from `run_ingestion()` as Stage 5,
+after all transaction stages complete.
+
+---
+
+## Input Format
+
+Swissquote exports `.xls` files named `Positions_<account_id>_<DDMMYYYY>_<HH>_<MM>.xls`.
+The snapshot date and account ID are parsed from the filename; no date column exists inside
+the file.
+
+The XLS is hierarchical, not flat. Four row types are present:
+
+| Row type | Detection | Action |
+|----------|-----------|--------|
+| Header | row 0 | skip |
+| Asset class | col[0] non-blank, col[1] blank | set current class |
+| Position | col[0] blank, col[1] non-blank, col[2] numeric | ingest |
+| Subtotal/Total | col[0] blank, col[1] non-blank, col[2] non-numeric | skip |
+
+Position rows are detected by checking whether col[2] (quantity) is numeric — this works
+regardless of the export language (English, German, etc.).
+
+Column layout (0-indexed):
+
+```
+── in CCY (original currency, col[8]) ──────────────────────────────────
+0: row-type marker (blank for position rows)
+1: Symbol
+2: Quantity
+3: Unit cost           (purchase price per unit)
+4: Total value         (current market value)
+5: Daily change        (not ingested)
+6: Daily chg. %        (not ingested)
+7: Price               (current market price per unit)
+8: CCY
+
+── in CHF ───────────────────────────────────────────────────────────────
+9: P&L Nominal CHF     (unrealised gain/loss)
+10: P&L % CHF          (P&L as decimal fraction, e.g. 0.1002 = 10.02%)
+11: Total value CHF
+12: Positions %        (portfolio weight as decimal fraction, e.g. 0.031 = 3.1%)
+
+── optional ─────────────────────────────────────────────────────────────
+13: Name               (full asset name, present in newer exports)
+```
+
+Daily change columns (5, 6) are read but not stored — point-in-time noise with no
+value for long-term progress tracking. Col[13] is read when present; older exports
+without it store `NULL` in the `name` column.
+
+---
+
+## Files
+
+### `pipeline_ingestion/config.py`
+Adds `POSITIONS_DB_PATH = INGESTION_DB_DIR / "positions.db"`.
+
+### `pipeline_ingestion/db_positions.py`
+Connection context manager (`get_positions_connection`) and `create_positions_tables()`
+for `positions.db`. Creates four tables plus indexes.
+
+### `pipeline_ingestion/file_tracker_positions.py`
+Mirrors `file_tracker.py` but targets `ingested_files_pos` in `positions.db`.
+Files are deduped by MD5 hash — re-importing the same file is a no-op.
+
+### `pipeline_ingestion/data_models/position.py`
+Two Pydantic models:
+
+**`SwissquotePositionRaw`** — used in landing and raw stages. `snapshot_date` is a plain
+string (ISO date). NaN cells are converted to `None` via a `@field_validator`.
+A `@model_validator` checks `quantity × price ≈ total_value` (tolerance 0.01 in CCY).
+
+**`SwissquotePosition`** — used in the refined stage. Identical fields but `snapshot_date`
+is typed as `datetime.date`. Carries the same validators.
+
+Both models include an optional `name: str | None` field for the full asset name.
+
+### `pipeline_ingestion/stages/positions/stage_01_landing.py`
+Parses the XLS, emits one `SwissquotePositionRaw` per position row, inserts as JSON blobs
+into `positions_lnd`, marks the file in `ingested_files_pos`.
+
+### `pipeline_ingestion/stages/positions/stage_02_raw.py`
+Re-validates landing blobs with `SwissquotePositionRaw`, writes to `positions_raw`.
+
+### `pipeline_ingestion/stages/positions/stage_03_rfn.py`
+Validates raw blobs with `SwissquotePosition`, inserts into `positions_rfn` with
+`INSERT OR IGNORE` — the `UNIQUE(snapshot_date, symbol, account_id)` constraint handles
+deduplication. Promotes file status to `'refined'` when all rows are processed.
+
+### `pipeline_ingestion/stages/positions/stage_04_use.py`
+Rebuilds `positions_use` from scratch on every run (`DELETE` + `INSERT … SELECT`),
+renaming columns to shorter dashboard-friendly names.
+
+---
+
+## Database Tables — `positions.db`
+
+### `ingested_files_pos`
+Tracks each ingested XLS file by filename + MD5 hash. Same shape as `ingested_files` in
+`transactions.db` but without the `source_type` column (always Swissquote).
+
+### `positions_lnd`
+Raw JSON blobs, one row per position per file. Mirrors `transactions_lnd`.
+
+### `positions_raw`
+Re-validated JSON blobs. Mirrors `transactions_raw`.
+
+### `positions_rfn`
+Canonical positions table. Deduped by `UNIQUE(snapshot_date, symbol, account_id)`.
+
+```sql
+snapshot_date       TEXT NOT NULL,   -- ISO: YYYY-MM-DD
+account_id          TEXT NOT NULL,
+asset_class         TEXT NOT NULL,   -- e.g. 'Shares', 'ETFs'
+-- in CCY --
+symbol              TEXT NOT NULL,
+name                TEXT,            -- full asset name, NULL if not in export
+quantity            REAL NOT NULL,
+unit_cost           REAL,
+price               REAL NOT NULL,
+currency            TEXT NOT NULL,
+total_value         REAL,
+-- in CHF --
+total_value_chf     REAL NOT NULL,
+pnl_nominal_chf     REAL,
+pnl_pct_chf         REAL,            -- decimal fraction, e.g. 0.1002 = 10.02%
+position_weight_pct REAL,
+-- metadata --
+source_file         TEXT NOT NULL,
+created_at          TEXT NOT NULL
+```
+
+### `positions_use`
+Clean dashboard-ready table, rebuilt on every pipeline run. No metadata columns.
+
+```sql
+date        TEXT NOT NULL,   -- snapshot_date
+account     TEXT NOT NULL,   -- account_id
+asset_class TEXT NOT NULL,
+symbol      TEXT NOT NULL,
+name        TEXT,            -- full asset name, NULL if not in export
+quantity    REAL NOT NULL,
+unit_cost   REAL,            -- in CCY
+price       REAL NOT NULL,   -- in CCY
+currency    TEXT NOT NULL,
+value       REAL,            -- total_value in CCY
+value_chf   REAL NOT NULL,
+pnl_chf     REAL,
+pnl_pct     REAL,            -- decimal fraction, e.g. 0.1002 = 10.02%
+weight_pct  REAL
+```
+
+---
+
+## Pipeline Flow
+
+```
+lnd/swissquote/Positions_<account>_<DDMMYYYY>_<HH>_<MM>.xls
+        │
+        ▼  stage_01_landing  (stages/positions/)
+positions_lnd  — JSON blobs, one per position row
+        │
+        ▼  stage_02_raw
+positions_raw  — re-validated JSON blobs
+        │
+        ▼  stage_03_rfn
+positions_rfn  — canonical, UNIQUE(snapshot_date, symbol, account_id)
+        │
+        ▼  stage_04_use
+positions_use  — renamed columns, rebuilt from rfn on every run
+```
+
+Re-running the pipeline is safe: already-processed files are skipped at the file-tracker
+level, and `INSERT OR IGNORE` prevents duplicate rows in `positions_rfn`.
+
+---
+
+## Adding New Snapshots
+
+Drop a new `Positions_*.xls` into `lnd/swissquote/` and run the pipeline. The file is
+picked up automatically on the next run.

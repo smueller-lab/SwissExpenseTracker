@@ -58,6 +58,12 @@ def create_app_layout() -> Any:
                         id="link-smarttable",
                         className="menu-link",
                     ),
+                    dcc.Link(
+                        "📈 Investing",
+                        href="/investing",
+                        id="link-investing",
+                        className="menu-link",
+                    ),
                 ],
                 className="sidebar",
             ),
