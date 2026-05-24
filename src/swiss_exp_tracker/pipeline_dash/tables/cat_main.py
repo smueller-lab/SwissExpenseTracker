@@ -15,7 +15,7 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
 
     result = pd.concat([by_year, all_years], ignore_index=True)
     result["perc"] = result.groupby("Year")["amount"].transform(
-        lambda x: x / x.sum() * 100
+        lambda x: x / x.sum() * 100  # pyright: ignore[reportUnknownLambdaType]
     )
 
     big = result[result["perc"] >= 1].copy()

@@ -3,14 +3,14 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 
 from swiss_exp_tracker.pipeline_ingestion.config import INGESTION_DB_PATH
 
 
 @contextmanager
-def get_connection() -> Iterator[sqlite3.Connection]:
+def get_connection() -> Generator[sqlite3.Connection, None, None]:
     db = sqlite3.connect(INGESTION_DB_PATH)
     try:
         db.execute("PRAGMA foreign_keys = ON")

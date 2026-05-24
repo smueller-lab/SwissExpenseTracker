@@ -12,7 +12,7 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     pdf["Year"] = pdf["date"].dt.year
 
     result = (
-        pdf.groupby(["Year", "category_second"], as_index=False)["amount"]
+        pdf.groupby(["Year", "category_second"], as_index=False)[["amount"]]
         .sum()
         .rename(columns={"amount": "Total"})
     )
