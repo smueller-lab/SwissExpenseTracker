@@ -8,6 +8,7 @@ from dash import Output
 from swiss_exp_tracker.app.layout.food import layout as food_layout
 from swiss_exp_tracker.app.layout.groceries import layout as groceries_layout
 from swiss_exp_tracker.app.layout.home import layout as home_layout
+from swiss_exp_tracker.app.layout.investing import layout as investing_layout
 from swiss_exp_tracker.app.layout.retail import layout as retail_layout
 from swiss_exp_tracker.app.layout.smarttable import layout as smarttable_layout
 from swiss_exp_tracker.app.layout.sport import layout as sport_layout
@@ -15,7 +16,7 @@ from swiss_exp_tracker.app.layout.transport import layout as transport_layout
 from swiss_exp_tracker.app.layout.vacation import layout as vacation_layout
 
 
-def register_callbacks(app: Any, data: Any) -> None:
+def register_callbacks(app: Any, data: Any, pos: Any) -> None:
     @app.callback(  # type: ignore[untyped-decorator]
         Output("page-content", "children"), Input("url", "pathname")
     )
@@ -36,6 +37,8 @@ def register_callbacks(app: Any, data: Any) -> None:
             return retail_layout(data)
         elif pth == "/smarttable":
             return smarttable_layout(data)
+        elif pth == "/investing":
+            return investing_layout(data, pos)
         return home_layout(data)
 
     @app.callback(  # type: ignore[untyped-decorator]
@@ -48,6 +51,7 @@ def register_callbacks(app: Any, data: Any) -> None:
             Output("link-sport", "className"),
             Output("link-retail", "className"),
             Output("link-smarttable", "className"),
+            Output("link-investing", "className"),
         ],
         Input("url", "pathname"),
     )
@@ -65,4 +69,5 @@ def register_callbacks(app: Any, data: Any) -> None:
             active if pth == "/sport" else default,
             active if pth == "/retail" else default,
             active if pth == "/smarttable" else default,
+            active if pth == "/investing" else default,
         ]

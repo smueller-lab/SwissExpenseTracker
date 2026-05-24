@@ -16,6 +16,7 @@ The dashboard is a Plotly Dash application (`app/`). Each page has a `layout/` m
 | Vacation | `/vacation` | `layout/vacation.py` | — |
 | Retail | `/retail` | `layout/retail.py` | `callbacks/retail.py` |
 | Smart Table | `/smarttable` | `layout/smarttable.py` | `callbacks/smarttable.py` |
+| Investing | `/investing` | `layout/investing.py` | `callbacks/investing.py` |
 
 ---
 
@@ -194,14 +195,71 @@ All filters operate on `transaction_type == EXPENSE` — income transactions are
 
 ---
 
+## Investing
+
+**Data source:** `positions.db / positions_use` — loaded once at startup by `PositionsLoader` (`app/data/loader_positions.py`). Does not use `DataStore` or any transaction tables.
+
+`PositionsLoader` computes `invested_chf = value_chf - pnl_chf` (both columns are CHF-denominated, so this is always currency-correct regardless of the original position currency).
+
+**KPI cards (top row, col-3 each)**
+
+| Card | Formula |
+|---|---|
+| Total Invested | `SUM(invested_chf)` over latest snapshot |
+| Total Value | `SUM(value_chf)` over latest snapshot |
+| Unrealised P&L | `SUM(pnl_chf)` over latest snapshot |
+| P&L % | `total_pnl_chf / total_invested × 100` |
+
+**Row 2: Performers card (col-6) + Allocation donut (col-6)**
+
+*Performers card* — shows the single best and worst position by `pnl_pct` from the most recent snapshot. A `dcc.RadioItems` toggle (`id="investing-year-scope"`, values `"year"` / `"all"`) filters snapshots to the current year or all time before picking best/worst. Each block shows: symbol (kpi-category), full name (kpi-subtext, if available), `pnl_pct` as `+/-X.XX %`, and `pnl_chf` as `+/-X,XXX.XX CHF`. Callback output: `id="investing-performers-content"`.
+
+*Allocation donut* (`fig_allocation_donut`) — Plotly `go.Pie` with `hole=0.4` showing current portfolio allocation. Labels on slices ≥ 3% show `SYMBOL\nX.X%\nCHF X,XXX`; smaller slices show no text. Hover shows full name (from `name` column, falling back to symbol). Color sequence cycles through `_COLORS`.
+
+**Row 3: Portfolio Progression (col-12)**
+
+`fig_portfolio_progression` — two-trace scatter chart aggregated by date:
+- *Invested* — dashed grey line (`invested_chf`), drawn first
+- *Portfolio Value* — solid cyan line (`value_chf`), filled down to the invested line (`fill="tonexty"`, `fillcolor="rgba(25,211,243,0.15)"`)
+
+Static figure, no callback. `height=350`, `margin={"l": 80}`, x-axis `tickformat="%Y-%m-%d"`.
+
+**Row 4: Position Progression (col-12)**
+
+A `dcc.Dropdown` (`id="investing-symbol-dropdown"`, `multi=True`) lists all symbols as `SYMBOL  —  Full Name` labels and defaults to all symbols. Filtered by the same year scope toggle as the Performers card. Two `dcc.Graph` below:
+
+- *Value (CHF)* (`id="investing-pos-value"`, `style={"height": "300px"}`) — one line trace per symbol, CHF y-axis, `uirevision="pos-value"`, `margin={"l": 80}`
+- *P&L (%)* (`id="investing-pos-pct"`, `style={"height": "300px"}`) — `pnl_pct × 100`, horizontal zero-line, `uirevision="pos-pct"`, `margin={"l": 65}`
+
+Both charts use `mode="lines"` only (no markers).
+
+**Callback registration**
+
+`callbacks/investing.py` registers two callbacks via `register_callbacks(app, data, pos)`:
+
+| Callback | Inputs | Output |
+|---|---|---|
+| `update_performers` | `"investing-year-scope"` | `"investing-performers-content"` children |
+| `update_position_charts` | `"investing-symbol-dropdown"`, `"investing-year-scope"` | `"investing-pos-value"` figure, `"investing-pos-pct"` figure |
+
+`register_all_callbacks` in `callbacks/__init__.py` passes `pos` (the `PositionsLoader` instance) to both the router and the investing callbacks. All other page callback modules keep the `register_callbacks(app, data)` signature unchanged.
+
+---
+
 ## Data flow summary
 
 ```
-Raw transactions (CSV)
-    └── pipeline_ingestion  →  master SQLite table (all transactions)
-            └── pipeline_dash   →  pre-aggregated dash_* tables
-                    └── app/data/loader.py  →  DataStore object
-                            └── layout + callbacks  →  Dash UI
+Raw transactions (CSV/XLS)
+    └── pipeline_ingestion  →  transactions.db (all transactions)
+    │           └── pipeline_dash   →  pre-aggregated dash_* tables
+    │                   └── app/data/loader.py  →  DataStore object
+    │                           └── layout + callbacks  →  Dash UI (all pages except Investing)
+    │
+    └── pipeline_ingestion  →  positions.db (Swissquote position snapshots)
+                    └── app/data/loader_positions.py  →  PositionsLoader object
+                            └── layout/investing.py + callbacks/investing.py  →  Investing page
 ```
 
 The `DataStore` object (loaded once at startup from `app/data/loader.py`) holds both the raw `pdf_Master` DataFrame and all pre-aggregated tables. Static pages use the pre-aggregated tables; the Smart Table queries `pdf_Master` directly per interaction.
+
+`PositionsLoader` (loaded once at startup from `app/data/loader_positions.py`) holds the full `positions_use` history as a DataFrame plus latest-snapshot aggregates.
