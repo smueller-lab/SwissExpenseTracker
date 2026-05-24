@@ -10,7 +10,9 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     df_bal = df[mask].copy()
 
     df_bal = (
-        df_bal.sort_values("date").groupby("date", as_index=False)["balance_chf"].last()
+        df_bal.sort_values("date")
+        .groupby("date", as_index=False)[["balance_chf"]]
+        .last()
     )
 
     cutoff = df_bal["date"].max() - pd.DateOffset(years=1)

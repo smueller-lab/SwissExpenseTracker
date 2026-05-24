@@ -27,7 +27,7 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     pdf["Year"] = pdf["date"].dt.year
 
     monthly = (
-        pdf.groupby(["MonthYear", "merchant"], as_index=False)["amount"]
+        pdf.groupby(["MonthYear", "merchant"], as_index=False)[["amount"]]
         .sum()
         .rename(columns={"amount": "total_CHF"})
     )
@@ -37,7 +37,7 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     monthly["pct"] = monthly["total_CHF"] / monthly["totalPeriod_CHF"] * 100
 
     yearly = (
-        pdf.groupby(["Year", "merchant"], as_index=False)["amount"]
+        pdf.groupby(["Year", "merchant"], as_index=False)[["amount"]]
         .sum()
         .rename(columns={"amount": "total_CHF"})
     )
