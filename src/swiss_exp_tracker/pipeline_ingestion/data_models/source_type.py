@@ -8,3 +8,4 @@ class SourceType(Enum):
     VISECA = "VISECA"
     REVOLUT = "REVOLUT"
     SWISSQUOTE = "SWISSQUOTE"
+    MIGROS_GROCERY = "MIGROS_GROCERY"
