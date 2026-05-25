@@ -45,14 +45,18 @@ app/data/*.json
 # database files
 merchant_db/
 merchant_vector_store/
+grocery_vector_store/
 database/
 
 # test data
 tests/test_data/*.csv
 tests/test_data/*.xls
+tests/test_data
 
 # user config: user specific pathes and information are stored here, do not commit
 user_config.py
 
 # user specific overrides for pipeline config
 src/swiss_exp_tracker/config.py
+
+.claude/settings.json
