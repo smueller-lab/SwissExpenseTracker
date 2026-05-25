@@ -38,6 +38,9 @@ Landing Zone (filesystem)
 The positions pipeline runs as Stage 5 inside `run_ingestion()` and writes to a
 separate `positions.db`. See [Swissquote Positions Pipeline](#swissquote-positions-pipeline).
 
+The grocery pipeline runs as Stage 6 inside `run_ingestion()` and writes to `transactions.db`.
+See [Migros Grocery Pipeline](#migros-grocery-pipeline).
+
 ---
 
 ## Entry Points
@@ -53,6 +56,10 @@ separate `positions.db`. See [Swissquote Positions Pipeline](#swissquote-positio
 | `pipeline_ingestion/stages/positions/stage_02_raw.py` | `run_positions_raw()` |
 | `pipeline_ingestion/stages/positions/stage_03_rfn.py` | `run_positions_rfn()` |
 | `pipeline_ingestion/stages/positions/stage_04_use.py` | `run_positions_use()` |
+| `pipeline_ingestion/stages/groceries/stage_01_landing.py` | `run_groceries_landing()` |
+| `pipeline_ingestion/stages/groceries/stage_02_raw.py` | `run_groceries_raw()` |
+| `pipeline_ingestion/stages/groceries/stage_03_rfn.py` | `run_groceries_rfn()` |
+| `pipeline_ingestion/stages/groceries/stage_04_use.py` | `run_groceries_use()` |
 
 ---
 
@@ -66,6 +73,7 @@ Defined as `SourceType` (`StrEnum`) in `data_models/source_type.py`.
 | `VISECA` | Viseca credit card CSV |
 | `REVOLUT` | Revolut account statement CSV |
 | `SWISSQUOTE` | Swissquote positions XLS snapshot |
+| `MIGROS_GROCERY` | Migros receipt CSV export |
 
 The mapping from `SourceType` to Pydantic validation model is in
 `data_models/data_sources.py → SOURCE_MODEL_MAP` (transactions only).
@@ -440,3 +448,199 @@ level, and `INSERT OR IGNORE` prevents duplicate rows in `positions_rfn`.
 
 Drop a new `Positions_*.xls` into `lnd/swissquote/` and run the pipeline. The file is
 picked up automatically on the next run.
+
+---
+
+---
+
+# Migros Grocery Pipeline
+
+Grocery receipts are imported from Migros CSV exports. Unlike transactions, each row
+represents a single purchased article. The pipeline handles return rows (negative
+quantities) via receipt-level netting before writing to the refined stage. LLM
+categorization happens separately in the agentic pipeline (see `01-agentic-pipeline.md`).
+
+`run_groceries_pipeline()` in `pipeline.py` is called from `run_ingestion()` as Stage 6.
+
+---
+
+## Input Format
+
+Migros exports semicolon-delimited CSVs with German column headers:
+
+| CSV Column | Field | Notes |
+|------------|-------|-------|
+| `Datum` | `date` | `DD.MM.YYYY` format |
+| `Zeit` | `time` | `HH:MM:SS` format |
+| `Filiale` | `location` | Store name |
+| `Artikel` | `article` | Product name |
+| `Menge` | `quantity` | Decimal = kg, integer = qty; negative = return |
+| `Aktion` | `discount` | Discount amount in CHF |
+| `Umsatz` | `price` | Price in CHF |
+| `Kassennummer` | — | Ignored |
+| `Transaktionsnummer` | — | Ignored |
+
+**Bonus rows** (e.g. Cumulus point redemptions) have both `price = 0` and `discount = 0`.
+They are flagged in landing but silently dropped in the refined stage.
+
+---
+
+## Article Normalisation
+
+`normalize_article()` in `data_models/grocery.py` strips size/unit suffixes from article
+names before they are stored in the vector store. This improves cache hit rates by
+collapsing variants of the same product.
+
+Three passes, applied in order:
+
+1. **Count × size patterns** — `"6*53g"`, `"4x100g"`, `"2x500ml"` → removed
+2. **Standalone unit suffixes** — `"330ml"`, `"50cl"`, `"100g"`, `"1kg"` → removed
+3. **Trailing standalone integer** — `"Brot 750"` → `"Brot"`
+
+Examples:
+```
+"Haribo Goldbären 100g"  →  "Haribo Goldbären"
+"Aproz Gazeifiee 50cl"   →  "Aproz Gazeifiee"
+"Eier Freiland 6*53g"    →  "Eier Freiland"
+"Migros Wasser 1.5l"     →  "Migros Wasser"
+"7UP"                    →  "7UP"   (preserved — no unit suffix)
+```
+
+---
+
+## Return Row Netting
+
+Migros receipts can contain negative-quantity rows when an item was scanned incorrectly.
+The refined stage groups all rows by receipt `(date, time, location)` and then by article,
+and sums their quantities and prices before writing to `groceries_rfn`.
+
+| Net quantity | Outcome |
+|---|---|
+| > 0 | Written as a single row with summed price/discount |
+| = 0 | Silently discarded (full return) |
+| < 0 | Discarded with a `[WARN]` log (data anomaly) |
+
+Netting is implemented in `net_receipt_rows()` (exposed at module level for testing).
+
+---
+
+## Files
+
+### `pipeline_ingestion/db_groceries.py`
+`create_grocery_tables()` — creates `groceries_lnd`, `groceries_raw`, `groceries_rfn`,
+and all associated indexes (including a composite dedup index on `groceries_rfn`).
+
+### `pipeline_ingestion/data_models/grocery.py`
+Two data models and the normalisation function:
+
+- **`GroceryUnit`** (`StrEnum`) — `kg` / `qty`
+- **`GroceryItem`** — Pydantic model for a single CSV row. German column headers mapped
+  via `Field(alias=...)`. Computed fields: `unit` (kg if quantity is non-integer),
+  `is_bonus_row`, `is_return_row`. Date validator accepts both `DD.MM.YYYY` and ISO format.
+- **`normalize_article(article)`** — see Article Normalisation above.
+
+### `pipeline_ingestion/stages/groceries/stage_01_landing.py`
+Reads CSV from `lnd/migros_grocery/`, validates each row into `GroceryItem`, inserts
+into `groceries_lnd`. Bonus rows are flagged (`is_bonus_row = 1`). File deduplication
+via MD5 hash in `ingested_files`.
+
+### `pipeline_ingestion/stages/groceries/stage_02_raw.py`
+Re-validates `groceries_lnd` rows, writes canonical JSON (English field names, ISO dates)
+to `groceries_raw`. Marks landing rows processed.
+
+### `pipeline_ingestion/stages/groceries/stage_03_rfn.py`
+The heaviest stage:
+1. Loads unprocessed `groceries_raw` rows, skips bonus rows (price = 0 and discount = 0).
+2. Groups rows by receipt `(date, time, location)` then applies `net_receipt_rows()`.
+3. Checks each netted item against `groceries_rfn` for duplicates on
+   `(date, time, location, article, quantity)` — skips on match.
+4. Inserts new rows with `enrichment_status = 'pending'`.
+5. Marks all raw rows processed; advances file status to `'refined'` when complete.
+
+### `pipeline_ingestion/stages/groceries/stage_04_use.py`
+Joins `groceries_rfn` (where `enrichment_status = 'enriched'`) with the
+`grocery_categorization_rfn` VIEW and writes the result to `groceries_use`.
+Incremental — skips `rfn_id` values already present.
+
+---
+
+## Database Tables — `transactions.db`
+
+### `groceries_lnd`
+| Column | Notes |
+|--------|-------|
+| `file_id` | FK → `ingested_files.id` |
+| `source_type` | Always `MIGROS_GROCERY` |
+| `raw_json` | Original row as JSON (German field names) |
+| `is_bonus_row` | 1 if price = 0 and discount = 0 |
+| `processed` | 0 = pending, 1 = promoted to raw |
+
+### `groceries_raw`
+| Column | Notes |
+|--------|-------|
+| `landing_id` | FK → `groceries_lnd.id` |
+| `source_type` | Always `MIGROS_GROCERY` |
+| `raw_json` | Validated JSON (English field names, ISO dates) |
+| `source_file` | Original filename |
+| `processed` | 0 = pending, 1 = promoted to rfn |
+
+### `groceries_rfn`
+| Column | Notes |
+|--------|-------|
+| `raw_id` | FK → `groceries_raw.id` (NULL for multi-source netted rows) |
+| `source_type` | Always `MIGROS_GROCERY` |
+| `date` | ISO date string |
+| `time` | `HH:MM:SS` string |
+| `location` | Store name |
+| `article` | Original product name |
+| `article_normalized` | Normalised name (size/unit stripped) |
+| `unit` | `kg` or `qty` |
+| `quantity` | Net quantity after return netting |
+| `price_chf` | Net price after return netting |
+| `discount_chf` | Net discount after return netting |
+| `enrichment_status` | `pending` → `enriched` (set by agentic pipeline) |
+
+### `groceries_use`
+Final analysis-ready table. JOIN of `groceries_rfn` + `grocery_categorization_rfn`.
+Only rows with `enrichment_status = 'enriched'` are included. Incremental.
+
+| Column | Notes |
+|--------|-------|
+| `rfn_id` | FK → `groceries_rfn.id` |
+| `date`, `time`, `location` | From rfn |
+| `article`, `unit`, `quantity` | From rfn |
+| `price_chf`, `discount_chf` | From rfn |
+| `category_main` | From agentic pipeline |
+| `category_detail` | From agentic pipeline |
+
+---
+
+## Pipeline Flow
+
+```
+lnd/migros_grocery/*.csv
+        │
+        ▼  stage_01_landing
+groceries_lnd  — raw JSON (German headers), bonus rows flagged
+        │
+        ▼  stage_02_raw
+groceries_raw  — re-validated JSON (English headers, ISO dates)
+        │
+        ▼  stage_03_rfn
+groceries_rfn  — netted, deduped, enrichment_status='pending'
+        │
+        ▼  [agentic pipeline — see 01-agentic-pipeline.md]
+groceries_rfn  — enrichment_status='enriched'
+        │
+        ▼  stage_04_use
+groceries_use  — rfn + categories, dashboard-ready
+```
+
+---
+
+## Adding New Receipts
+
+Drop a new Migros CSV export into `lnd/migros_grocery/` and run the pipeline.
+The file is picked up automatically (MD5 dedup prevents re-import of the same file).
+Return rows are netted within each receipt; cross-receipt duplicates are caught by
+the `(date, time, location, article, quantity)` uniqueness check in stage 03.

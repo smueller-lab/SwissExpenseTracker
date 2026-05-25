@@ -240,3 +240,180 @@ All models are Pydantic `BaseModel` subclasses in `pipeline_agentic/data_models/
 | `MerchantMetaData` | Agent output — name, categories, city |
 | `MetadataResult` | DB write model for `merchant_metadata_raw` |
 | `SearchToolResult` | Web-search result passed between agents |
+
+---
+
+---
+
+# Grocery Agentic Pipeline
+
+The grocery agentic pipeline categorises each article in `groceries_rfn` using a
+ChromaDB vector-store cache combined with a single LLM agent. No web search is needed —
+grocery articles are categorised purely from their name and store location.
+
+---
+
+## Flow
+
+```
+groceries_rfn (enrichment_status='pending')
+        │
+        ▼
+  GroceryManager.run()
+        │
+        ├─► vector-store cache hit?  ─── YES ──► use cached GroceryCategoryData
+        │                                        skip LLM call
+        │
+        └─► NO ──► [grocery_agent] article_normalized + location → GroceryCategoryData
+                         │
+                         ▼
+                   save to ChromaDB vector store (for future cache hits)
+                         │
+                         ▼
+                   save to grocery_categorization_raw (SQLite)
+                         │
+                         ▼
+                   mark groceries_rfn.enrichment_status = 'enriched'
+```
+
+---
+
+## Entry Points
+
+| File | Purpose |
+|------|---------|
+| `pipeline_agentic/grocery_manager.py` | `load_pending_groceries()` + `run_all_groceries()` |
+| `pipeline_agentic/grocery_manager.py` | `GroceryManager.run()` — per-article orchestration |
+
+**Running the full grocery enrichment:**
+```python
+import asyncio
+from swiss_exp_tracker.pipeline_agentic.grocery_manager import (
+    load_pending_groceries, run_all_groceries
+)
+from swiss_exp_tracker.pipeline_ingestion.stages.groceries.stage_04_use import (
+    run_groceries_use
+)
+
+rows = load_pending_groceries()
+asyncio.run(run_all_groceries(rows))
+run_groceries_use()   # populates groceries_use after enrichment
+```
+
+---
+
+## Agent
+
+### grocery_agent — Categorisation Agent
+**File:** `pipeline_agentic/agents_/agent_grocery.py`
+
+Receives `article_normalized` and `location` as a JSON payload. Returns a
+`GroceryCategoryData` with a two-level category assignment.
+
+**Model:** `gpt-4o-mini`
+
+**Output guardrail:** rejects results where `category_main` is not a valid
+`GroceryCategoryMain` value, forcing the agent to retry (up to 3 attempts).
+
+**Output:** `GroceryCategoryData`
+```python
+class GroceryCategoryData(BaseModel):
+    article: str
+    category_main: GroceryCategoryMain
+    category_detail: GroceryCategoryDetail
+```
+
+---
+
+## Categories
+
+Defined as `StrEnum` in `pipeline_agentic/data_models/grocery.py`.
+
+### GroceryCategoryMain
+| Value | Typical contents |
+|-------|-----------------|
+| `Fresh Produce` | Fruit, vegetables, herbs |
+| `Dairy & Eggs` | Milk, cheese, yoghurt, eggs |
+| `Bakery & Bread` | Bread, croissants, pastries |
+| `Meat & Fish` | Meat, poultry, fish, seafood |
+| `Pasta & Grains` | Pasta, rice, flour, cereal |
+| `Canned & Preserved` | Tinned goods, jars, sauces, condiments |
+| `Frozen Foods` | Frozen meals, ice cream |
+| `Snacks & Sweets` | Chips, chocolate, biscuits, candy |
+| `Beverages` | Water, juice, coffee, tea, beer, soft drinks |
+| `Ready Meals` | Pre-made hot or cold meals |
+| `Personal & Household` | Cleaning, hygiene, household items |
+| `Other` | Anything that doesn't fit above |
+
+### GroceryCategoryDetail (selected)
+Sub-categories refine `GroceryCategoryMain`. Full list in `data_models/grocery.py → GroceryCategoryDetail`. Key values:
+
+- Fresh Produce → `Fruit | Vegetables | Herbs & Spices | Salad`
+- Dairy & Eggs → `Milk | Cheese | Yoghurt | Butter | Eggs | Cream`
+- Bakery & Bread → `Bread | Pastry | Cake`
+- Meat & Fish → `Beef | Pork | Poultry | Fish | Seafood | Vegan Meat | Deli & Cold Cuts`
+- Pasta & Grains → `Pasta | Rice | Flour | Cereal & Muesli | Legumes`
+- Canned & Preserved → `Canned Goods | Sauces & Condiments | Oils & Vinegar | Jam & Spreads | Soup`
+- Beverages → `Water | Juice | Coffee | Tea | Beer | Wine & Spirits | Soft Drinks | Energy Drinks`
+- Snacks & Sweets → `Chocolate | Candy | Chips & Crisps | Nuts | Ice Cream | Biscuits & Cookies`
+
+---
+
+## Vector-Store Cache
+
+**Implementation:** ChromaDB (`PersistentClient`) with cosine-similarity embeddings.
+**Location:** `grocery_vector_store/`
+**Class:** `GroceryStore` (`pipeline_agentic/grocery_store.py`)
+
+| Operation | Threshold | Behaviour |
+|-----------|-----------|-----------|
+| `search(article_normalized)` | 0.85 | Returns `(GroceryCategoryData, similarity)` on hit, `None` on miss |
+| `save(article_normalized, category)` | 0.93 | Skips upsert if a near-identical entry already exists |
+
+The store is separate from `merchant_vector_store/` — grocery embeddings and merchant
+embeddings live in different ChromaDB collections and directories.
+
+---
+
+## Database Tables — `transactions.db`
+
+### `grocery_categorization_raw`
+Full history — one row per categorisation run (cache hits and LLM calls alike).
+
+| Column | Notes |
+|--------|-------|
+| `rfn_id` | FK → `groceries_rfn.id` |
+| `article` | Original article name |
+| `matched_article` | Normalised name that was looked up / stored |
+| `cache_hit` | 1 = vector-store hit, 0 = LLM call |
+| `similarity` | Cosine similarity score (cache hit only, else NULL) |
+| `category_main` | `GroceryCategoryMain` value |
+| `category_detail` | `GroceryCategoryDetail` value |
+
+### `grocery_categorization_rfn` (VIEW)
+Latest categorisation result per `rfn_id`. Used by `stage_04_use.py` when building
+`groceries_use`. Defined in `GroceryResult.__init__()`.
+
+---
+
+## Concurrency
+
+`run_all_groceries()` uses:
+- `asyncio.Semaphore(10)` — max 10 articles in flight simultaneously
+- Per-article `asyncio.Lock` (keyed on `article_normalized.lower()`) — prevents two
+  rows with the same normalised article name from calling the LLM concurrently,
+  ensuring the first result is cached before the second starts
+
+---
+
+## Data Models
+
+All models are Pydantic `BaseModel` subclasses in `pipeline_agentic/data_models/grocery.py`.
+
+| Model | Purpose |
+|-------|---------|
+| `GroceryRow` | Input — one row from `groceries_rfn` |
+| `GroceryCategoryData` | Agent output — article, category_main, category_detail |
+| `GroceryCategoryResult` | DB write model for `grocery_categorization_raw` |
+| `GroceryCategoryMain` | `StrEnum` — 12 top-level categories |
+| `GroceryCategoryDetail` | `StrEnum` — ~40 sub-categories |
