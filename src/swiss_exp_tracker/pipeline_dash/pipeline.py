@@ -14,6 +14,7 @@ from swiss_exp_tracker.pipeline_dash.tables import car
 from swiss_exp_tracker.pipeline_dash.tables import cat_main
 from swiss_exp_tracker.pipeline_dash.tables import food
 from swiss_exp_tracker.pipeline_dash.tables import groceries
+from swiss_exp_tracker.pipeline_dash.tables import groceries_detail
 from swiss_exp_tracker.pipeline_dash.tables import net_balance_month
 from swiss_exp_tracker.pipeline_dash.tables import retail
 from swiss_exp_tracker.pipeline_dash.tables import sport
@@ -104,6 +105,10 @@ def run_dashboard_pipeline(db_path: Path | None = None) -> None:
         builders = [
             ("dash_balance", balance),
             ("dash_groceries", groceries),
+            (
+                "dash_groceries_cat + dash_groceries_health + dash_groceries_top_articles",
+                groceries_detail,
+            ),
             ("dash_food", food),
             ("dash_cat_main", cat_main),
             ("dash_stats", stats),

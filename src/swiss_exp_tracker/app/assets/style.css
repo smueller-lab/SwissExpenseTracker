@@ -46,6 +46,7 @@
     --color-accent-soft: rgba(102, 178, 255, 0.15);
     --color-accent-hover: rgba(102, 178, 255, 0.1);
     --color-positive: #4caf50;
+    --color-warning: #ff9800;
     --color-negative: #dc3545;
     --color-table-border: rgba(255, 255, 255, 0.2);
     --color-table-row-border: rgba(255, 255, 255, 0.05);
@@ -264,6 +265,7 @@ a {
 }
 
 .card-kpi .kpi-value.kpi-positive { color: var(--color-positive); }
+.card-kpi .kpi-value.kpi-warning  { color: var(--color-warning); }
 .card-kpi .kpi-value.kpi-negative { color: var(--color-negative); }
 
 .card-graph {
@@ -669,4 +671,10 @@ a {
     color: rgba(102, 178, 255, 0.35);
     padding: 0 6px;
     font-size: 14px;
+}
+
+
+.migros-m {
+    color: #f26700;
+    font-weight: bold;
 }

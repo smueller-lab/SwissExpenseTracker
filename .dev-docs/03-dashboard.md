@@ -11,7 +11,8 @@ The dashboard is a Plotly Dash application (`app/`). Each page has a `layout/` m
 | Home | `/` | `layout/home.py` | `callbacks/home.py` |
 | Transport | `/transport` | `layout/transport.py` | `callbacks/transport.py` |
 | Dining | `/food` | `layout/food.py` | — |
-| Groceries | `/groceries` | `layout/groceries.py` | — |
+| Groceries | `/groceries` | `layout/groceries.py` | `callbacks/groceries.py` |
+| M Cumulus Analytics | `/m-cumulus` | `layout/groceries_detail.py` | `callbacks/groceries_detail.py` |
 | Sport | `/sport` | `layout/sport.py` | `callbacks/sport.py` |
 | Vacation | `/vacation` | `layout/vacation.py` | — |
 | Retail | `/retail` | `layout/retail.py` | `callbacks/retail.py` |
@@ -82,6 +83,52 @@ Pipeline table: `src/.../tables/transport.py` → `dash_transport`, `dash_transp
 - Grouped bar chart of Car-only expenses by subcategory, switchable between Yearly / Monthly frequency via a toggle button.
 - Excluded subcategories: `Purchase`, `Car Rental`. Defined in `tables/car.py:CAR_EXCLUDE_SECOND`.
 - Source: `dash_car`.
+
+---
+
+## M Cumulus Analytics
+
+Route: `/m-cumulus` | Layout: `layout/groceries_detail.py` | Callbacks: `callbacks/groceries_detail.py`
+
+Pipeline tables: `src/.../tables/groceries_detail.py` → `dash_groceries_cat`, `dash_groceries_health`, `dash_groceries_top_articles`
+
+Data source: `groceries_use` (item-level Migros receipt data — article, category_main, category_detail, price_chf, discount_chf, date, location).
+
+**KPI cards (top row)**
+
+| Card | Value | Source |
+|---|---|---|
+| Monthly Spend | Sum of `price_chf` for the latest month | `pdf_GroceryItems` (computed in loader) |
+| Avg. per Visit | Monthly spend ÷ receipt count | `pdf_GroceryItems` |
+| Visits this Month | Count of distinct (date, location) pairs | `pdf_GroceryItems` |
+| Health Score | Healthy Grocery Index for latest month (0–100) | `pdf_GroceryHealth` |
+
+**Category Distribution donut** (`gd-fig-donut`, drill-down via callback)
+- Default: spend share per `category_main`.
+- Click a slice → drills into `category_detail` for that category.
+- `← Back` button resets to top level.
+- State tracked in `dcc.Store(id="gd-store-donut")`.
+
+**Category Spend Over Time** (`gd-fig-cat`, month/year toggle)
+- Stacked bar: `category_main` on the colour axis, period on X.
+- Switchable between Monthly and Yearly frequency.
+- Source: `dash_groceries_cat`.
+
+**Healthy Grocery Index** (static)
+- Line + markers: one score per month (0 = poor, 100 = optimal).
+- Coloured background bands: green ≥ 70, yellow 40–70, red < 40.
+- Scoring: basket composition weighted by category health value (defined in `groceries_detail.py:HEALTH_WEIGHTS`). Fresh Produce +1.0, Snacks & Sweets −1.0, etc.
+- Source: `dash_groceries_health`.
+
+**Spend Heatmap — Category x Month** (static)
+- `category_main` on Y, month on X, colour = CHF spend.
+- Annotated with CHF values per cell.
+- Source: `dash_groceries_cat` (Monthly rows only).
+
+**Top Bought Articles table** (static, top 15)
+- Columns: Article, Category, Count, Total CHF, Avg CHF.
+- Sorted by purchase count descending.
+- Source: `dash_groceries_top_articles`.
 
 ---
 

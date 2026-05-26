@@ -23,6 +23,15 @@ def create_app_layout() -> Any:
                         className="menu-link",
                     ),
                     dcc.Link(
+                        [
+                            html.Span("M", className="migros-m"),
+                            " Cumulus",
+                        ],
+                        href="/m-cumulus",
+                        id="link-m-cumulus",
+                        className="menu-link",
+                    ),
+                    dcc.Link(
                         "🍽️ Dining & Bars",
                         href="/food",
                         id="link-food",
