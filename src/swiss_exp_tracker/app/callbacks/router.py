@@ -7,6 +7,7 @@ from dash import Output
 
 from swiss_exp_tracker.app.layout.food import layout as food_layout
 from swiss_exp_tracker.app.layout.groceries import layout as groceries_layout
+from swiss_exp_tracker.app.layout.groceries_detail import layout as m_cumulus_layout
 from swiss_exp_tracker.app.layout.home import layout as home_layout
 from swiss_exp_tracker.app.layout.investing import layout as investing_layout
 from swiss_exp_tracker.app.layout.retail import layout as retail_layout
@@ -25,6 +26,8 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
             return home_layout(data)
         elif pth == "/groceries":
             return groceries_layout(data)
+        elif pth == "/m-cumulus":
+            return m_cumulus_layout(data)
         elif pth == "/food":
             return food_layout(data)
         elif pth == "/vacation":
@@ -45,6 +48,7 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
         [
             Output("link-home", "className"),
             Output("link-groceries", "className"),
+            Output("link-m-cumulus", "className"),
             Output("link-food", "className"),
             Output("link-vacation", "className"),
             Output("link-transport", "className"),
@@ -63,6 +67,7 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
         return [
             active if pth == "/" else default,
             active if pth == "/groceries" else default,
+            active if pth == "/m-cumulus" else default,
             active if pth == "/food" else default,
             active if pth == "/vacation" else default,
             active if pth == "/transport" else default,

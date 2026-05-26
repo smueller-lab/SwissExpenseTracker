@@ -447,6 +447,264 @@ class Fig:
 
         return fig
 
+    def fig_BarGroceryCat(
+        self, pdf: pd.DataFrame, Freq: Literal["Monthly", "Yearly"]
+    ) -> go.Figure:
+        if Freq not in ["Monthly", "Yearly"]:
+            raise ValueError(f"Invalid Freq={Freq}, Expected one of: Monthly, Yearly")
+
+        fig = go.Figure()
+        pdf_freq = pdf[pdf["Freq"] == Freq].reset_index(drop=True)
+
+        xaxis: dict[str, object] = {}
+        if Freq == "Monthly":
+            # "2026-01-01" sorts lexicographically == chronologically
+            sorted_raw = sorted(pdf_freq["Period"].unique())
+            label_map: dict[str, str] = {
+                p: pd.to_datetime(p).strftime("%b %Y") for p in sorted_raw
+            }
+            pdf_freq = pdf_freq.copy()
+            pdf_freq["Period"] = pdf_freq["Period"].map(label_map)
+            xaxis = {
+                "categoryorder": "array",
+                "categoryarray": [label_map[p] for p in sorted_raw],
+            }
+        else:
+            sorted_years = sorted(pdf_freq["Period"].unique())
+            xaxis = {
+                "type": "category",
+                "categoryorder": "array",
+                "categoryarray": sorted_years,
+            }
+
+        cat_order = (
+            pdf_freq.groupby("category_main")["total_CHF"]
+            .sum()
+            .sort_values(ascending=False)
+            .index.tolist()
+        )
+
+        for cat in cat_order:
+            group = pdf_freq[pdf_freq["category_main"] == cat]
+            fig.add_trace(
+                go.Bar(
+                    x=group["Period"],
+                    y=group["total_CHF"],
+                    name=cat,
+                    marker={"color": vis.vk_GroceryCat_col.get(cat, "#95A5A6")},
+                )
+            )
+
+        dTick = cfg.vk_dTick_GroceryCat[Freq]
+        npixel = cfg.vk_npixel_GroceryCat[Freq]
+        total_per_period = pdf_freq.groupby("Period")["total_CHF"].sum()
+        ry_Axis = get_ryAxis(dTick, total_per_period, True)
+        height_Figure = get_heightFigure(ry_Axis, dTick, npixel, self.vk_Margin)
+
+        fig.update_layout(
+            barmode="stack",
+            xaxis=xaxis,
+            yaxis={"dtick": dTick, "range": ry_Axis, "showline": True},
+            height=height_Figure,
+        )
+        return fig
+
+    @staticmethod
+    def _color_shades(hex_color: str, n: int) -> list[str]:
+        r, g, b = (
+            int(hex_color[1:3], 16),
+            int(hex_color[3:5], 16),
+            int(hex_color[5:7], 16),
+        )
+        shades = []
+        for i in range(n):
+            t = 1.0 - 0.6 * (i / max(n - 1, 1))
+            shades.append(
+                f"#{round(r*t + 255*(1-t)):02x}"
+                f"{round(g*t + 255*(1-t)):02x}"
+                f"{round(b*t + 255*(1-t)):02x}"
+            )
+        return shades
+
+    def fig_DonutGroceryCat(
+        self,
+        pdf_items: pd.DataFrame,
+        category_main: str | None = None,
+        category_detail: str | None = None,
+    ) -> go.Figure:
+        if category_main is None:
+            grouped = (
+                pdf_items[pdf_items["price_chf"] > 0]
+                .groupby("category_main")["price_chf"]
+                .sum()
+                .sort_values(ascending=False)
+                .reset_index()
+            )
+            labels = grouped["category_main"].tolist()
+            values = grouped["price_chf"].tolist()
+            colors = [vis.vk_GroceryCat_col.get(c, "#95A5A6") for c in labels]
+        elif category_detail is None:
+            grouped = (
+                pdf_items[
+                    (pdf_items["category_main"] == category_main)
+                    & (pdf_items["price_chf"] > 0)
+                ]
+                .groupby("category_detail")["price_chf"]
+                .sum()
+                .sort_values(ascending=False)
+                .reset_index()
+            )
+            labels = grouped["category_detail"].tolist()
+            values = grouped["price_chf"].tolist()
+            base = vis.vk_GroceryCat_col.get(category_main, "#95A5A6")
+            colors = self._color_shades(base, len(labels))
+        else:
+            grouped = (
+                pdf_items[
+                    (pdf_items["category_main"] == category_main)
+                    & (pdf_items["category_detail"] == category_detail)
+                    & (pdf_items["price_chf"] > 0)
+                ]
+                .groupby("article")["price_chf"]
+                .sum()
+                .sort_values(ascending=False)
+                .reset_index()
+            )
+            labels = grouped["article"].tolist()
+            values = grouped["price_chf"].tolist()
+            base = vis.vk_GroceryCat_col.get(category_main, "#95A5A6")
+            colors = self._color_shades(base, len(labels))
+
+        total = sum(values) if values else 1.0
+        text = [
+            f"{label}<br>{v / total * 100:.1f}%"
+            for label, v in zip(labels, values, strict=True)
+        ]
+
+        fig = go.Figure(
+            go.Pie(
+                labels=labels,
+                values=values,
+                hole=0.4,
+                text=text,
+                textinfo="text",
+                textfont={"size": 11},
+                pull=[0.02] * len(labels),
+                domain={"x": [0.0, 0.9], "y": [0.0, 1.0]},
+                marker={"colors": colors},
+                hovertemplate="%{label}<br>%{value:,.2f} CHF (%{percent})<extra></extra>",
+            )
+        )
+        fig.update_layout(showlegend=False)
+        return fig
+
+    def fig_HealthIndex(self, pdf: pd.DataFrame) -> go.Figure:
+        fig = go.Figure()
+
+        fig.add_hrect(y0=70, y1=100, fillcolor="#4caf50", opacity=0.12, line_width=0)
+        fig.add_hrect(y0=40, y1=70, fillcolor="#ff9800", opacity=0.12, line_width=0)
+        fig.add_hrect(y0=0, y1=40, fillcolor="#ef5350", opacity=0.12, line_width=0)
+
+        pdf = pdf.sort_values("Period").reset_index(drop=True)
+        sorted_raw = pdf["Period"].tolist()
+        x_labels = [pd.to_datetime(p).strftime("%b %Y") for p in sorted_raw]
+
+        scores = [float(s) for s in pdf["score"]]
+        marker_colors = [
+            "#4caf50" if s >= 70 else ("#ff9800" if s >= 40 else "#ef5350")
+            for s in scores
+        ]
+
+        fig.add_trace(
+            go.Scatter(
+                x=x_labels,
+                y=pdf["score"],
+                mode="lines+markers+text",
+                text=[f"{s:.0f}" for s in scores],
+                textposition="top center",
+                textfont={"size": 12},
+                marker={"size": 10, "color": marker_colors},
+                line={"color": "#4fc3f7", "width": 2},
+            )
+        )
+
+        fig.update_layout(
+            xaxis={
+                "categoryorder": "array",
+                "categoryarray": x_labels,
+            },
+            yaxis={"range": [0, 100], "dtick": 20, "showline": True},
+            showlegend=False,
+            height=300,
+        )
+        return fig
+
+    def fig_HeatmapGroceryCat(self, pdf: pd.DataFrame) -> go.Figure:
+        pdf_monthly = pdf[pdf["Freq"] == "Monthly"].copy()
+        sorted_raw = sorted(pdf_monthly["Period"].unique().tolist())
+        x_labels = [pd.to_datetime(p).strftime("%b %Y") for p in sorted_raw]
+        label_map = dict(zip(sorted_raw, x_labels, strict=True))
+        pdf_monthly["Period"] = pdf_monthly["Period"].map(label_map)
+
+        cat_order = (
+            pdf_monthly.groupby("category_main")["total_CHF"]
+            .sum()
+            .sort_values(ascending=False)
+            .index.tolist()
+        )
+        cat_order = [c for c in cat_order if c != "Other"] + (
+            ["Other"] if "Other" in cat_order else []
+        )
+
+        pivot = pdf_monthly.pivot_table(
+            index="category_main", columns="Period", values="total_CHF", fill_value=0
+        )
+        pivot = pivot.reindex(index=cat_order, columns=x_labels, fill_value=0)
+
+        text: list[list[str]] = [
+            [
+                f"{pivot.iloc[r, c]:.0f}" if pivot.iloc[r, c] > 0 else ""  # type: ignore[operator]
+                for c in range(pivot.shape[1])
+            ]
+            for r in range(pivot.shape[0])
+        ]
+
+        fig = go.Figure(
+            go.Heatmap(
+                z=pivot.values,
+                x=pivot.columns.tolist(),
+                y=pivot.index.tolist(),
+                colorscale="Greens",
+                colorbar={"title": "CHF"},
+                hovertemplate="Category: %{y}<br>Month: %{x}<br>CHF: %{z:.2f}<extra></extra>",
+                text=text,
+                texttemplate="%{text}",
+                textfont={"size": 10},
+            )
+        )
+
+        height = max(220, len(cat_order) * 35 + 80)
+        fig.update_layout(
+            height=height,
+            xaxis={"domain": [0.15, 1.0]},
+            yaxis={"autorange": "reversed", "showticklabels": False},
+            margin={"l": 10},
+        )
+
+        for cat in cat_order:
+            fig.add_annotation(
+                x=0.0,
+                y=cat,
+                xref="paper",
+                yref="y",
+                xanchor="left",
+                yanchor="middle",
+                text=cat,
+                showarrow=False,
+            )
+
+        return fig
+
     def fig_CategoryCorrelation(
         self,
         pdf: pd.DataFrame,

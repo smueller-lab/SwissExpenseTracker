@@ -131,6 +131,48 @@ class DataLoader:
             self.pdf_RetailDonut = pd.read_sql("SELECT * FROM dash_retail_donut", con)
             self.pdf_RetailTop = pd.read_sql("SELECT * FROM dash_retail_top", con)
 
+            # Grocery detail (item-level receipt data)
+            self.pdf_GroceryItems = pd.read_sql("SELECT * FROM groceries_use", con)
+            self.pdf_GroceryItems["date"] = pd.to_datetime(
+                self.pdf_GroceryItems["date"]
+            )
+            self.pdf_GroceryCat = pd.read_sql("SELECT * FROM dash_groceries_cat", con)
+            self.pdf_GroceryHealth = pd.read_sql(
+                "SELECT * FROM dash_groceries_health", con
+            )
+            self.pdf_GroceryTopArticles = pd.read_sql(
+                "SELECT * FROM dash_groceries_top_articles", con
+            )
+
+            if not self.pdf_GroceryItems.empty:
+                _curr = self.pdf_GroceryItems["date"].dt.to_period("M").max()
+                _curr_items = self.pdf_GroceryItems[
+                    self.pdf_GroceryItems["date"].dt.to_period("M") == _curr
+                ]
+                self.n_GroceryMonthlySpend: float = float(
+                    _curr_items["price_chf"].sum()
+                )
+                self.n_GroceryVisitsMonth: int = int(
+                    _curr_items.groupby(["date", "location"]).ngroups
+                )
+                self.n_GroceryAvgPerVisit: float = (
+                    self.n_GroceryMonthlySpend / self.n_GroceryVisitsMonth
+                    if self.n_GroceryVisitsMonth > 0
+                    else 0.0
+                )
+                self.s_GroceryCurrentMonth: str = _curr.strftime("%b %Y")
+            else:
+                self.n_GroceryMonthlySpend = 0.0
+                self.n_GroceryVisitsMonth = 0
+                self.n_GroceryAvgPerVisit = 0.0
+                self.s_GroceryCurrentMonth = ""
+
+            self.n_HealthScore_latest: float = (
+                float(self.pdf_GroceryHealth.iloc[-1]["score"])
+                if not self.pdf_GroceryHealth.empty
+                else 50.0
+            )
+
     def get_TopExpenses_Category_Month(self, Category: str, Month: str) -> pd.DataFrame:
         pdf = self.pdf_Master.copy()
         pdf["Month"] = pdf["date"].dt.to_period("M")
