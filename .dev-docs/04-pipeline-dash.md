@@ -17,6 +17,7 @@ run_dashboard_pipeline()          pipeline.py
         └─ table builders (in order):
               balance         → dash_balance
               groceries       → dash_groceries
+              groceries_detail → dash_groceries_cat, dash_groceries_health, dash_groceries_top_articles
               food            → dash_food
               cat_main        → dash_cat_main
               stats           → dash_stats
@@ -87,6 +88,32 @@ This makes the pipeline safe to run on older databases without manual migration.
 **Output columns:** `merchant`, `total_CHF`, `totalPeriod_CHF`, `pct`, `Freq` (`Monthly`/`Yearly`), `Period`.
 
 **Used by:** Groceries page — absolute and percentage bar charts, per-visit box plot.
+
+---
+
+### `groceries_detail` → `dash_groceries_cat`, `dash_groceries_health`, `dash_groceries_top_articles`
+
+**Input:** Reads directly from `groceries_use` (item-level receipt data). Does not use the `transactions_use` DataFrame passed by the pipeline.
+
+**`dash_groceries_cat` logic:**
+- Groups `groceries_use` by `(MonthYear, category_main)` and `(Year, category_main)`, sums `price_chf`.
+- Adds `totalPeriod_CHF` (period total) and `pct` (share within period).
+- Output columns: `category_main`, `total_CHF`, `totalPeriod_CHF`, `pct`, `Freq` (`Monthly`/`Yearly`), `Period`.
+
+**`dash_groceries_health` logic:**
+- Computes a Healthy Grocery Index score (0–100) per month using `HEALTH_WEIGHTS` — a per-`category_main` weight table defined in the module.
+- Score = 50 + 50 × Σ(weight_i × share_i), clamped to [0, 100].
+- Positive weights: Fresh Produce +1.0, Dairy & Eggs +0.6, Meat & Fish +0.4, Pasta & Grains +0.5, Baking +0.3.
+- Negative weights: Snacks & Sweets −1.0, Ready Meals −0.8, Beverages −0.4, Frozen Foods −0.3, Canned & Preserved −0.1.
+- Output columns: `Period` (YYYY-MM), `score`.
+
+**`dash_groceries_top_articles` logic:**
+- Filters `price_chf > 0` (removes bonus/return rows).
+- Groups by `(article, category_main)`, aggregates count, total, and average `price_chf`.
+- Sorted descending by purchase count.
+- Output columns: `article`, `category_main`, `count`, `total_chf`, `avg_chf`.
+
+**Used by:** M Cumulus Analytics page (`/m-cumulus`).
 
 ---
 

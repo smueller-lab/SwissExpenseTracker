@@ -18,13 +18,19 @@ vis = VIS()
 
 
 def make_number_card(
-    title: str, Number: float, width: int = 3, unit: str = "CHF"
+    title: str,
+    Number: float,
+    width: int = 3,
+    unit: str = "CHF",
+    fmt: str = ",.2f",
+    value_class: str | None = None,
 ) -> Any:
     suffix = f" {unit}" if unit else ""
+    cls = value_class if value_class is not None else get_balance_class(Number)
     return html.Div(
         [
             make_card_title(title),
-            html.P(f"{Number:,.2f}{suffix}", className=get_balance_class(Number)),
+            html.P(f"{Number:{fmt}}{suffix}", className=cls),
         ],
         className=f"card card-kpi col-{width}",
     )
