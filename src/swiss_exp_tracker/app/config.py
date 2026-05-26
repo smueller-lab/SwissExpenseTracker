@@ -13,6 +13,7 @@ DB_PATH = Path(__file__).resolve().parents[3] / "database" / "transactions.db"
 class config:
     # dTick
     vk_dTick_Grocery = {"Monthly": 100, "Yearly": 1000, "Visit": 20}
+    vk_dTick_GroceryCat = {"Monthly": 20, "Yearly": 100}
     vk_dTick_Food = {"Monthly": 200, "Yearly": 1000, "Visit": 20}
     dTick_Balance: int = 5000
     dTick_Pct: int = 20
@@ -23,6 +24,7 @@ class config:
     # npixel
     vk_npixel_Food = {"Monthly": 50, "Yearly": 40, "Visit": 50}
     vk_npixel_Grocery = {"Monthly": 50, "Yearly": 80, "Visit": 50}
+    vk_npixel_GroceryCat = {"Monthly": 50, "Yearly": 80}
     npixel_Balance: int = 80
     npixel_Pct: int = 80
     npixel_Vacation: int = 80
@@ -139,6 +141,22 @@ class VIS:
         "Sports": "#95A5A6",
     }
 
+    vk_GroceryCat_col = {
+        "Fresh Produce": "#4caf50",
+        "Beverages": "#4fc3f7",
+        "Bakery & Bread": "#ff9800",
+        "Snacks & Sweets": "#e91e63",
+        "Dairy & Eggs": "#9c27b0",
+        "Ready Meals": "#f44336",
+        "Meat & Fish": "#ff5722",
+        "Canned & Preserved": "#607d8b",
+        "Frozen Foods": "#00bcd4",
+        "Pasta & Grains": "#8bc34a",
+        "Baking": "#795548",
+        "Personal & Household": "#9e9e9e",
+        "Other": "#546e7a",
+    }
+
     s_Merchant_Grocery = [
         "Coop",
         "Migros",
@@ -168,4 +186,6 @@ class VIS:
         "Second category",
         "Subcategory",
         "Location",
+        "article",
+        "category_main",
     ]
