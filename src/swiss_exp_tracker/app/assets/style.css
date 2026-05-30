@@ -16,6 +16,9 @@
     --color-text-kpi-headline: #e4d30f;
     --color-text-kpi-subtext: #a8b8d8;
 
+    /* Dropdown menu list background (darker than card, lighter than sidebar) */
+    --color-bg-dropdown-menu: #1e2d45;
+
     /* Button colors */
     --color-bg-btn: #1b2a41;
     --color-bg-btn-hover: #28506f;
@@ -45,6 +48,8 @@
     --color-accent: #66b2ff;
     --color-accent-soft: rgba(102, 178, 255, 0.15);
     --color-accent-hover: rgba(102, 178, 255, 0.1);
+    --color-accent-selected: rgba(102, 178, 255, 0.25);
+    --color-accent-border: rgba(102, 178, 255, 0.25);
     --color-positive: #4caf50;
     --color-warning: #ff9800;
     --color-negative: #dc3545;
@@ -341,13 +346,15 @@ a {
 
 /* Dropdown menu (the list) */
 .dropdown-year .Select-menu-outer {
-    background-color: var(--color-bg-card);
+    background-color: var(--color-bg-dropdown-menu);
+    border: 1px solid var(--color-accent-border);
     border-radius: 6px;
     overflow: hidden;
 }
 
 /* Option items */
 .dropdown-year .Select-option {
+    background-color: var(--color-bg-dropdown-menu);
     padding: 6px 12px;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -355,9 +362,14 @@ a {
 }
 
 /* Hover/focus on option */
-.dropdown-year .Select-option.is-focused, 
+.dropdown-year .Select-option.is-focused {
+    background-color: var(--color-accent-soft) !important;
+}
+
 .dropdown-year .Select-option.is-selected {
-    background-color: var(--color-bg-card) !important;
+    background-color: var(--color-accent-selected) !important;
+    color: var(--color-text-accent) !important;
+    font-weight: 600;
 }
 
 .dropdown-year .Select-arrow-zone {
@@ -545,7 +557,7 @@ a {
 /* Dropdown control box */
 .smart-filter-bar .Select-control {
     background-color: var(--color-bg-dropdown) !important;
-    border: 1px solid rgba(102, 178, 255, 0.25) !important;
+    border: 1px solid var(--color-accent-border) !important;
     border-radius: 6px !important;
     color: var(--color-text-primary) !important;
 }
@@ -562,33 +574,33 @@ a {
 
 /* Dropdown option list */
 .smart-filter-bar .Select-menu-outer {
-    background-color: #1e2d45 !important;
-    border: 1px solid rgba(102, 178, 255, 0.25) !important;
+    background-color: var(--color-bg-dropdown-menu) !important;
+    border: 1px solid var(--color-accent-border) !important;
     border-radius: 6px !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
     z-index: 1000;
 }
 
 .smart-filter-bar .Select-option {
-    background-color: #1e2d45 !important;
+    background-color: var(--color-bg-dropdown-menu) !important;
     color: var(--color-text-primary) !important;
     padding: 8px 12px !important;
     cursor: pointer;
 }
 
 .smart-filter-bar .Select-option.is-focused {
-    background-color: rgba(102, 178, 255, 0.15) !important;
-    color: #ffffff !important;
+    background-color: var(--color-accent-soft) !important;
+    color: var(--color-white) !important;
 }
 
 .smart-filter-bar .Select-option.is-selected {
-    background-color: rgba(102, 178, 255, 0.25) !important;
+    background-color: var(--color-accent-selected) !important;
     color: var(--color-text-accent) !important;
     font-weight: 600;
 }
 
 .smart-filter-bar .Select-option.is-selected.is-focused {
-    background-color: rgba(102, 178, 255, 0.3) !important;
+    background-color: var(--color-accent-selected) !important;
 }
 
 /* Exclude checkbox */
@@ -637,8 +649,8 @@ a {
 }
 
 .smart-filter-bar .Select--multi .Select-value-icon:hover {
-    background-color: rgba(102, 178, 255, 0.3) !important;
-    color: #ffffff !important;
+    background-color: var(--color-accent-selected) !important;
+    color: var(--color-white) !important;
 }
 
 /* ===== Smart Summary Bar ===== */

@@ -51,21 +51,19 @@ def _assert_valid_unified_transaction(unified: UnifiedTransaction) -> None:
     assert isinstance(validated_unified, UnifiedTransaction)
     assert set(dumped) == UNIFIED_FIELDS
     assert validated_unified.id is not None
-    assert validated_unified.source
-    assert validated_unified.zkb_reference is not None
+    assert validated_unified.source is not None
+    assert validated_unified.reference_id is not None
     assert validated_unified.amount is not None
     assert validated_unified.currency is not None
     assert validated_unified.transaction_type in set(TransactionType)
     assert validated_unified.source_file
 
 
-@pytest.mark.parametrize(
-    "row", _sample_rows("zkb_20250112_1.csv", SAMPLE_SIZE, RANDOM_SEED)
-)
+@pytest.mark.parametrize("row", _sample_rows("zkb_test.csv", SAMPLE_SIZE, RANDOM_SEED))
 def test_zkb_debit_to_unified_transactions(row: dict[str, str]) -> None:
     # model validation and conversion to unified transaction
     source_model = ZKBTransaction.model_validate(row)
-    unified = ZKBDebitAdapter().to_unified(source_model, "zkb_20250112_1.csv")
+    unified = ZKBDebitAdapter().to_unified(source_model, "zkb_test.csv")
 
     # validate unified model
     assert isinstance(source_model, ZKBTransaction)
@@ -74,12 +72,12 @@ def test_zkb_debit_to_unified_transactions(row: dict[str, str]) -> None:
 
 
 @pytest.mark.parametrize(
-    "row", _sample_rows("viseca_20250723.csv", SAMPLE_SIZE, RANDOM_SEED)
+    "row", _sample_rows("viseca_test.csv", SAMPLE_SIZE, RANDOM_SEED)
 )
 def test_viseca_to_unified_transactions(row: dict[str, str]) -> None:
     # model validation and conversion to unified transaction
     source_model = VisecaTransaction.model_validate(row)
-    unified = VisecaAdapter().to_unified(source_model, "viseca_20250723.csv")
+    unified = VisecaAdapter().to_unified(source_model, "viseca_test.csv")
 
     # validate unified model
     assert isinstance(source_model, VisecaTransaction)
@@ -88,12 +86,14 @@ def test_viseca_to_unified_transactions(row: dict[str, str]) -> None:
 
 
 @pytest.mark.parametrize(
-    "row", _sample_rows("account_statement_EUR.csv", SAMPLE_SIZE, RANDOM_SEED)
+    "row", _sample_rows("account_statement_EUR_test.csv", SAMPLE_SIZE, RANDOM_SEED)
 )
 def test_revolut_to_unified_transactions(row: dict[str, str]) -> None:
     # model validation and conversion to unified transaction
     source_model = RevolutTransaction.model_validate(row)
-    unified = RevolutAdapter().to_unified(source_model, "account_statement_EUR.csv")
+    unified = RevolutAdapter().to_unified(
+        source_model, "account_statement_EUR_test.csv"
+    )
 
     # validate unified model
     assert isinstance(source_model, RevolutTransaction)

@@ -1,0 +1,5 @@
+Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance
+Exchange,Current,2022-11-22 20:31:00,2022-11-22 20:31:00,Exchange to EUR,50,0,EUR,COMPLETED,50
+Exchange,Current,2023-01-09 13:44:17,2023-01-09 13:44:17,Purchase Store_1,20,0,EUR,COMPLETED,20
+Transfer,Current,2023-01-09 14:15:29,2023-01-09 14:15:32,To Max,20,0,EUR,COMPLETED,20
+Exchange,Current,2023-01-11 08:14:31,2023-01-11 08:14:31,Purchase Store_2,120,0,EUR,COMPLETED,120
