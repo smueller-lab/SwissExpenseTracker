@@ -442,7 +442,7 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
             # Step 3d: normalize final values before deduplication and insert.
             amount = round(amount, 2)
             date_iso = _as_iso_datetime(unified.date)
-            reference = unified.zkb_reference
+            reference = unified.reference_id
             is_duplicate = _is_duplicate(
                 db,
                 reference,

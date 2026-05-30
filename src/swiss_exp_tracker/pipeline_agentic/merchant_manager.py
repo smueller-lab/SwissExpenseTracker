@@ -66,7 +66,7 @@ class MerchantManager:
 
                     result = MetadataResult(
                         current_datetime=datetime.now(),
-                        zkb_reference=transaction.zkb_reference,
+                        reference_id=transaction.reference_id,
                         matched_merchant=cached_metadata.name,
                         cache_hit=True,
                         similarity=similarity,
@@ -107,7 +107,7 @@ class MerchantManager:
             # 7. Save results to relational db
             result = MetadataResult(
                 current_datetime=datetime.now(),
-                zkb_reference=transaction.zkb_reference,
+                reference_id=transaction.reference_id,
                 matched_merchant=merchant_metadata.name,
                 cache_hit=False,
                 similarity=None,

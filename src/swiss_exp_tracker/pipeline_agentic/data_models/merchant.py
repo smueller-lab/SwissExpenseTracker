@@ -30,7 +30,7 @@ class Transaction(BaseModel):
     booking_text: str = Field(
         alias="Booking text", description="bboking text of the transaction"
     )
-    zkb_reference: str | None = Field(
+    reference_id: str | None = Field(
         alias="ZKB reference", description="reference number of the transaction"
     )
     balance_chf: float | None = Field(
@@ -54,9 +54,9 @@ class Transaction(BaseModel):
         else:
             return datetime.strptime(value, "%d.%m.%Y").date()
 
-    @field_validator("zkb_reference", mode="before")
+    @field_validator("reference_id", mode="before")
     @classmethod
-    def parse_zkb_reference(cls, value: str | None) -> str | None:
+    def parse_reference_id(cls, value: str | None) -> str | None:
         if value is None:
             return None
         if isinstance(value, float) and math.isnan(value):
@@ -288,7 +288,7 @@ class MerchantMetaInput(BaseModel):
 
 class MetadataResult(BaseModel):
     current_datetime: datetime
-    zkb_reference: str | None
+    reference_id: str | None
     matched_merchant: str
     cache_hit: bool
     similarity: float | None
