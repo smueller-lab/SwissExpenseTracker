@@ -26,7 +26,7 @@ class MerchantResult:
                 CREATE TABLE IF NOT EXISTS {table_name} (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     created_at TEXT NOT NULL,
-                    zkb_reference TEXT,
+                    reference_id TEXT,
                     matched_merchant TEXT NOT NULL,
                     cache_hit INTEGER NOT NULL,
                     similarity REAL,
@@ -42,7 +42,7 @@ class MerchantResult:
                 f"""
                 INSERT INTO {table_name} (
                     created_at,
-                    zkb_reference,
+                    reference_id,
                     matched_merchant,
                     cache_hit,
                     similarity,
@@ -55,7 +55,7 @@ class MerchantResult:
                 """,
                 (
                     merchant_result.current_datetime.isoformat(),
-                    merchant_result.zkb_reference,
+                    merchant_result.reference_id,
                     merchant_result.matched_merchant,
                     int(merchant_result.cache_hit),
                     merchant_result.similarity,

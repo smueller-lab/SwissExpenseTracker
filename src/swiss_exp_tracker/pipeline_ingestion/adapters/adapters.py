@@ -55,7 +55,7 @@ class ZKBDebitAdapter(BaseAdapter[ZKBTransaction]):
         return UnifiedTransaction(
             id=uuid.uuid4(),
             source=self.source,
-            zkb_reference=row.ZKBReference
+            reference_id=row.ZKBReference
             or row.ReferenceNumber
             or f"NOID-{uuid.uuid4()}",
             date=row.Date or row.ValueDate,
@@ -80,7 +80,7 @@ class VisecaAdapter(BaseAdapter[VisecaTransaction]):
         return UnifiedTransaction(
             id=uuid.uuid4(),
             source=self.source,
-            zkb_reference=row.TransactionId or f"NOID-{uuid.uuid4()}",
+            reference_id=row.TransactionId or f"NOID-{uuid.uuid4()}",
             date=row.Date,
             amount=abs(row.Amount),
             currency=Currency.CHF,
@@ -103,7 +103,7 @@ class RevolutAdapter(BaseAdapter[RevolutTransaction]):
         return UnifiedTransaction(
             id=uuid.uuid4(),
             source=self.source,
-            zkb_reference=f"NOID-{uuid.uuid4()}",
+            reference_id=f"NOID-{uuid.uuid4()}",
             date=row.CompletedDate or row.StartedDate,
             amount=abs(row.Amount),
             currency=Currency(row.currency),

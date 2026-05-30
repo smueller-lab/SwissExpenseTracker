@@ -1,12 +1,24 @@
 from __future__ import annotations
 
+import csv
+
 from datetime import date
 from datetime import time
+from pathlib import Path
 
 import pytest
 
 from swiss_exp_tracker.pipeline_ingestion.data_models.grocery import GroceryItem
 from swiss_exp_tracker.pipeline_ingestion.data_models.grocery import GroceryUnit
+
+
+TEST_DATA_DIR = Path(__file__).resolve().parents[1] / "test_data"
+
+
+def _load_csv(file_name: str) -> list[dict[str, str]]:
+    """Load all rows from a CSV in test_data as a list of dicts."""
+    with (TEST_DATA_DIR / file_name).open(encoding="utf-8-sig", newline="") as f:
+        return list(csv.DictReader(f))
 
 
 def _make_row(**overrides: object) -> dict[str, object]:
@@ -89,3 +101,11 @@ def test_date_format_parsed() -> None:
 def test_time_format_parsed() -> None:
     item = GroceryItem.model_validate(_make_row(Zeit="23:59:59"))
     assert item.time == time(23, 59, 59)
+
+
+@pytest.mark.parametrize("row", _load_csv("m_cumulus_test.csv"))
+def test_m_cumulus_csv_rows_parse(row: dict[str, str]) -> None:
+    item = GroceryItem.model_validate(row)
+    assert item.date is not None
+    assert item.article
+    assert item.price is not None

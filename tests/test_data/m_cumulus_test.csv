@@ -1,0 +1,5 @@
+Datum,Zeit,Filiale,Kassennummer,Transaktionsnummer,Artikel,Menge,Aktion,Umsatz
+17.05.2026,09:04:29,Migros_1,100,51,Artikel_1,1,0,1
+17.05.2026,09:04:29,Migros_1,100,51,Artikel_2,1,0,1.8
+17.05.2026,09:04:29,Migros_1,100,51,Artikel_3,1,0,3.4
+17.05.2026,09:04:29,Migros_1,100,51,Artikel_4,1,0,12

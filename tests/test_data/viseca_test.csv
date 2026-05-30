@@ -1,0 +1,5 @@
+﻿TransactionId,CardId,Date,ValutaDate,Amount,Currency,OriginalAmount,OriginalCurrency,MerchantName,MerchantPlace,MerchantCountry,StateType,Details,Type,Exchange Rate
+T1,723,2023-05-23 06:27:05,2023-05-24 00:00:00,3.1,CHF,3.1,CHF,Merchant_1,,,BOOKED,Merchant_1,fee,1
+T2,723,2023-05-23 21:27:46,2023-05-25 00:00:00,20,CHF,20,CHF,Merchant_2,,,BOOKED,Merchant_2,fee,1
+T3,723,2023-05-29 08:47:35,2023-05-30 00:00:00,25,CHF,25,CHF,Merchant_3,Geneva,CHE,BOOKED,Merchant_3,fee,1
+T4,723,2023-05-29 08:48:11,2023-05-30 00:00:00,8,CHF,8,CHF,Merchant_4,Geneva,CHE,BOOKED,Merchant_4,fee,1
