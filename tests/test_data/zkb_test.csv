@@ -1,0 +1,5 @@
+﻿Date,Booking text,Curr,Amount details,ZKB reference,Reference number,Debit CHF,Credit CHF,Value date,Balance CHF,Payment purpose,Details
+12.01.2025,Debit TWINT: Migros,,,L12345,,8.2,,12.01.2025,10000,,
+12.01.2025,Purchase ZKB Visa Debit card: Coop,,,L12346,,12,,11.01.2025,10000,,
+11.01.2025,Debit TWINT: PARKINGPAY APP,,,L12347,,3.6,,11.01.2025,10000,,
+11.01.2025,"Purchase ZKB Visa Debit card, Hallenbad",,,L12348,,8,,10.01.2025,10000,,

@@ -1,7 +1,7 @@
 """Build the final analysis table ``transactions_use``.
 
 Joins ``transactions_rfn`` (enriched transactions) with ``merchant_metadata_rfn``
-(cleaned merchant categories) on ``reference = zkb_reference`` and writes the
+(cleaned merchant categories) on ``reference = reference_id`` and writes the
 result into ``transactions_use``.
 
 Only transactions whose ``enrichment_status = 'enriched'`` are included, and
@@ -113,7 +113,7 @@ def run_transactions_use() -> None:
                 m.city,
                 t.balance_chf
             FROM transactions_rfn t
-            JOIN merchant_metadata_rfn m ON m.zkb_reference = t.reference
+            JOIN merchant_metadata_rfn m ON m.reference_id = t.reference
             WHERE t.enrichment_status = 'enriched'
               AND t.reference NOT IN (
                   SELECT reference FROM transactions_use
@@ -167,7 +167,7 @@ def _sync_categories_from_rfn() -> None:
             """
             SELECT tu.id, m.category_main, m.category_second, m.city
             FROM transactions_use tu
-            JOIN merchant_metadata_rfn m ON m.zkb_reference = tu.reference
+            JOIN merchant_metadata_rfn m ON m.reference_id = tu.reference
             WHERE tu.category_main  != m.category_main
                OR COALESCE(tu.category_second, '') != COALESCE(m.category_second, '')
                OR COALESCE(tu.city, '')            != COALESCE(m.city, '')

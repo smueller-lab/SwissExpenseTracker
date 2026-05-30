@@ -88,8 +88,8 @@ CONTAINMENT_CORRECTIONS: list[tuple[list[str], tuple[str, str, str | None]]] = [
 def run_post_clean() -> None:
     """Read merchant_metadata_raw, apply corrections, write merchant_metadata_rfn.
 
-    - Takes the latest raw row per ``zkb_reference`` (highest ``id``).
-    - New zkb_references are inserted; existing rfn rows are updated when the
+    - Takes the latest raw row per ``reference_id`` (highest ``id``).
+    - New reference_ids are inserted; existing rfn rows are updated when the
       raw entry is newer (higher ``id``) than when rfn was last written.
     """
     path_db = oj("./database", "transactions.db")
@@ -103,7 +103,7 @@ def run_post_clean() -> None:
             CREATE TABLE IF NOT EXISTS merchant_metadata_rfn (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 created_at TEXT NOT NULL,
-                zkb_reference TEXT,
+                reference_id TEXT,
                 matched_merchant TEXT NOT NULL,
                 cache_hit INTEGER NOT NULL,
                 similarity REAL,
@@ -122,26 +122,26 @@ def run_post_clean() -> None:
             tqdm.write("post_clean: merchant_metadata_raw not found, skipping")
             return
 
-        # Latest raw row per zkb_reference — include rows not yet in rfn
+        # Latest raw row per reference_id — include rows not yet in rfn
         # AND rows where the raw entry is newer than the existing rfn row
         raw_rows = db.execute(
             """
             SELECT r.*
             FROM merchant_metadata_raw r
             INNER JOIN (
-                SELECT zkb_reference, MAX(id) AS max_id
+                SELECT reference_id, MAX(id) AS max_id
                 FROM merchant_metadata_raw
-                GROUP BY zkb_reference
+                GROUP BY reference_id
             ) latest ON r.id = latest.max_id
-            WHERE r.zkb_reference NOT IN (
-                SELECT zkb_reference
+            WHERE r.reference_id NOT IN (
+                SELECT reference_id
                 FROM merchant_metadata_rfn
-                WHERE zkb_reference IS NOT NULL
+                WHERE reference_id IS NOT NULL
             )
             OR r.created_at > (
                 SELECT MAX(rfn.created_at)
                 FROM merchant_metadata_rfn rfn
-                WHERE rfn.zkb_reference = r.zkb_reference
+                WHERE rfn.reference_id = r.reference_id
             )
             ORDER BY r.created_at DESC
             """
@@ -177,20 +177,20 @@ def run_post_clean() -> None:
             # Remove any existing rfn row for this reference before inserting
             # the updated one (handles the upsert case for existing references).
             db.execute(
-                "DELETE FROM merchant_metadata_rfn WHERE zkb_reference = ?",
-                (row["zkb_reference"],),
+                "DELETE FROM merchant_metadata_rfn WHERE reference_id = ?",
+                (row["reference_id"],),
             )
             db.execute(
                 """
                 INSERT INTO merchant_metadata_rfn (
-                    created_at, zkb_reference, matched_merchant,
+                    created_at, reference_id, matched_merchant,
                     cache_hit, similarity, search_tool,
                     category_main, category_second, city
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     row["created_at"],
-                    row["zkb_reference"],
+                    row["reference_id"],
                     row["matched_merchant"],
                     row["cache_hit"],
                     row["similarity"],

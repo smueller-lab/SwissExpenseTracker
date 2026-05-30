@@ -41,7 +41,7 @@ class UnifiedTransaction(BaseModel):
     source: SourceType = Field(
         description="Source of the transaction, e.g., 'ZKB_DEBIT', 'VISECA', etc."
     )
-    zkb_reference: str = Field(
+    reference_id: str = Field(
         description="Reference number from the original transaction, if available"
     )
     date: datetime | None = Field(description="Date of the transaction")
