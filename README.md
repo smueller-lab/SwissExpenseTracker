@@ -49,18 +49,18 @@ A personal finance pipeline and dashboard for Swiss banking data. Drop your bank
 
 ### Pages
 
-| Page | What you see |
-|---|---|
-| 🏠 **Home** | Balance progression, net balance per month, top spending category, expense distribution |
-| 🛒 **Groceries** | Store breakdown (Migros, Coop, Lidl, Aldi, ...), spend distribution |
-| **M Cumulus Analytics** | Item-level grocery analysis: categories, health score, top articles |
-| 🍽️ **Dining & Bars** | Restaurant & grocery spend by frequency, per-visit box plots |
-| 🏖️ **Vacation** | Annual travel spend by type (flights, hotels, car rental) |
-| 🚄 **Transport** | Yearly transport costs by subcategory, monthly heatmap, car expenses |
-| ⛳ **Sport** | Sport spending by activity type over time |
-| 🛍️ **Retail** | Retail breakdown by subcategory, spend donut, top purchases |
-| 🔍 **Smart Table** | Fully filterable transaction browser |
-| 📈 **Investing** | Portfolio value vs. invested, P&L, per-position progression |
+| Page                          | What you see                                                                            |
+| ----------------------------- | --------------------------------------------------------------------------------------- |
+| 🏠**Home**              | Balance progression, net balance per month, top spending category, expense distribution |
+| 🛒**Groceries**         | Store breakdown (Migros, Coop, Lidl, Aldi, ...), spend distribution                     |
+| **M Cumulus Analytics** | Item-level grocery analysis: categories, health score, top articles                     |
+| 🍽️**Dining & Bars**   | Restaurant & grocery spend by frequency, per-visit box plots                            |
+| 🏖️**Vacation**        | Annual travel spend by type (flights, hotels, car rental)                               |
+| 🚄**Transport**         | Yearly transport costs by subcategory, monthly heatmap, car expenses                    |
+| ⛳**Sport**             | Sport spending by activity type over time                                               |
+| 🛍️**Retail**          | Retail breakdown by subcategory, spend donut, top purchases                             |
+| 🔍**Smart Table**       | Fully filterable transaction browser                                                    |
+| 📈**Investing**         | Portfolio value vs. invested, P&L, per-position progression                             |
 
 ---
 
@@ -68,36 +68,19 @@ A personal finance pipeline and dashboard for Swiss banking data. Drop your bank
 
 The heart of this project. Bank transaction texts are often cryptic or abbreviated — a web search finds the actual merchant, and an LLM structures it into clean data.
 
-```
-transactions_rfn (pending enrichment)
-        │
-        ├─► 👤 known person (TWINT)?  ──► labelled as FRIEND, no API call
-        │
-        ├─► ⚡ ChromaDB vector cache hit?  ──► reuse metadata, no web search
-        │
-        └─► 🔍 Summary Agent  (gpt-4.1-mini + web search)
-                  │  merchant summary text
-                  ▼
-            🏷️ Metadata Agent  (gpt-4.1-mini)
-                  │  name · category · city
-                  ▼
-            💾 save to ChromaDB  ──► future transactions skip web search
-                  │
-                  ▼
-            ✅ transactions_use  (dashboard-ready)
-```
+![Agentic Pipeline](assets/agentic_pipeline.png)
 
 ### 🌐 Smart web search
 
 Free tiers are exhausted before falling back to pay-per-use. API credit consumption is tracked monthly per provider.
 
-| Priority | Provider | Free quota |
-|---|---|---|
-| 1 | Tavily | 1 000 req/month |
-| 2 | Brave Search | 1 000 req/month |
-| 3 | Scrape.do | 1 000 req/month |
-| 4 | Exa | 500 credits/month |
-| 5–6 | Tavily / Exa (pay-per-use) | unlimited |
+| Priority | Provider                   | Free quota        |
+| -------- | -------------------------- | ----------------- |
+| 1        | Tavily                     | 1 000 req/month   |
+| 2        | Brave Search               | 1 000 req/month   |
+| 3        | Scrape.do                  | 1 000 req/month   |
+| 4        | Exa                        | 500 credits/month |
+| 5–6     | Tavily / Exa (pay-per-use) | unlimited         |
 
 ⚙️ **Concurrency** — 5 transactions run in parallel. Unique merchants are prioritised first so cache entries are warm before repeated merchants are processed.
 
@@ -198,6 +181,7 @@ poetry run python src/swiss_exp_tracker/pipeline.py
 ```
 
 This runs all stages in order:
+
 1. 📥 **Ingestion** — detects new files, validates rows, normalises merchants
 2. 🤖 **Agentic enrichment** — AI agent looks up merchant metadata via web search
 3. 🛒 **Grocery enrichment** — AI agent categorises individual Migros articles
@@ -221,22 +205,22 @@ Open [http://localhost:8050](http://localhost:8050) in your browser.
 
 Detailed technical documentation lives in `.dev-docs/`:
 
-| Doc | Contents |
-|---|---|
-| [`01-agentic-pipeline.md`](.dev-docs/01-agentic-pipeline.md) | Agent architecture, ChromaDB cache, web search chain, data models |
-| [`02-ingestion-pipeline.md`](.dev-docs/02-ingestion-pipeline.md) | All ingestion stages, supported sources, DB schema |
-| [`03-dashboard.md`](.dev-docs/03-dashboard.md) | Every dashboard page, KPI cards, chart specs |
-| [`04-pipeline-dash.md`](.dev-docs/04-pipeline-dash.md) | Pre-aggregation pipeline that feeds the dashboard |
+| Doc                                                             | Contents                                                          |
+| --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [`01-agentic-pipeline.md`](.dev-docs/01-agentic-pipeline.md)     | Agent architecture, ChromaDB cache, web search chain, data models |
+| [`02-ingestion-pipeline.md`](.dev-docs/02-ingestion-pipeline.md) | All ingestion stages, supported sources, DB schema                |
+| [`03-dashboard.md`](.dev-docs/03-dashboard.md)                   | Every dashboard page, KPI cards, chart specs                      |
+| [`04-pipeline-dash.md`](.dev-docs/04-pipeline-dash.md)           | Pre-aggregation pipeline that feeds the dashboard                 |
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Component | Technology |
-|---|---|
-| Pipeline & data models | Python 3.12, Pydantic v2, SQLite |
-| AI agents | OpenAI Agents SDK (`gpt-4.1-mini`) |
-| Merchant cache | ChromaDB (cosine-similarity vector store) |
-| Web search | Tavily, Brave Search, Scrape.do, Exa |
-| Dashboard | Plotly Dash, Plotly |
-| Dependency management | Poetry |
+| Component              | Technology                                |
+| ---------------------- | ----------------------------------------- |
+| Pipeline & data models | Python 3.12, Pydantic v2, SQLite          |
+| AI agents              | OpenAI Agents SDK (`gpt-4.1-mini`)      |
+| Merchant cache         | ChromaDB (cosine-similarity vector store) |
+| Web search             | Tavily, Brave Search, Scrape.do, Exa      |
+| Dashboard              | Plotly Dash, Plotly                       |
+| Dependency management  | Poetry                                    |
