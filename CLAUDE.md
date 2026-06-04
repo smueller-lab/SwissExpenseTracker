@@ -14,14 +14,14 @@ Fix all reported issues before marking the task complete.
 
 ## Docstrings
 
-Every function and method gets a single-line docstring that names what it does, its inputs, and its output. Keep it to one line. No multi-paragraph blocks, no restating the function name.
+Every function and method gets a docstring naming what it does, its inputs, and its output. Maximum 3 lines — use only as many as needed. No multi-paragraph blocks, no restating the function name.
 
 ```python
 def get_ryAxis(d_Tick: float, z: pd.Series, q_ZeroStart: bool = False) -> list[float]:
     """Return [y_min, y_max] snapped to d_Tick boundaries; starts at 0 if q_ZeroStart."""
 ```
 
-Add a second line only when there is a non-obvious constraint, workaround, or invariant a reader would not infer from the signature — not to describe what the code does line by line.
+Don't pad to 3 lines — a single line is fine when the signature is self-explanatory. Extra lines are for non-obvious constraints, workarounds, or invariants only.
 
 ## Pydantic
 
@@ -33,15 +33,23 @@ Add a second line only when there is a non-obvious constraint, workaround, or in
 - `Optional[X]` fields must default to `None`.
 - Every date and nullable numeric/string field needs an explicit `@field_validator` — no silent coercion.
 
-## Agent Delegation
+## Commands
 
-Always delegate to the appropriate sub-agent rather than handling these tasks inline. Doing the work inline bypasses the agent's rules and safety gates.
+| Command | What it does |
+|---------|-------------|
+| `/team-plan <feature>` | Creates a `plan-<feature>.md` in the project root describing builder, tester, and validator tasks with files, criteria, and constraints |
+| `/team-build <plan-file>` | Reads a plan file, builds the task graph, and orchestrates builder → tester → validator agents until the validator reports PASS |
+| `/new-page <page-name>` | Scaffolds a new dashboard page — layout, callbacks, app registration, and a stub data loader method |
+| `/new-data-source` | Guides adding a new bank or card CSV export end-to-end — from raw file format to dashboard visibility |
 
-| Task | Agent |
-|------|-------|
-| Create or modify any Plotly figure / chart | `plotting` |
-| Review or fix code quality, type errors, convention violations | `code-reviewer` |
-| Write or extend tests for any component | `testing` |
-| Add a new bank / card CSV data source end-to-end | `new-data-source` |
-| Change pipeline ingestion, agentic categorisation, or dash pipeline | `pipeline` |
-| Any SQLite schema change (CREATE TABLE, ALTER TABLE, DROP) | `db-schema` |
+## Team Workflow
+
+Use `/team-plan <feature>` to create a plan file, then `/team-build <plan-file>` to execute it. The build command orchestrates three agents in sequence:
+
+| Agent | Role | Constraint |
+|-------|------|------------|
+| `builder` | Writes production code only | Never touches test files |
+| `tester` | Writes pytest tests only | Never modifies production code |
+| `validator` | Runs ruff, black, mypy, pytest, and convention scan | Never modifies any file — reports only |
+
+Dependency order: builder(s) → tester → validator. If the validator reports failures, new builder/tester fix tasks are created and the cycle repeats until PASS.
