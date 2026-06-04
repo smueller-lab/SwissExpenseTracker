@@ -4,12 +4,15 @@
 ![Dash](https://img.shields.io/badge/Dashboard-Plotly_Dash-informational)
 ![AI](https://img.shields.io/badge/AI-OpenAI_Agents-blueviolet)
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
+![License](https://img.shields.io/badge/license-GPL--v3-blue)
 
 👤 **Author**: _Sebastian Müller – Data Scientist & AI Engineer_
 
 💡 **Status:** This project is under active development. Features may change, and some components may not be fully stable yet. Feedback is welcome!
 
-A personal finance pipeline and dashboard for Swiss banking data. Drop your bank exports in a folder, run one command, and get a fully enriched, interactive dashboard — merchant categories, city data, grocery breakdowns, and investment tracking, all powered by AI agents.
+Ever reach the end of the month, open your banking app, and just stare — quietly horrified — who stealed all my money? I'm so glad you ask and congrats for finding this page because the pain is finally over! 🎉
+
+**Swiss Expense Tracker** turns that monthly existential crisis into actual answers. Drop your bank exports in a folder 📂, run one command ⚡, and an AI agent pipeline 🤖 labels every transaction, breaks down your spending by merchant and category 🏷️, tracks your investments 📈, and serves it all up in a slick interactive dashboard ✨. You'll know exactly why you're broke 💸. Which is somehow better than not knowing 🙃
 
 > 🏦 Built for ZKB, Viseca, Revolut, Swissquote, and Migros.
 
@@ -20,6 +23,7 @@ A personal finance pipeline and dashboard for Swiss banking data. Drop your bank
 - [✨ What it does](#-what-it-does)
 - [📊 Dashboard](#-dashboard)
 - [🤖 The Agentic Pipeline](#-the-agentic-pipeline)
+  - [🌐 Smart web search](#-smart-web-search)
 - [🏷️ Transaction Categories](#-transaction-categories)
 - [🚀 Getting Started](#-getting-started)
   - [📁 Download your bank data](#-download-your-bank-data)
@@ -27,19 +31,23 @@ A personal finance pipeline and dashboard for Swiss banking data. Drop your bank
   - [📦 Install](#-install)
   - [▶️ Run the pipeline](#-run-the-pipeline)
   - [🖥️ Launch the dashboard](#-launch-the-dashboard)
+- [🔎 Validate pipeline results](#-validate-pipeline-results)
+  - [✏️ Post-processing](#️-post-processing)
+  - [🗄️ Databases & Vector stores](#️-databases--vector-stores)
 - [📚 Dev Docs](#-dev-docs)
 - [🛠️ Tech Stack](#-tech-stack)
+- [📄 Licence](#-licence)
 
 ---
 
 ## ✨ What it does
 
 - 📥 **Ingests** bank CSV/XLS exports from multiple Swiss sources with full deduplication
-- 🤖 **Enriches** every transaction using an AI agent pipeline — web search + LLM extracts merchant name, category, and city
+- 🤖 **Enriches** every transaction using an AI agent pipeline — merchant web search + LLM extracts merchant name, categories, and city
 - ⚡ **Caches** results in a local ChromaDB vector store so each merchant is only looked up once
 - 🛒 **Categorises** grocery articles at item level (from Migros receipts) using a second agent pipeline
 - 📈 **Tracks** Swissquote investment portfolio snapshots over time
-- 🎨 **Visualises** everything in a dark-themed interactive Plotly Dash dashboard
+- 🎨 **Visualises** everything in an interactive Plotly Dash dashboard
 
 ---
 
@@ -66,13 +74,23 @@ A personal finance pipeline and dashboard for Swiss banking data. Drop your bank
 
 ## 🤖 The Agentic Pipeline
 
-The heart of this project. Bank transaction texts are often cryptic or abbreviated — a web search finds the actual merchant, and an LLM structures it into clean data.
+The heart of this project. A web search finds the actual merchant description, and an LLM structures it into clean categories.
+
+1. 🔍 Detect if transaction contains TWINT keyword or starts with a phone number (+xx).
+2. ⛁ Check in ChromaDB if merchant already exists by running similarity search with web search result and defined `category_main` and `category_second`
+3. 🌐 Run Summary Agent which performs a web_search on the merchant to get information about what the merchant is doing, the products they sell and who their customers are.
+4. 🏷️ Run Metadata Agent which takes the result of the web_search and categorises the merchant based on predefined categories in `category_main` and `category_second`.
+5. 💾 Save results in ChromaDB and write transaction with defined categories into `transactions_use`.
 
 ![Agentic Pipeline](assets/agentic_pipeline.png)
 
 ### 🌐 Smart web search
 
 Free tiers are exhausted before falling back to pay-per-use. API credit consumption is tracked monthly per provider.
+
+For every Provider an API key must be stored in the `.env` file.
+
+Depending on the Provider make sure to set usage limits to not fall into the pay-per-use mode if you don't want to spend any money on the web searches.
 
 | Priority | Provider                   | Free quota        |
 | -------- | -------------------------- | ----------------- |
@@ -96,6 +114,11 @@ Two-level hierarchy assigned by the metadata agent:
 `Sport` · `Entertainment` · `Telecommunication` · `Restaurant` · `Healthcare` · `Government` · `Retail` · `Groceries` · `Salary` · `Housing` · `Car` · `Transport` · `Travel` · `Insurance` · `Education` · `Payment Services` · `Investing` · `Postal Services` · `Friend`
 
 Sub-categories refine each main category (e.g. Sport → Tennis / Padel / Fitness / Cycling; Restaurant → Dining / Fast Food / Cafe / Bar).
+
+The category combination is based on personal preference and can be freely adjusted. To add or change categories:
+
+1. Edit the `CategoryMain` and `CategorySecond` enums in `pipeline_agentic/data_models/merchant.py`.
+2. Update the category descriptions and sub-category lists in the prompt inside `pipeline_agentic/agents_/agent_metadata.py` to reflect the change — the agent relies on these descriptions to categorise correctly.
 
 ---
 
@@ -125,19 +148,31 @@ Place the file in `lnd/viseca/`.
 
 #### 🔄 Revolut
 
-_How to export: coming soon._
+1. Log in to Revolut.
+2. At **Home** select one Currency at the top left corner.
+3. Click **Statement** →**Excel**
+4. Select time range and click **Generate**
+5. Do this for all your Currencies from which you want to import the data.
 
 Place the file in `lnd/revolut/`.
 
+> If a currency in your statement is not yet listed under `Currency` in `pipeline_ingestion/data_models/transactions.py`, you need to add it first.
+
 #### 📈 Swissquote (investment positions)
 
-_How to export: coming soon._
+1. Log into Swissquote.
+2. Click on your Trading account.
+3. Under **Portfolio** →**Positions** click the **Export** button the the top right corner.
+4. Positions data is directly downloaded as `.xls`
 
 Place the file in `lnd/swissquote/`.
 
 #### 🛒 Migros (grocery receipts via M Cumulus)
 
-_How to export: coming soon._
+1. Log in to your Migros account.
+2. In the top right corner click on your initials and then **Kassenbons**
+3. Under account.migros.ch go to **Einkäufe** and then click **Herunterladen**
+4. Select time frame and then click **Tabelle herunterladen**
 
 Place the file in `lnd/migros_grocery/`.
 
@@ -148,6 +183,9 @@ Place the file in `lnd/migros_grocery/`.
 Create a `.env` file in the project root:
 
 ```env
+# Path to the folder that contains your lnd/ directory (bank export landing zone)
+DATA_DIR=/path/to/your/data
+
 OPENAI_API_KEY=sk-...
 
 # Web search providers (at least one required)
@@ -155,6 +193,18 @@ TAVILY_API_KEY=...
 BRAVE_API_KEY=...
 SCRAPE_DO_API_KEY=...
 EXA_API_KEY=...
+```
+
+`DATA_DIR` must point to the parent folder of `lnd/`. Create the subdirectories for each source you use and place your bank exports there:
+
+```
+$DATA_DIR/
+└── lnd/
+    ├── zkb/
+    ├── viseca/
+    ├── revolut/
+    ├── swissquote/
+    └── migros_grocery/
 ```
 
 You only need keys for the providers you want to use — the pipeline tries them in order and skips any that are unconfigured. **Tavily** has a generous free tier and is the recommended starting point.
@@ -185,7 +235,10 @@ This runs all stages in order:
 1. 📥 **Ingestion** — detects new files, validates rows, normalises merchants
 2. 🤖 **Agentic enrichment** — AI agent looks up merchant metadata via web search
 3. 🛒 **Grocery enrichment** — AI agent categorises individual Migros articles
-4. 🔗 **Final join** — produces the dashboard-ready `transactions_use` table
+4. 🧹 **Post-processing** — applies manual correction rules on top of the agent output, before anything is written to `transactions_use`. This is where hard-to-detect transactions are handled: salary payments, rent transfers, and any merchant the agent consistently miscategorises. Two files control this step:
+   - `pipeline_agentic/clean_pipeline_output.py` — exact-match and substring-based category overrides for merchant transactions
+   - `pipeline_agentic/transactions_use.py` — amount-based corrections and shared-cost adjustments (e.g. splitting a shared rent payment)
+5. 🔗 **Final join** — produces the dashboard-ready `transactions_use` table
 
 ♻️ Re-running is safe — already-processed files and transactions are skipped.
 
@@ -198,6 +251,54 @@ poetry run python src/swiss_exp_tracker/app/app.py
 ```
 
 Open [http://localhost:8050](http://localhost:8050) in your browser.
+
+---
+
+## 🧐 Validate pipeline results
+
+### ✏️ Post-processing
+
+After the pipeline runs, **you need to review and edit two files** before the dashboard data is accurate. The agent does a great job on ordinary merchants, but some transactions require hard-coded rules that only you can define:
+
+| Situation                                                           | What to do                                                               |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Salary deposits, rent transfers, or other predictable fixed amounts | Add a rule in `pipeline_agentic/transactions_use.py`                   |
+| A merchant the agent consistently puts in the wrong category        | Add an override in `pipeline_agentic/clean_pipeline_output.py`         |
+| A shared expense (e.g. splitting rent with a flatmate)              | Add a shared-cost adjustment in `pipeline_agentic/transactions_use.py` |
+
+**`pipeline_agentic/clean_pipeline_output.py`** — exact-match and substring-based category overrides applied to merchant names before they reach `transactions_use`.
+
+**`pipeline_agentic/transactions_use.py`** — amount-based corrections and shared-cost splits. This is also where salary and rent are classified, since those cannot be detected from the merchant name alone.
+
+> After editing these files, re-run the pipeline — it will skip already-processed raw transactions and only redo the post-processing step.
+
+---
+
+### ⛁ Databases and Vector stores
+
+Before launching the dashboard, it is worth inspecting the pipeline output directly. Use a VS Code extension such as **SQLite** or **SQLite Viewer** to browse the database files.
+
+To rerun certain transactions the `enrichment_status` of that transaction must be changed back to `enriched`. The entry in the vector store must also be deleted.
+
+Two directories are created after the first pipeline run:
+
+#### Databases
+
+`database/` contains the two SQLite databases:
+
+| File                | Interesting tables                                                                                                                             |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `transactions.db` | `transactions_rfn` — normalised raw transactions after ingestion; `transactions_use` — final dashboard-ready table after post-processing |
+| `positions.db`    | Swissquote investment position snapshots                                                                                                       |
+
+#### ChromaDB vector stores
+
+Two ChromaDB stores persist the agentic pipeline results so each merchant is only looked up once:
+
+- **`merchant_vector_store/`** — one entry per unique merchant, including the raw web search result and the assigned categories
+- **`grocery_vector_store/`** — one entry per grocery article
+
+The table to inspect inside each ChromaDB SQLite file is **`embeddings_queue`**. It contains both the categories assigned by the metadata agent and the web search text used to derive them — making it the right place to validate that a merchant was categorised correctly and that the web search returned useful content.
 
 ---
 
@@ -224,3 +325,9 @@ Detailed technical documentation lives in `.dev-docs/`:
 | Web search             | Tavily, Brave Search, Scrape.do, Exa      |
 | Dashboard              | Plotly Dash, Plotly                       |
 | Dependency management  | Poetry                                    |
+
+---
+
+## 📄 Licence
+
+This project is licensed under the **GNU General Public License v3.0**. See [LICENCE](LICENCE) for the full text.
