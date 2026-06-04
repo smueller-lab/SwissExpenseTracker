@@ -112,6 +112,7 @@ class CategorySecond(StrEnum):
     SPORT_FITNESS = "Fitness"
     SPORT_RUNNING = "Running"
     SPORT_SWIMMING = "Swimming"
+    SPORT_SKIING = "Skiing"
 
     # ENTERTAINMENT
     # Use for leisure/consumption entertainment (streaming, events, cinema, theatre, spectator sports).
@@ -123,12 +124,16 @@ class CategorySecond(StrEnum):
     ENTERTAINMENT_TV = "TV & Streaming"
     ENTERTAINMENT_DATING = "Dating"
     ENTERTAINMENT_AMUSEMENT_PARK = "Amusement Park"
+    ENTERTAINMENT_GAME_HALL = "Game Hall"
+    ENTERTAINMENT_GAMBLING = "Gambling"
 
     # TELECOMMUNICATION
     # Use for telecom contracts and providers (mobile/internet/tv subscriptions).
     TELECOM_MOBILE = "Mobile"
     TELECOM_INTERNET = "Internet"
     TELECOM_TV = "TV Subscription"
+    TELECOM_ONLINE = "Online Services"
+    TELECOM_CLOUD = "Cloud Storage"
 
     # RESTAURANT
     # Use for food & drink consumption (eat-in, takeaway, cafe, bar, delivery).
@@ -174,6 +179,9 @@ class CategorySecond(StrEnum):
     RETAIL_DRUG_STORE = "Drug Store"
     RETAIL_PHOTOGRAPHY = "Photography"
     RETAIL_BOOK_STORE = "Book Store"
+    RETAIL_BIKE = "Bike"
+    RETAIL_SECOND_HAND = "Second-Hand"
+    RETAIL_ART = "Art Supplies"
 
     # GROCERIES
     # Use for food shopping and drink retailers.
@@ -182,6 +190,7 @@ class CategorySecond(StrEnum):
     GROCERIES_BAKERY = "Bakery"
     GROCERIES_DRINKS = "Drinks"
     GROCERIES_VENDING = "Vending Machine"
+    GROCERIES_CONVENIENCE = "Convenience Store"
 
     # SALARY
     # Use only for employer salary inflows.
@@ -195,6 +204,7 @@ class CategorySecond(StrEnum):
     HOUSING_DEPOSIT = "Deposit"
     HOUSING_UTILITIES = "Utilities"
     HOUSING_MAINTENANCE = "Maintenance"
+    HOUSING_REAL_ESTATE = "Real Estate Services"
 
     # CAR
     # Use for vehicle operation and ownership costs (fuel, parking, service, wash, car taxes).
@@ -218,6 +228,9 @@ class CategorySecond(StrEnum):
     TRANSPORT_BIKE = "Bike Rental"
     TRANSPORT_FERRY = "Ferry"
     TRANSPORT_CABLE_CAR = "Cable Car"
+    TRANSPORT_TOLL = "Toll"
+    TRANSPORT_CAR_SHARE = "Car Sharing"
+    TRANSPORT_AIRPORT = "Airport Services"
 
     # TRAVEL
     # Use for trip planning and travel bookings (flight, accommodation, car rental, ticket platforms).
@@ -240,6 +253,7 @@ class CategorySecond(StrEnum):
     # Use for courses, learning platforms and educational materials.
     EDUCATION_ONLINE = "Online Courses"
     EDUCATION_BOOKS = "Books"
+    EDUCATION_VOCATIONAL = "Vocational Training"
 
     # PAYMENT SERVICES
     # Use for payment network/service fees, FX fees and transfer fees.
@@ -247,6 +261,8 @@ class CategorySecond(StrEnum):
     PAYMENT_CURRENCY = "Currency Exchange"
     PAYMENT_TRANSFER = "Transfer Fees"
     PAYMENT_MONEY_TRANSFER = "Money Transfer"
+    PAYMENT_WITHDRAWAL = "Cash Withdrawal"
+    PAYMENT_SUBSCRIPTION = "Subscription Fees"
 
     # INVESTING
     # Use for brokerage/investment platform related transactions.
