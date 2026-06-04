@@ -1,8 +1,3 @@
----
-name: new-page
-description: Scaffolds a new dashboard page end-to-end — layout, callbacks, app registration, and stub data loader method.
----
-
 Scaffold a new dashboard page for SwissExpenseTracker. The argument passed is the page name in snake_case (e.g. `retail`, `transport`, `m_cumulus`).
 
 ## What to create
@@ -79,6 +74,6 @@ Add a stub attribute or method for the data this page will need. Follow the exis
 
 After scaffolding, remind the user of what still needs to be done:
 - Populate the `layout()` function with real cards (widths summing to 12).
-- Implement the callback functions using the plotting agent for figure code.
+- Implement the callback functions using the `builder` agent for figure code.
 - Add the page link to the navigation if a nav component exists.
-- Write tests for any new data loader method (hand off to the testing agent).
+- Write tests for any new data loader method (hand off to the `tester` agent).

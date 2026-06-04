@@ -1,9 +1,4 @@
----
-name: new-data-source
-description: Guides the full onboarding of a new bank or card CSV export — from understanding the file format to seeing data in the dashboard. Use when a user wants to add a new financial data provider.
----
-
-You are the new-data-source agent for SwissExpenseTracker. Your job is to guide a new contributor through every step required to add a new transaction source, in order, without missing a touch point.
+Guide the user through adding a new bank or card CSV export as a transaction source — from raw file to dashboard.
 
 ## Before writing any code
 
@@ -19,7 +14,7 @@ Do not proceed until these are answered.
 
 File: `pipeline_ingestion/data_models/source_type.py`
 
-Add a new `SourceType` enum value. The value string must be `SCREAMING_SNAKE_CASE`, e.g.:
+Add a new `SourceType` enum value in `SCREAMING_SNAKE_CASE`:
 ```python
 NEON = "NEON"
 ```
@@ -29,11 +24,11 @@ NEON = "NEON"
 File: `pipeline_ingestion/data_models/transaction.py`
 
 Add `XxxTransaction(BaseModel)` whose fields match the CSV column headers exactly. Use `alias=` for headers with spaces or special characters. Add `@field_validator` for:
-- All date/datetime columns — handle the exact format(s) confirmed in the pre-step.
+- All date/datetime columns — handle the exact format(s) confirmed above.
 - All nullable numeric fields — return `None` for empty string / `None` input.
 - All nullable string fields — return `None` for empty string.
 
-Do not add business logic here — parse the raw row faithfully and nothing else.
+Parse the raw row faithfully — no business logic here.
 
 ## Step 3 — Create the adapter
 
@@ -48,11 +43,11 @@ class XxxAdapter(BaseAdapter[XxxTransaction]):
         ...
 ```
 
-Key decisions for `to_unified()`:
+Key rules for `to_unified()`:
 - `amount = abs(original_value)` — always positive.
-- `transaction_type`: derive from sign convention confirmed before coding.
+- `transaction_type`: derive from the sign convention confirmed before coding.
 - `booking_text`: map to the most descriptive field (merchant name, description, etc.).
-- `zkb_reference`: use a unique ID from the source if one exists; otherwise `f"NOID-{uuid.uuid4()}"`.
+- `zkb_reference`: use a stable unique ID from the source if one exists; otherwise `f"NOID-{uuid.uuid4()}"`.
 - `currency`: map to the `Currency` enum; add a new enum value if the currency is not yet listed.
 
 ## Step 4 — Register in the source maps
@@ -82,7 +77,7 @@ The generic `process_refined_source` handles most sources automatically. Add a s
 - Multi-row date inheritance (e.g. ZKB debit eBanking parent/detail rows)
 - A non-standard CHF conversion path
 
-If no special logic is needed, state this explicitly in the response.
+If no special logic is needed, state this explicitly.
 
 ## Step 7 — Check if postprocess needs cross-source dedup
 
@@ -92,7 +87,7 @@ Add logic only if the new source creates transactions that duplicate entries fro
 
 ## Step 8 — Write tests
 
-Hand off to the `testing` agent (or write inline) for:
+Hand off to the `tester` agent for:
 - Data model unit tests covering each datetime format variant and nullable fields.
 - `@pytest.mark.parametrize` test against the sample CSV in `tests/test_data/`.
 - `to_unified()` roundtrip test.
@@ -108,31 +103,31 @@ python -m swiss_exp_tracker.pipeline_ingestion.pipeline
 
 Check that `ingested_files`, `transactions_lnd`, `transactions_raw`, and `transactions_rfn` show the expected row counts. Verify `enrichment_status = "pending"` rows exist in `transactions_rfn`.
 
-## Step 9b — Run the agentic pipeline on the new transactions
+## Step 9b — Run the agentic pipeline
 
-The agentic pipeline must run before any dashboard work. It enriches `transactions_rfn` rows with category labels — without this step the dashboard pipeline will produce empty or incomplete category data for the new source.
+The agentic pipeline must run before any dashboard work — it enriches `transactions_rfn` rows with category labels.
 
 ```
 python -m swiss_exp_tracker.pipeline_agentic.pipeline
 ```
 
-Verify that `enrichment_status` has changed from `"pending"` to `"done"` for the new rows in `transactions_rfn`. If any rows remain `"pending"` or show `"failed"`, investigate before proceeding — failed enrichment means those transactions will be invisible or miscategorised in the dashboard.
+Verify `enrichment_status` changed from `"pending"` to `"done"` for the new rows. If any rows remain `"pending"` or show `"failed"`, investigate before proceeding.
 
 ## Step 9c — Run the dashboard pipeline
 
-After enrichment, rebuild the `dash_*` tables so the dashboard picks up the new transactions:
+Rebuild the `dash_*` tables so the dashboard picks up the new transactions:
 
 ```
 python -m swiss_exp_tracker.pipeline_dash.pipeline
 ```
 
-Verify that the affected `dash_*` tables (e.g. `dash_balance`, `dash_cat_main`, `dash_top_expenses`) have increased row counts or updated values reflecting the new source. The dashboard reads exclusively from these tables — skipping this step means the new data will not appear in the app even if the ingestion and enrichment ran correctly.
+Verify that the affected `dash_*` tables (e.g. `dash_balance`, `dash_cat_main`, `dash_top_expenses`) reflect the new source. The dashboard reads exclusively from these tables — skipping this step means the new data will not appear in the app.
 
 ## Step 10 — Dashboard integration
 
 - If the source introduces new merchant names or categories needing specific colors, add them to `VIS.vk_*_col` in `app/config.py`.
 - The home page loader reads all sources from `transactions_rfn` without source filtering — no change needed unless the source must be excluded.
-- If a dedicated dashboard page is warranted, follow the `new-page` command after this agent finishes.
+- If a dedicated dashboard page is warranted, run `/new-page` after this command finishes.
 
 ## After all steps
 
