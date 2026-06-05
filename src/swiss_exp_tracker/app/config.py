@@ -14,7 +14,7 @@ class config:
     # dTick
     vk_dTick_Grocery = {"Monthly": 100, "Yearly": 1000, "Visit": 20}
     vk_dTick_GroceryCat = {"Monthly": 20, "Yearly": 100}
-    vk_dTick_Food = {"Monthly": 200, "Yearly": 1000, "Visit": 20}
+    vk_dTick_Food = {"Monthly": 100, "Yearly": 1000, "Visit": 20}
     dTick_Balance: int = 5000
     dTick_Pct: int = 20
     dTick_Vacation: int = 1000
@@ -33,6 +33,9 @@ class config:
 
     # default ry_Axis
     ry_Axis_Pct = [0, 100]
+
+    # max figure height for box plots — prevents outliers from stretching the plot
+    max_height_BoxPlot: int = 700
 
 
 @dataclass
@@ -80,6 +83,8 @@ class VIS:
         "Fast Food": "#C0392B",
         "Food Delivery": "#FF8C42",
         "Drinks": "#3498DB",
+        "Ice Cream": "#F8BBD0",
+        "Catering": "#A29BFE",
     }
 
     vk_Retail_col = {
@@ -170,13 +175,14 @@ class VIS:
     ]
     s_Category_Food = [
         "Dining",
-        "Groceries",
         "Cafe",
         "Bakery",
         "Bar",
         "Fast Food",
         "Food Delivery",
         "Drinks",
+        "Ice Cream",
+        "Catering",
     ]
     s_Col_Text = [
         "Date",

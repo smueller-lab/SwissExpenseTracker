@@ -6,8 +6,8 @@ import pandas as pd
 
 
 def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
-    pdf = df[df["transaction_type"] == "EXPENSE"].copy()
-    pdf["Year"] = pdf["date"].dt.year
+    pdf = df[(df["transaction_type"] == "EXPENSE") & df["date"].notna()].copy()
+    pdf["Year"] = pdf["date"].dt.year.astype(int).astype(str)
 
     by_year = pdf.groupby(["category_main", "Year"], as_index=False)["amount"].sum()
     all_years = pdf.groupby("category_main", as_index=False)["amount"].sum()

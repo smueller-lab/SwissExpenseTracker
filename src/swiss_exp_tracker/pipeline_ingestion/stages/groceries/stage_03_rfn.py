@@ -8,6 +8,8 @@ from typing import NamedTuple
 
 from tqdm import tqdm
 
+from swiss_exp_tracker.db.sql import groceries
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_ingestion.data_models.grocery import GroceryItem
 from swiss_exp_tracker.pipeline_ingestion.data_models.grocery import normalize_article
 from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceType
@@ -81,43 +83,16 @@ def net_receipt_rows(items: list[_ReceiptItem]) -> list[_NettedItem]:
     return result
 
 
-def _is_duplicate(
-    db_conn: object,
-    date: str,
-    time: str,
-    location: str,
-    article: str,
-    quantity: float,
-) -> bool:
-    import sqlite3
-
-    conn: sqlite3.Connection = db_conn  # type: ignore[assignment]
-    row = conn.execute(
-        """
-        SELECT 1 FROM groceries_rfn
-        WHERE date = ? AND time = ? AND location = ? AND article = ? AND quantity = ?
-        LIMIT 1
-        """,
-        (date, time, location, article, quantity),
-    ).fetchone()
-    return row is not None
-
-
 def run_groceries_rfn() -> dict[str, int]:
+    """Promote unprocessed groceries_raw rows to groceries_rfn with netting and deduplication."""
     create_grocery_tables()
 
     with get_connection() as db:
-        rows = db.execute(
-            """
-            SELECT gr.id, gr.landing_id, gl.file_id, gr.raw_json, gr.source_file
-            FROM groceries_raw gr
-            JOIN groceries_lnd gl ON gl.id = gr.landing_id
-            WHERE gr.processed = 0
-              AND gr.source_type = ?
-            ORDER BY gr.id
-            """,
-            (_SOURCE_TYPE.value,),
-        ).fetchall()
+        rows = list(
+            groceries.get_unprocessed_groceries_raw_rows(
+                db, source_type=_SOURCE_TYPE.value
+            )
+        )
 
     if not rows:
         return {
@@ -167,14 +142,17 @@ def run_groceries_rfn() -> dict[str, int]:
             netted = net_receipt_rows(receipt)
 
             for netted_item in netted:
-                if _is_duplicate(
-                    db,
-                    date_iso,
-                    time_iso,
-                    location,
-                    netted_item.article,
-                    netted_item.quantity,
-                ):
+                is_duplicate = bool(
+                    groceries.check_duplicate_groceries_rfn(
+                        db,
+                        date=date_iso,
+                        time=time_iso,
+                        location=location,
+                        article=netted_item.article,
+                        quantity=netted_item.quantity,
+                    )
+                )
+                if is_duplicate:
                     duplicates_skipped += 1
                     continue
 
@@ -183,29 +161,20 @@ def run_groceries_rfn() -> dict[str, int]:
                     netted_item.raw_ids[0] if len(netted_item.raw_ids) == 1 else None
                 )
 
-                db.execute(
-                    """
-                    INSERT INTO groceries_rfn (
-                        raw_id, source_type, date, time, location,
-                        article, article_normalized, unit,
-                        quantity, price_chf, discount_chf,
-                        enrichment_status, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
-                    """,
-                    (
-                        raw_id_val,
-                        _SOURCE_TYPE.value,
-                        date_iso,
-                        time_iso,
-                        location,
-                        netted_item.article,
-                        netted_item.article_normalized,
-                        netted_item.unit,
-                        netted_item.quantity,
-                        netted_item.price,
-                        netted_item.discount,
-                        datetime.now().isoformat(),
-                    ),
+                groceries.insert_groceries_rfn(
+                    db,
+                    raw_id=raw_id_val,
+                    source_type=_SOURCE_TYPE.value,
+                    date=date_iso,
+                    time=time_iso,
+                    location=location,
+                    article=netted_item.article,
+                    article_normalized=netted_item.article_normalized,
+                    unit=netted_item.unit,
+                    quantity=netted_item.quantity,
+                    price_chf=netted_item.price,
+                    discount_chf=netted_item.discount,
+                    created_at=datetime.now().isoformat(),
                 )
                 records_inserted += 1
 
@@ -213,36 +182,19 @@ def run_groceries_rfn() -> dict[str, int]:
         # Collect file_ids here to avoid a large IN-clause query later
         # (SQLite caps host parameters at 999).
         for raw_id in raw_ids_all:
-            db.execute(
-                "UPDATE groceries_raw SET processed = 1 WHERE id = ?",
-                (raw_id,),
-            )
-            file_id_row = db.execute(
-                """
-                SELECT gl.file_id
-                FROM groceries_raw gr
-                JOIN groceries_lnd gl ON gl.id = gr.landing_id
-                WHERE gr.id = ?
-                """,
-                (raw_id,),
-            ).fetchone()
-            if file_id_row:
-                processed_file_ids.add(int(file_id_row[0]))
+            groceries.mark_groceries_raw_processed(db, raw_id=raw_id)
+            file_id_val = groceries.get_file_id_for_groceries_raw_row(db, raw_id=raw_id)
+            if file_id_val is not None:
+                processed_file_ids.add(int(file_id_val))
 
         # Advance file status when all raw rows for a file are done.
         for file_id in processed_file_ids:
-            unprocessed = db.execute(
-                """
-                SELECT COUNT(*) FROM groceries_raw gr
-                JOIN groceries_lnd gl ON gl.id = gr.landing_id
-                WHERE gl.file_id = ? AND gr.processed = 0
-                """,
-                (file_id,),
-            ).fetchone()
-            if unprocessed and int(unprocessed[0]) == 0:
-                db.execute(
-                    "UPDATE ingested_files SET status = 'refined' WHERE id = ?",
-                    (file_id,),
+            count = groceries.count_unprocessed_groceries_raw_for_file_full(
+                db, file_id=file_id
+            )
+            if not count:
+                transactions.set_ingested_file_status(
+                    db, status="refined", file_id=file_id
                 )
 
     return {

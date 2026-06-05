@@ -8,6 +8,7 @@ import pandas as pd
 
 from swiss_exp_tracker.app.config import DB_PATH
 from swiss_exp_tracker.app.config import VIS
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANT_NORMALIZE
 from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANTS_TRACKED
 
@@ -42,7 +43,7 @@ class DataLoader:
     def _load_all_data(self) -> None:
         with sqlite3.connect(str(self._db_path)) as con:
             # Raw transactions for ad-hoc queries (get_TopExpenses_Category_Month)
-            self.pdf_Master = pd.read_sql("SELECT * FROM transactions_use", con)
+            self.pdf_Master = pd.read_sql(transactions.get_transactions_use.sql, con)
             self.pdf_Master["date"] = pd.to_datetime(self.pdf_Master["date"])
             self.pdf_Master = self.pdf_Master.rename(
                 columns={"merchant": "Merchant", "amount": "amount_CHF"}
@@ -59,34 +60,38 @@ class DataLoader:
             ].reset_index(drop=True)
 
             # Balance
-            self.pdf_Balance = pd.read_sql("SELECT * FROM dash_balance", con)
+            self.pdf_Balance = pd.read_sql(transactions.get_dash_balance.sql, con)
             self.pdf_Balance = self.pdf_Balance.rename(
                 columns={"date": "Date", "balance_chf": "Balance_CHF"}
             )
             self.pdf_Balance["Date"] = pd.to_datetime(self.pdf_Balance["Date"])
 
             # Groceries
-            self.pdf_Grocery = pd.read_sql("SELECT * FROM dash_groceries", con)
+            self.pdf_Grocery = pd.read_sql(transactions.get_dash_groceries.sql, con)
             self.pdf_Grocery = self.pdf_Grocery.rename(columns={"merchant": "Merchant"})
 
             # Food
-            self.pdf_Food = pd.read_sql("SELECT * FROM dash_food", con)
+            self.pdf_Food = pd.read_sql(transactions.get_dash_food.sql, con)
 
             # Category main (donut)
-            self.pdf_CatMain = pd.read_sql("SELECT * FROM dash_cat_main", con)
+            self.pdf_CatMain = pd.read_sql(transactions.get_dash_cat_main.sql, con)
             self.pdf_CatMain = self.pdf_CatMain.rename(columns={"amount": "amount_CHF"})
 
             # Stats KPIs — stored as single-row table, loaded as Series
-            self.z_StatsTable = pd.read_sql("SELECT * FROM dash_stats", con).iloc[0]
+            self.z_StatsTable = pd.read_sql(transactions.get_dash_stats.sql, con).iloc[
+                0
+            ]
 
             # Top category comparison
-            self.pdf_TopCat = pd.read_sql("SELECT * FROM dash_top_category", con)
+            self.pdf_TopCat = pd.read_sql(transactions.get_dash_top_category.sql, con)
             self.pdf_TopCat["MonthLast"] = self.pdf_TopCat["MonthLast"].map(
                 lambda s: pd.Period(str(s), "M")
             )
 
             # Top 20 expenses
-            self.pdf_TopExpenses = pd.read_sql("SELECT * FROM dash_top_expenses", con)
+            self.pdf_TopExpenses = pd.read_sql(
+                transactions.get_dash_top_expenses.sql, con
+            )
             self.pdf_TopExpenses = self.pdf_TopExpenses.rename(
                 columns={"date": "Date", "amount": "amount_CHF", "merchant": "Merchant"}
             )
@@ -94,7 +99,7 @@ class DataLoader:
 
             # Net balance per month
             self.pdf_NetBalanceMonth = pd.read_sql(
-                "SELECT Month, expense, income, NetBalance FROM dash_net_balance_month",
+                transactions.get_dash_net_balance_month.sql,
                 con,
             )
             self.pdf_NetBalanceMonth = self.apply_Variable_show(
@@ -105,43 +110,47 @@ class DataLoader:
             )
 
             # Vacation
-            self.pdf_Vacation = pd.read_sql("SELECT * FROM dash_vacation", con)
+            self.pdf_Vacation = pd.read_sql(transactions.get_dash_vacation.sql, con)
 
             # Transport
-            self.pdf_Transport = pd.read_sql("SELECT * FROM dash_transport", con)
+            self.pdf_Transport = pd.read_sql(transactions.get_dash_transport.sql, con)
             self.pdf_Transport = self.pdf_Transport.rename(
                 columns={"amount": "amount_CHF"}
             )
 
             self.pdf_TransportHeatmap = pd.read_sql(
-                "SELECT * FROM dash_transport_heatmap", con
+                transactions.get_dash_transport_heatmap.sql, con
             )
             self.pdf_TransportHeatmap = self.pdf_TransportHeatmap.rename(
                 columns={"amount": "amount_CHF"}
             )
 
             # Sport
-            self.pdf_Sport = pd.read_sql("SELECT * FROM dash_sport", con)
+            self.pdf_Sport = pd.read_sql(transactions.get_dash_sport.sql, con)
 
             # Car
-            self.pdf_Car = pd.read_sql("SELECT * FROM dash_car", con)
+            self.pdf_Car = pd.read_sql(transactions.get_dash_car.sql, con)
 
             # Retail
-            self.pdf_Retail = pd.read_sql("SELECT * FROM dash_retail", con)
-            self.pdf_RetailDonut = pd.read_sql("SELECT * FROM dash_retail_donut", con)
-            self.pdf_RetailTop = pd.read_sql("SELECT * FROM dash_retail_top", con)
+            self.pdf_Retail = pd.read_sql(transactions.get_dash_retail.sql, con)
+            self.pdf_RetailDonut = pd.read_sql(
+                transactions.get_dash_retail_donut.sql, con
+            )
+            self.pdf_RetailTop = pd.read_sql(transactions.get_dash_retail_top.sql, con)
 
             # Grocery detail (item-level receipt data)
-            self.pdf_GroceryItems = pd.read_sql("SELECT * FROM groceries_use", con)
+            self.pdf_GroceryItems = pd.read_sql(transactions.get_groceries_use.sql, con)
             self.pdf_GroceryItems["date"] = pd.to_datetime(
                 self.pdf_GroceryItems["date"]
             )
-            self.pdf_GroceryCat = pd.read_sql("SELECT * FROM dash_groceries_cat", con)
+            self.pdf_GroceryCat = pd.read_sql(
+                transactions.get_dash_groceries_cat.sql, con
+            )
             self.pdf_GroceryHealth = pd.read_sql(
-                "SELECT * FROM dash_groceries_health", con
+                transactions.get_dash_groceries_health.sql, con
             )
             self.pdf_GroceryTopArticles = pd.read_sql(
-                "SELECT * FROM dash_groceries_top_articles", con
+                transactions.get_dash_groceries_top_articles.sql, con
             )
 
             if not self.pdf_GroceryItems.empty:
@@ -186,7 +195,5 @@ class DataLoader:
 
         pdf = pdf.sort_values(by="amount_CHF", ascending=False).head(7)
 
-        pdf = pdf.rename(columns={"city": "MerchantPlace"})
-
-        s_col = ["Date", "amount_CHF", "Merchant", "category_second", "MerchantPlace"]
+        s_col = ["Date", "amount_CHF", "Merchant", "category_second"]
         return self.apply_Variable_show(pdf[s_col].copy())

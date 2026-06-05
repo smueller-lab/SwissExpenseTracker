@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import json
 import re
-import sqlite3
 
 from collections import defaultdict
 from datetime import datetime
 from typing import cast
 
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import MERCHANT_BRANDS
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import (
     MERCHANT_COMPOUND_BRANDS,
@@ -89,6 +89,7 @@ def _booking_text_split(text: str) -> str:
 
 
 def _extract_merchant_normalized(booking_text: str | None) -> tuple[str | None, bool]:
+    """Extract and normalize merchant name from booking text; return (name, is_person)."""
     if not booking_text:
         return None, False
 
@@ -100,21 +101,16 @@ def _extract_merchant_normalized(booking_text: str | None) -> tuple[str | None, 
 
 
 def _as_iso_datetime(value: datetime | None) -> str | None:
+    """Return ISO string for a datetime, or None if value is None."""
     return value.isoformat() if value is not None else None
 
 
 def _load_unprocessed_raw_rows(source_type: SourceType) -> list[RawRow]:
-    query = """
-		SELECT tr.id, tr.landing_id, tl.file_id, tr.source_type, tr.raw_json, tr.source_file
-		FROM transactions_raw tr
-		JOIN transactions_lnd tl ON tl.id = tr.landing_id
-		WHERE tr.processed = 0
-		  AND tr.source_type = ?
-		ORDER BY tr.id
-	"""
-
+    """Return all unprocessed raw rows for source_type, ordered by id."""
     with get_connection() as db:
-        rows = db.execute(query, (source_type.value,)).fetchall()
+        rows = list(
+            transactions.get_unprocessed_raw_rows(db, source_type=source_type.value)
+        )
 
     return [
         RawRow(
@@ -234,43 +230,10 @@ def _resolve_revolut_chf_amounts(
     return result
 
 
-def _is_duplicate(
-    db: sqlite3.Connection,
-    reference: str,
-    date_iso: str | None,
-    amount: float,
-) -> bool:
-    """Find duplicates in transactions_rfn based on reference, date, and amount."""
-    params: tuple[str, float] | tuple[str, str, float]
-    if date_iso is None:
-        query = """
-			SELECT 1
-			FROM transactions_rfn
-			WHERE reference = ?
-			  AND date IS NULL
-			  AND amount = ?
-			LIMIT 1
-		"""
-        params = (reference.strip(), amount)
-    else:
-        query = """
-			SELECT 1
-			FROM transactions_rfn
-			WHERE reference = ?
-			  AND date = ?
-			  AND amount = ?
-			LIMIT 1
-		"""
-        params = (reference.strip(), date_iso, amount)
-
-    row: tuple[object, ...] | None = db.execute(query, params).fetchone()
-
-    return row is not None
-
-
 def _get_revolut_chf_map(
     rows: list[RawRow], source_type: SourceType = SourceType.REVOLUT
 ) -> dict[int, float | None]:
+    """Build a raw_id → signed CHF amount map for all Revolut rows."""
     revolut_chf_map: dict[int, float | None] = {}
     model_class = SOURCE_MODEL_MAP[source_type]
     pre_parsed: list[tuple[RawRow, RevolutTransaction]] = cast(
@@ -294,7 +257,10 @@ def _clean_debit_ebanking(
     """
     booking_text = zkb_model.BookingText.strip()
 
-    if re.fullmatch(r"Debit eBanking(?: Mobile)? \(\d+\)", booking_text):
+    if re.fullmatch(
+        r"Debit (?:eBanking(?: Mobile)?|Mobile Banking|Standing order) \(\d+\)",
+        booking_text,
+    ):
         context.parent_date = zkb_model.Date or zkb_model.ValueDate
         context.parent_reference = (
             zkb_model.ZKBReference or zkb_model.ReferenceNumber or None
@@ -364,10 +330,7 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
         def mark_processed(raw_id: int, file_id: int) -> None:
             """Mark a raw row as processed and update local bookkeeping counters."""
             nonlocal rows_processed
-            db.execute(
-                "UPDATE transactions_raw SET processed = 1 WHERE id = ?",
-                (raw_id,),
-            )
+            transactions.mark_raw_processed(db, raw_id=raw_id)
             processed_file_ids.add(file_id)
             rows_processed += 1
 
@@ -443,11 +406,10 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
             amount = round(amount, 2)
             date_iso = _as_iso_datetime(unified.date)
             reference = unified.reference_id
-            is_duplicate = _is_duplicate(
-                db,
-                reference,
-                date_iso,
-                amount,
+            is_duplicate = bool(
+                transactions.check_duplicate_rfn(
+                    db, reference=reference.strip(), date=date_iso, amount=amount
+                )
             )
             if is_duplicate:
                 # Duplicate raw rows are still marked processed so the source
@@ -462,40 +424,21 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
 
             enrichment_status = EnrichmentStatus.PENDING.value
 
-            db.execute(
-                """
-				INSERT INTO transactions_rfn (
-					raw_id,
-					source_type,
-					date,
-					amount,
-					transaction_type,
-					booking_text,
-					merchant_normalized,
-					is_person,
-					currency,
-					reference,
-					enrichment_status,
-					created_at,
-					balance_chf
-				)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-				""",
-                (
-                    row.raw_id,
-                    SourceType(unified.source).value,
-                    date_iso,
-                    amount,
-                    transaction_type,
-                    unified.booking_text,
-                    merchant_normalized,
-                    int(is_person),
-                    currency,
-                    reference,
-                    enrichment_status,
-                    datetime.now().isoformat(),
-                    balance_chf,
-                ),
+            transactions.insert_transactions_rfn(
+                db,
+                raw_id=row.raw_id,
+                source_type=SourceType(unified.source).value,
+                date=date_iso,
+                amount=amount,
+                transaction_type=transaction_type,
+                booking_text=unified.booking_text,
+                merchant_normalized=merchant_normalized,
+                is_person=int(is_person),
+                currency=currency,
+                reference=reference,
+                enrichment_status=enrichment_status,
+                created_at=datetime.now().isoformat(),
+                balance_chf=balance_chf,
             )
 
             mark_processed(row.raw_id, row.file_id)
@@ -503,23 +446,10 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
 
         # Step 4: close ingested files whose raw rows are now fully processed.
         for file_id in processed_file_ids:
-            unprocessed_count = db.execute(
-                """
-				SELECT COUNT(*)
-				FROM transactions_raw tr
-				JOIN transactions_lnd tl ON tl.id = tr.landing_id
-				WHERE tl.file_id = ?
-				  AND tr.processed = 0
-				""",
-                (file_id,),
-            ).fetchone()
-            if unprocessed_count is None or int(unprocessed_count[0]) > 0:
+            count = transactions.count_unprocessed_raw_for_file(db, file_id=file_id)
+            if count:
                 continue
-
-            db.execute(
-                "UPDATE ingested_files SET status = 'refined' WHERE id = ?",
-                (file_id,),
-            )
+            transactions.set_ingested_file_status(db, status="refined", file_id=file_id)
 
     return {
         "rows_found": len(rows),
@@ -530,6 +460,7 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
 
 
 def run_refined() -> dict[str, dict[str, int]]:
+    """Run refined stage for all known source types."""
     results: dict[str, dict[str, int]] = {}
 
     for source_type in SOURCE_MODEL_MAP:

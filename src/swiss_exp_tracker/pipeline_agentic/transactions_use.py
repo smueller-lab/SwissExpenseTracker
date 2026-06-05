@@ -25,6 +25,8 @@ from swiss_exp_tracker.config import HOUSING_RENT_3_AMOUNTS
 from swiss_exp_tracker.config import HOUSING_RENT_AMOUNTS_1
 from swiss_exp_tracker.config import INVESTING_BROKERAGE_1
 from swiss_exp_tracker.config import INVESTING_BROKERAGE_1_MIN_AMOUNT
+from swiss_exp_tracker.db.sql import agentic
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
 
@@ -68,89 +70,22 @@ def run_transactions_use() -> None:
     with sqlite3.connect(path_db) as db:
         db.row_factory = sqlite3.Row
 
-        db.execute(
-            """
-            CREATE TABLE IF NOT EXISTS transactions_use (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                -- transaction fields
-                transaction_id INTEGER NOT NULL,
-                source_type TEXT NOT NULL,
-                date TEXT,
-                amount REAL NOT NULL,
-                transaction_type TEXT NOT NULL,
-                currency TEXT,
-                reference TEXT,
-                -- merchant metadata fields
-                merchant TEXT NOT NULL,
-                category_main TEXT NOT NULL,
-                category_second TEXT,
-                city TEXT,
-                balance_chf REAL
-            )
-            """
-        )
+        agentic.create_transactions_use_table(db)
 
         use_columns = {
-            str(col[1])
-            for col in db.execute("PRAGMA table_info(transactions_use)").fetchall()
+            str(col[1]) for col in agentic.get_transactions_use_column_names(db)
         }
         if "balance_chf" not in use_columns:
-            db.execute("ALTER TABLE transactions_use ADD COLUMN balance_chf REAL")
+            db.execute(agentic.alter_transactions_use_add_balance_chf.sql)
 
-        rows = db.execute(
-            """
-            SELECT
-                t.id              AS transaction_id,
-                t.source_type,
-                t.date,
-                t.amount,
-                t.transaction_type,
-                t.currency,
-                t.reference,
-                m.matched_merchant  AS merchant,
-                m.category_main,
-                m.category_second,
-                m.city,
-                t.balance_chf
-            FROM transactions_rfn t
-            JOIN merchant_metadata_rfn m ON m.reference_id = t.reference
-            WHERE t.enrichment_status = 'enriched'
-              AND t.reference NOT IN (
-                  SELECT reference FROM transactions_use
-                  WHERE reference IS NOT NULL
-              )
-            ORDER BY t.date DESC
-            """
-        ).fetchall()
+        rows = agentic.get_enriched_transactions_not_in_use(db)
 
-        for row in rows:
-            db.execute(
-                """
-                INSERT INTO transactions_use (
-                    transaction_id, source_type, date, amount, transaction_type,
-                    currency, reference,
-                    merchant, category_main, category_second, city, balance_chf
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    row["transaction_id"],
-                    row["source_type"],
-                    row["date"],
-                    row["amount"],
-                    row["transaction_type"],
-                    row["currency"],
-                    row["reference"],
-                    row["merchant"],
-                    row["category_main"],
-                    row["category_second"],
-                    row["city"],
-                    row["balance_chf"],
-                ),
-            )
+        rows_to_insert = [dict(row) for row in rows]
+        agentic.insert_transactions_use(db, rows_to_insert)
 
         db.commit()
 
-    tqdm.write(f"transactions_use: {len(rows)} rows written")
+    tqdm.write(f"transactions_use: {len(rows_to_insert)} rows written")
 
     _backfill_balance_chf_use()
     _sync_categories_from_rfn()
@@ -163,25 +98,15 @@ def _sync_categories_from_rfn() -> None:
     with sqlite3.connect(path_db) as db:
         db.row_factory = sqlite3.Row
 
-        rows = db.execute(
-            """
-            SELECT tu.id, m.category_main, m.category_second, m.city
-            FROM transactions_use tu
-            JOIN merchant_metadata_rfn m ON m.reference_id = tu.reference
-            WHERE tu.category_main  != m.category_main
-               OR COALESCE(tu.category_second, '') != COALESCE(m.category_second, '')
-               OR COALESCE(tu.city, '')            != COALESCE(m.city, '')
-            """
-        ).fetchall()
+        rows = list(agentic.get_transactions_use_sync_candidates(db))
 
         for row in rows:
-            db.execute(
-                """
-                UPDATE transactions_use
-                SET category_main = ?, category_second = ?, city = ?
-                WHERE id = ?
-                """,
-                (row["category_main"], row["category_second"], row["city"], row["id"]),
+            agentic.update_transactions_use_categories(
+                db,
+                category_main=row["category_main"],
+                category_second=row["category_second"],
+                city=row["city"],
+                id=row["id"],
             )
 
         db.commit()
@@ -197,9 +122,7 @@ def _apply_amount_corrections() -> None:
 
     with sqlite3.connect(path_db) as db:
         db.row_factory = sqlite3.Row
-        rows = db.execute(
-            "SELECT id, merchant, amount, category_main, category_second FROM transactions_use"
-        ).fetchall()
+        rows = agentic.get_all_transactions_use_for_corrections(db)
 
         rows_updated = 0
         for row in rows:
@@ -217,9 +140,11 @@ def _apply_amount_corrections() -> None:
                         row["category_main"] != cat_main
                         or row["category_second"] != cat_second
                     ):
-                        db.execute(
-                            "UPDATE transactions_use SET category_main = ?, category_second = ? WHERE id = ?",
-                            (cat_main, cat_second, row["id"]),
+                        agentic.update_transactions_use_category_correction(
+                            db,
+                            category_main=cat_main,
+                            category_second=cat_second,
+                            id=row["id"],
                         )
                         rows_updated += 1
                     break
@@ -238,9 +163,11 @@ def _apply_amount_corrections() -> None:
                             row["category_main"] != cat_main
                             or row["category_second"] != cat_second
                         ):
-                            db.execute(
-                                "UPDATE transactions_use SET category_main = ?, category_second = ? WHERE id = ?",
-                                (cat_main, cat_second, row["id"]),
+                            agentic.update_transactions_use_category_correction(
+                                db,
+                                category_main=cat_main,
+                                category_second=cat_second,
+                                id=row["id"],
                             )
                             rows_updated += 1
                         break
@@ -261,6 +188,7 @@ def _apply_shared_housing_roommate_offset() -> None:
     """
     path_db = oj("./database", "transactions.db")
 
+    # dynamic LIKE clause from config list: cannot be expressed as static aiosql SQL
     like_clauses = " OR ".join(
         f"lower(tu.merchant) LIKE '%{p.lower()}%'" for p in HOUSING_RENT_2
     )
@@ -268,7 +196,7 @@ def _apply_shared_housing_roommate_offset() -> None:
     with sqlite3.connect(path_db) as db:
         db.row_factory = sqlite3.Row
 
-        # Reset Shared housing amounts to the original source value (transactions_rfn)
+        # dynamic LIKE clause from config list: cannot be expressed as static aiosql SQL
         db.execute(
             f"""
             UPDATE transactions_use
@@ -302,10 +230,9 @@ def _apply_shared_housing_roommate_offset() -> None:
                     float(row["amount"]),
                 )
 
-        income_rows = db.execute(
-            "SELECT id, date FROM transactions_use WHERE amount = ? AND transaction_type = 'INCOME'",
-            (HOUSING_RENT_2_ROOMMATE_OFFSET,),
-        ).fetchall()
+        income_rows = agentic.get_transactions_use_income_by_amount(
+            db, amount=HOUSING_RENT_2_ROOMMATE_OFFSET
+        )
 
         rows_adjusted = 0
         ids_to_delete: list[int] = []
@@ -315,18 +242,16 @@ def _apply_shared_housing_roommate_offset() -> None:
                 shared_housing_id, shared_housing_amount = shared_housing_by_month[
                     month_key
                 ]
-                db.execute(
-                    "UPDATE transactions_use SET amount = ? WHERE id = ?",
-                    (
-                        shared_housing_amount - HOUSING_RENT_2_ROOMMATE_OFFSET,
-                        shared_housing_id,
-                    ),
+                agentic.update_transactions_use_amount(
+                    db,
+                    amount=shared_housing_amount - HOUSING_RENT_2_ROOMMATE_OFFSET,
+                    id=shared_housing_id,
                 )
                 ids_to_delete.append(income["id"])
                 rows_adjusted += 1
 
         for income_id in ids_to_delete:
-            db.execute("DELETE FROM transactions_use WHERE id = ?", (income_id,))
+            agentic.delete_transactions_use_by_id(db, id=income_id)
 
         db.commit()
 
@@ -340,17 +265,7 @@ def _backfill_balance_chf_use() -> None:
     path_db = oj("./database", "transactions.db")
 
     with sqlite3.connect(path_db) as db:
-        db.execute(
-            """
-            UPDATE transactions_use
-            SET balance_chf = (
-                SELECT t.balance_chf
-                FROM transactions_rfn t
-                WHERE t.reference = transactions_use.reference
-            )
-            WHERE balance_chf IS NULL
-            """
-        )
+        transactions.backfill_transactions_use_balance_chf(db)
         db.commit()
 
     tqdm.write("transactions_use: balance_chf backfilled from transactions_rfn")

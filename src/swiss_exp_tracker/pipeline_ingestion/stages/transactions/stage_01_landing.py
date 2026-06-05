@@ -9,6 +9,7 @@ from typing import Any
 
 import pandas as pd
 
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_ingestion.config import LANDING_ZONE_DIR
 from swiss_exp_tracker.pipeline_ingestion.data_models.data_sources import (
     SOURCE_MODEL_MAP,
@@ -21,11 +22,11 @@ from swiss_exp_tracker.pipeline_ingestion.file_tracker import mark_file_processe
 
 
 def _read_rows(file_path: Path) -> list[dict[str, Any]]:
+    """Read CSV or Excel file and return rows as a list of dicts."""
     suffix = file_path.suffix.lower()
 
     if suffix == ".csv":
         with file_path.open(encoding="utf-8-sig", newline="") as file:
-            # detect delimiter
             sample = file.read(4096)
             file.seek(0)
             try:
@@ -43,51 +44,10 @@ def _read_rows(file_path: Path) -> list[dict[str, Any]]:
     return []
 
 
-def _insert_landing_row(file_id: int, source_type: SourceType, raw_json: str) -> None:
-    with get_connection() as db:
-        db.execute(
-            """
-			INSERT INTO transactions_lnd (
-				file_id,
-				source_type,
-				raw_json,
-				created_at,
-				processed
-			)
-			VALUES (?, ?, ?, ?, 0)
-			""",
-            (
-                file_id,
-                source_type.value,
-                raw_json,
-                datetime.now().isoformat(),
-            ),
-        )
-
-
-def _get_latest_file_id(file_name: str, source_type: SourceType) -> int:
-    with get_connection() as db:
-        row = db.execute(
-            """
-			SELECT id
-			FROM ingested_files
-			WHERE filename = ? AND source_type = ?
-			ORDER BY id DESC
-			LIMIT 1
-			""",
-            (file_name, source_type.value),
-        ).fetchone()
-
-    if row is None:
-        msg = f"No ingested_files row found for {file_name} ({source_type.value})"
-        raise RuntimeError(msg)
-
-    return int(row[0])
-
-
 def process_landing_source(
     folder: str | Path, source_type: SourceType
 ) -> dict[str, int]:
+    """Process new files for source_type: validate, register, and batch-insert to landing."""
     create_all_tables()
 
     if source_type not in SOURCE_MODEL_MAP:
@@ -101,31 +61,46 @@ def process_landing_source(
     records_inserted = 0
 
     for file_path in new_files:
-        # read rows
         rows = _read_rows(file_path)
         if not rows:
             continue
 
-        # model validate and convert to JSON
         valid_rows_json: list[str] = []
         for row in rows:
             parsed = source_model.model_validate(row)
             dumped = parsed.model_dump(mode="json", by_alias=True)
             valid_rows_json.append(json.dumps(dumped, ensure_ascii=False))
 
-        # mark file as landing processed
         mark_file_processed(
             filename=file_path,
             source=source_type,
             record_count=len(valid_rows_json),
             status="landing",
         )
-        file_id = _get_latest_file_id(file_path.name, source_type)
 
-        for raw_json in valid_rows_json:
-            _insert_landing_row(file_id, source_type, raw_json)
-            records_inserted += 1
+        with get_connection() as db:
+            file_id = transactions.get_latest_ingested_file_id(
+                db, filename=file_path.name, source_type=source_type.value
+            )
 
+        if file_id is None:
+            msg = f"No ingested_files row found for {file_path.name} ({source_type.value})"
+            raise RuntimeError(msg)
+
+        now = datetime.now().isoformat()
+        lnd_rows = [
+            {
+                "file_id": file_id,
+                "source_type": source_type.value,
+                "raw_json": j,
+                "created_at": now,
+            }
+            for j in valid_rows_json
+        ]
+        with get_connection() as db:
+            transactions.insert_transactions_lnd(db, lnd_rows)
+
+        records_inserted += len(lnd_rows)
         files_processed += 1
 
     return {
@@ -136,6 +111,7 @@ def process_landing_source(
 
 
 def run_landing() -> dict[str, dict[str, int]]:
+    """Run landing stage for all known source types."""
     results: dict[str, dict[str, int]] = {}
 
     for source_type in SOURCE_MODEL_MAP:

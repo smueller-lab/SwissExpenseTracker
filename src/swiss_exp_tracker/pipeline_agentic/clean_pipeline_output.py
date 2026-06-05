@@ -24,6 +24,7 @@ from swiss_exp_tracker.config import RETAIL_SPORTS_1
 from swiss_exp_tracker.config import SALARY_DONATION_1
 from swiss_exp_tracker.config import SPORT_GOLF_1
 from swiss_exp_tracker.config import work_places
+from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
 
@@ -51,7 +52,21 @@ CORRECTIONS: dict[str, tuple[str, str, str | None]] = {
 
 # Containment corrections: if any substring in the list is contained in matched_merchant,
 # the correction is applied (case-insensitive).
+BANK_KEYWORDS: list[str] = [
+    "kantonalbank",
+    "zkb",
+    "raiffeisen",
+    "postfinance",
+    "ubs ag",
+    "credit suisse",
+    "ubs bank",
+]
+
 CONTAINMENT_CORRECTIONS: list[tuple[list[str], tuple[str, str, str | None]]] = [
+    (
+        BANK_KEYWORDS,
+        (CategoryMain.PAYMENT_SERVICES.value, CategorySecond.PAYMENT_FEES.value, None),
+    ),
     (work_places, (CategoryMain.SALARY.value, CategorySecond.SALARY_MAIN.value, None)),
     (
         SALARY_DONATION_1,
@@ -72,6 +87,18 @@ CONTAINMENT_CORRECTIONS: list[tuple[list[str], tuple[str, str, str | None]]] = [
         (CategoryMain.RESTAURANT.value, CategorySecond.RESTAURANT_CAFE.value, None),
     ),
 ]
+
+# Per-reference-id corrections: overrides matched_merchant name AND categories.
+# Keyed by reference_id (the value in transactions_use.reference / merchant_metadata.reference_id).
+# Value: (merchant_name, category_main, category_second, city_override or None to keep existing).
+REFERENCE_ID_CORRECTIONS: dict[str, tuple[str, str, str, str | None]] = {
+    "NOID-337ce749-2152-45e3-aa98-1083fb846006": (
+        "Migros Golfpark Waldkirch",
+        CategoryMain.SPORT.value,
+        CategorySecond.SPORT_GOLF.value,
+        "Waldkirch",
+    ),
+}
 
 # SWITZERLAND FIRST
 # Parkingpay App, Transport, Parking -> should be Car_Parking
@@ -98,54 +125,18 @@ def run_post_clean() -> None:
         db.row_factory = sqlite3.Row
 
         # Ensure destination table exists
-        db.execute(
-            """
-            CREATE TABLE IF NOT EXISTS merchant_metadata_rfn (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                created_at TEXT NOT NULL,
-                reference_id TEXT,
-                matched_merchant TEXT NOT NULL,
-                cache_hit INTEGER NOT NULL,
-                similarity REAL,
-                search_tool TEXT,
-                category_main TEXT,
-                category_second TEXT,
-                city TEXT
-            )
-            """
-        )
+        agentic.create_merchant_metadata_rfn_table(db)
 
-        table_exists = db.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='merchant_metadata_raw'"
-        ).fetchone()
+        db.row_factory = None
+        table_exists = agentic.check_merchant_metadata_raw_exists(db)
+        db.row_factory = sqlite3.Row
         if not table_exists:
             tqdm.write("post_clean: merchant_metadata_raw not found, skipping")
             return
 
         # Latest raw row per reference_id — include rows not yet in rfn
         # AND rows where the raw entry is newer than the existing rfn row
-        raw_rows = db.execute(
-            """
-            SELECT r.*
-            FROM merchant_metadata_raw r
-            INNER JOIN (
-                SELECT reference_id, MAX(id) AS max_id
-                FROM merchant_metadata_raw
-                GROUP BY reference_id
-            ) latest ON r.id = latest.max_id
-            WHERE r.reference_id NOT IN (
-                SELECT reference_id
-                FROM merchant_metadata_rfn
-                WHERE reference_id IS NOT NULL
-            )
-            OR r.created_at > (
-                SELECT MAX(rfn.created_at)
-                FROM merchant_metadata_rfn rfn
-                WHERE rfn.reference_id = r.reference_id
-            )
-            ORDER BY r.created_at DESC
-            """
-        ).fetchall()
+        raw_rows = agentic.get_latest_raw_merchant_rows(db)
 
         corrections_lookup = {k.lower(): v for k, v in CORRECTIONS.items()}
         containment_corrections = [
@@ -156,49 +147,50 @@ def run_post_clean() -> None:
         rows_inserted = 0
 
         for row in raw_rows:
+            ref_id = row["reference_id"] or ""
             merchant_key = (row["matched_merchant"] or "").lower()
 
-            # Exact match first, then containment
-            correction = corrections_lookup.get(merchant_key)
-            if correction is None:
-                for patterns, corr in containment_corrections:
-                    if any(p in merchant_key for p in patterns):
-                        correction = corr
-                        break
-
-            if correction:
-                category_main, category_second, city_override = correction
+            # Reference-id corrections take highest priority (also overrides merchant name)
+            ref_correction = REFERENCE_ID_CORRECTIONS.get(ref_id)
+            if ref_correction:
+                matched_merchant, category_main, category_second, city_override = (
+                    ref_correction
+                )
                 city = city_override if city_override is not None else row["city"]
             else:
-                category_main = row["category_main"]
-                category_second = row["category_second"]
-                city = row["city"]
+                matched_merchant = row["matched_merchant"]
+                # Exact match first, then containment
+                correction = corrections_lookup.get(merchant_key)
+                if correction is None:
+                    for patterns, corr in containment_corrections:
+                        if any(p in merchant_key for p in patterns):
+                            correction = corr
+                            break
+
+                if correction:
+                    category_main, category_second, city_override = correction
+                    city = city_override if city_override is not None else row["city"]
+                else:
+                    category_main = row["category_main"]
+                    category_second = row["category_second"]
+                    city = row["city"]
 
             # Remove any existing rfn row for this reference before inserting
             # the updated one (handles the upsert case for existing references).
-            db.execute(
-                "DELETE FROM merchant_metadata_rfn WHERE reference_id = ?",
-                (row["reference_id"],),
+            agentic.delete_merchant_metadata_rfn_by_reference(
+                db, reference_id=row["reference_id"]
             )
-            db.execute(
-                """
-                INSERT INTO merchant_metadata_rfn (
-                    created_at, reference_id, matched_merchant,
-                    cache_hit, similarity, search_tool,
-                    category_main, category_second, city
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    row["created_at"],
-                    row["reference_id"],
-                    row["matched_merchant"],
-                    row["cache_hit"],
-                    row["similarity"],
-                    row["search_tool"],
-                    category_main,
-                    category_second,
-                    city,
-                ),
+            agentic.insert_merchant_metadata_rfn(
+                db,
+                created_at=row["created_at"],
+                reference_id=row["reference_id"],
+                matched_merchant=matched_merchant,
+                cache_hit=row["cache_hit"],
+                similarity=row["similarity"],
+                search_tool=row["search_tool"],
+                category_main=category_main,
+                category_second=category_second,
+                city=city,
             )
             rows_inserted += 1
 
@@ -226,16 +218,16 @@ def _apply_corrections_to_existing_rfn() -> None:
     with sqlite3.connect(path_db) as db:
         db.row_factory = sqlite3.Row
 
-        table_exists = db.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='merchant_metadata_rfn'"
-        ).fetchone()
+        db.row_factory = None
+        table_exists = agentic.check_merchant_metadata_rfn_exists(db)
+        db.row_factory = sqlite3.Row
         if not table_exists:
             tqdm.write(
                 "post_clean: merchant_metadata_rfn not found, skipping corrections"
             )
             return
 
-        rows = db.execute("SELECT * FROM merchant_metadata_rfn").fetchall()
+        rows = agentic.get_all_merchant_metadata_rfn(db)
 
         rows_updated = 0
         for row in rows:
@@ -261,16 +253,54 @@ def _apply_corrections_to_existing_rfn() -> None:
             ):
                 continue  # already correct, skip
 
-            db.execute(
-                """
-                UPDATE merchant_metadata_rfn
-                SET category_main = ?, category_second = ?, city = ?
-                WHERE id = ?
-                """,
-                (category_main, category_second, city, row["id"]),
+            agentic.update_merchant_metadata_rfn_categories(
+                db,
+                category_main=category_main,
+                category_second=category_second,
+                city=city,
+                id=row["id"],
             )
             rows_updated += 1
 
         db.commit()
 
     tqdm.write(f"post_clean: {rows_updated} existing rfn rows corrected")
+
+    _apply_reference_id_corrections()
+
+
+def _apply_reference_id_corrections() -> None:
+    """Apply REFERENCE_ID_CORRECTIONS to merchant_metadata_rfn and transactions_use.
+
+    Updates matched_merchant + categories in rfn, and merchant + categories in transactions_use.
+    """
+    path_db = oj("./database", "transactions.db")
+
+    with sqlite3.connect(path_db) as db:
+        rows_updated = 0
+        for ref_id, (
+            merchant,
+            category_main,
+            category_second,
+            city_override,
+        ) in REFERENCE_ID_CORRECTIONS.items():
+            agentic.update_merchant_metadata_rfn_full_by_reference(
+                db,
+                matched_merchant=merchant,
+                category_main=category_main,
+                category_second=category_second,
+                city=city_override,
+                reference_id=ref_id,
+            )
+            agentic.update_transactions_use_merchant_by_reference(
+                db,
+                merchant=merchant,
+                category_main=category_main,
+                category_second=category_second,
+                city=city_override,
+                reference=ref_id,
+            )
+            rows_updated += 1
+        db.commit()
+
+    tqdm.write(f"post_clean: {rows_updated} reference-id corrections applied")

@@ -14,7 +14,8 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     ].copy()
     pdf = pdf[~pdf["category_second"].isin(CAR_EXCLUDE_SECOND)].copy()
 
-    pdf["Year"] = pdf["date"].dt.year
+    pdf = pdf[pdf["date"].notna()].copy()
+    pdf["Year"] = pdf["date"].dt.year.astype(int)
     pdf["MonthYear"] = pdf["date"].dt.to_period("M")
 
     yearly = (

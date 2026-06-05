@@ -5,6 +5,7 @@ import hashlib
 from datetime import datetime
 from pathlib import Path
 
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_ingestion.config import LANDING_ZONE_DIR
 from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceType
 from swiss_exp_tracker.pipeline_ingestion.db import create_all_tables
@@ -67,16 +68,10 @@ def get_new_files(folder: str | Path, source_type: SourceType) -> list[Path]:
         return []
 
     with get_connection() as db:
-        rows = db.execute(
-            """
-			SELECT filename, file_hash
-			FROM ingested_files
-			WHERE source_type = ?
-			""",
-            (source_type.value,),
-        ).fetchall()
-
-    known_entries = {(row[0], row[1]) for row in rows}
+        rows = transactions.get_known_files_for_source(
+            db, source_type=source_type.value
+        )
+        known_entries = {(row[0], row[1]) for row in rows}
     new_files: list[Path] = []
 
     for file_path in candidate_files:
@@ -102,24 +97,12 @@ def mark_file_processed(
     file_hash = _md5_hash(file_path)
 
     with get_connection() as db:
-        db.execute(
-            """
-			INSERT OR IGNORE INTO ingested_files (
-				filename,
-				file_hash,
-				source_type,
-				ingested_at,
-				record_count,
-				status
-			)
-			VALUES (?, ?, ?, ?, ?, ?)
-			""",
-            (
-                file_path.name,
-                file_hash,
-                source.value,
-                datetime.now().isoformat(),
-                record_count,
-                status,
-            ),
+        transactions.insert_ingested_file(
+            db,
+            filename=file_path.name,
+            file_hash=file_hash,
+            source_type=source.value,
+            ingested_at=datetime.now().isoformat(),
+            record_count=record_count,
+            status=status,
         )

@@ -5,6 +5,7 @@ import hashlib
 from datetime import datetime
 from pathlib import Path
 
+from swiss_exp_tracker.db.sql import positions
 from swiss_exp_tracker.pipeline_ingestion.db_positions import create_positions_tables
 from swiss_exp_tracker.pipeline_ingestion.db_positions import get_positions_connection
 
@@ -37,11 +38,8 @@ def get_new_positions_files(folder: Path) -> list[Path]:
         return []
 
     with get_positions_connection() as db:
-        rows = db.execute(
-            "SELECT filename, file_hash FROM ingested_files_pos"
-        ).fetchall()
-
-    known = {(str(r[0]), str(r[1])) for r in rows}
+        rows = positions.get_known_positions_files(db)
+        known = {(str(r[0]), str(r[1])) for r in rows}
     return [f for f in candidates if (f.name, _md5_hash(f)) not in known]
 
 
@@ -54,37 +52,23 @@ def mark_positions_file_processed(
     file_hash = _md5_hash(file_path)
 
     with get_positions_connection() as db:
-        db.execute(
-            """
-            INSERT OR IGNORE INTO ingested_files_pos (
-                filename, file_hash, ingested_at, record_count, status
-            )
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                file_path.name,
-                file_hash,
-                datetime.now().isoformat(),
-                record_count,
-                status,
-            ),
+        positions.insert_ingested_file_pos(
+            db,
+            filename=file_path.name,
+            file_hash=file_hash,
+            ingested_at=datetime.now().isoformat(),
+            record_count=record_count,
+            status=status,
         )
 
 
 def get_latest_positions_file_id(filename: str) -> int:
+    """Return the most recent ingested_files_pos id for filename; raises RuntimeError if absent."""
     with get_positions_connection() as db:
-        row = db.execute(
-            """
-            SELECT id FROM ingested_files_pos
-            WHERE filename = ?
-            ORDER BY id DESC
-            LIMIT 1
-            """,
-            (filename,),
-        ).fetchone()
+        result = positions.get_latest_positions_file_id(db, filename=filename)
 
-    if row is None:
+    if result is None:
         msg = f"No ingested_files_pos row found for {filename!r}"
         raise RuntimeError(msg)
 
-    return int(row[0])
+    return int(result)

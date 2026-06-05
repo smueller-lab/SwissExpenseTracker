@@ -37,8 +37,9 @@ def _health_score(sub: pd.DataFrame) -> float:
 def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     items = pd.read_sql("SELECT * FROM groceries_use", con)
     items["date"] = pd.to_datetime(items["date"])
+    items = items[items["date"].notna()].copy()
     items["MonthYear"] = items["date"].dt.to_period("M").dt.to_timestamp()
-    items["Year"] = items["date"].dt.year
+    items["Year"] = items["date"].dt.year.astype(int)
 
     # dash_groceries_cat — category spend trend (monthly + yearly)
     monthly_cat = (
