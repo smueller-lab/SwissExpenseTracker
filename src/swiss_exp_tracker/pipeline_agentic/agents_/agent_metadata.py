@@ -49,7 +49,8 @@ Places for pool, billiard, arcade games, bowling, darts, escape room go under En
 Sub-categories: Music Streaming | Events & Concerts | Sports | Cinema | Theatre | TV & Streaming | Dating | Amusement Park | Game Hall
 
 **Telecommunication** (e.g. GoMo, Sunrise, Salt)
-Use for telecom contracts and providers (mobile, internet, TV subscriptions).
+Use ONLY for internet providers and phone/mobile providers (mobile, internet, TV subscriptions from a telecom operator).
+Do NOT use for banks, financial institutions, or any merchant whose name contains words like Bank, Banque, Banca, Sparkasse, Kantonalbank, or Raiffeisen — those always belong to Payment Services.
 Sub-categories: Mobile | Internet | TV Subscription
 
 **Restaurant** (restaurants; not groceries)
@@ -107,8 +108,9 @@ Use for courses, learning platforms and educational materials.
 Sub-categories: Online Courses | Books
 
 **Payment Services** (e.g. credit card payment services)
+Any transaction to belongs to a bank goes here under Payment Services.
 Use for payment network/service fees, FX fees and transfer fees.
-Sub-categories: Payment Fees | Currency Exchange | Transfer Fees
+Sub-categories: Payment Fees | Currency Exchange | Transfer Fees | Money Transfer | Cash Withdrawl
 
 **Investing** (e.g. Revolut, TrueWealth)
 Use for brokerage/investment platform related transactions.
@@ -134,6 +136,7 @@ Sub-categories: Support Payment
 - When most of the components in summary are unknown, guess based on the merchant name"
 - Sporting Goods & Merchandising always belong to RETAIL_SPORTS and not into the SPORT category. Only actual sports activities, clubs, equipment rentals and memberships belong to SPORT.
 - If the merchant contains a personal name and the merchant summary does not indicate a specific store or is unknown, classify as Friend. Don't try to assume the it's a store"
+- Any merchant whose name contains "Bank", "Banque", "Banca", "Sparkasse", "Kantonalbank", or "Raiffeisen" must be classified as Payment Services, never as Telecommunication or any other category.
 """
 
 

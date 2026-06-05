@@ -12,6 +12,7 @@ import requests
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
 
@@ -61,59 +62,24 @@ def _current_period() -> str:
     return date.today().strftime("%Y-%m")
 
 
-def _ensure_api_usage_table() -> None:
-    """Create the api_usage table if it doesn't exist yet."""
-
-    with get_connection() as db:
-        db.execute(
-            """
-            CREATE TABLE IF NOT EXISTS api_usage (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                provider TEXT NOT NULL,
-                period TEXT NOT NULL,
-                used INTEGER NOT NULL DEFAULT 0,
-                credit_limit INTEGER NOT NULL DEFAULT 0,
-                updated_at TEXT NOT NULL,
-                UNIQUE(provider, period)
-            )
-            """
-        )
-
-
 def _load_api_usage(provider: str, period: str) -> int:
     """Return the stored *used* count for *provider* in *period*, or 0."""
-
-    _ensure_api_usage_table()
     with get_connection() as db:
-        row = db.execute(
-            "SELECT used FROM api_usage WHERE provider = ? AND period = ?",
-            (provider, period),
-        ).fetchone()
-    return int(row[0]) if row and row[0] is not None else 0
+        used = transactions.get_api_usage(db, provider=provider, period=period)
+    return used if used is not None else 0
 
 
 def _save_api_usage(provider: str, period: str, used: int, credit_limit: int) -> None:
     """Upsert the *used* count for *provider* / *period* into the DB."""
-
-    _ensure_api_usage_table()
     try:
         with get_connection() as db:
-            db.execute(
-                """
-                INSERT INTO api_usage (provider, period, used, credit_limit, updated_at)
-                VALUES (?, ?, ?, ?, ?)
-                ON CONFLICT(provider, period) DO UPDATE SET
-                    used = excluded.used,
-                    credit_limit = excluded.credit_limit,
-                    updated_at = excluded.updated_at
-                """,
-                (
-                    provider,
-                    period,
-                    max(0, int(used)),
-                    credit_limit,
-                    datetime.now().astimezone().isoformat(),
-                ),
+            transactions.upsert_api_usage(
+                db,
+                provider=provider,
+                period=period,
+                used=max(0, int(used)),
+                credit_limit=credit_limit,
+                updated_at=datetime.now().astimezone().isoformat(),
             )
     except Exception:
         return None

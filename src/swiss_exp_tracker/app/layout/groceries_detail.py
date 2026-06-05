@@ -44,7 +44,7 @@ def layout(data: Any) -> Any:
                     html.H2(
                         [
                             html.Span("M", className="migros-m"),
-                            "Cumulus Analytics",
+                            " Cumulus Analytics",
                         ],
                         className="page-title-center",
                     )

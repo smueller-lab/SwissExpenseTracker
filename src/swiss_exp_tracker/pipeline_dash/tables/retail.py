@@ -9,8 +9,9 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     pdf = df[
         (df["transaction_type"] == "EXPENSE") & (df["category_main"] == "Retail")
     ].copy()
+    pdf = pdf[pdf["date"].notna()].copy()
 
-    pdf["Year"] = pdf["date"].dt.year
+    pdf["Year"] = pdf["date"].dt.year.astype(int)
     pdf["MonthYear"] = pdf["date"].dt.to_period("M")
 
     yearly = (

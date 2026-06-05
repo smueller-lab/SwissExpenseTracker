@@ -44,6 +44,8 @@ Don't pad to 3 lines — a single line is fine when the signature is self-explan
 
 ## Team Workflow
 
+> **Trigger rule:** Whenever the user says *"create a plan for …"*, *"make a plan for …"*, or *"plan …"* for a feature, immediately invoke the `/team-plan` skill with the feature description as the argument. Do **not** write a plan file manually. The skill produces the structured builder/tester/validator format that `/team-build` requires.
+
 Use `/team-plan <feature>` to create a plan file, then `/team-build <plan-file>` to execute it. The build command orchestrates three agents in sequence:
 
 | Agent | Role | Constraint |

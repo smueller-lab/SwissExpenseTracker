@@ -23,8 +23,9 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     pdf["merchant"] = pdf["merchant"].apply(_normalize)
     pdf = pdf[pdf["merchant"].isin(GROCERY_MERCHANTS_TRACKED)].copy()
 
+    pdf = pdf[pdf["date"].notna()].copy()
     pdf["MonthYear"] = pdf["date"].dt.to_period("M").dt.to_timestamp()
-    pdf["Year"] = pdf["date"].dt.year
+    pdf["Year"] = pdf["date"].dt.year.astype(int)
 
     monthly = (
         pdf.groupby(["MonthYear", "merchant"], as_index=False)[["amount"]]

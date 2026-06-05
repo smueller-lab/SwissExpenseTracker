@@ -11,6 +11,7 @@ import swiss_exp_tracker.app.vis.ploty_template  # pyright: ignore[reportUnusedI
 
 from swiss_exp_tracker.app.config import VIS
 from swiss_exp_tracker.app.config import config
+from swiss_exp_tracker.app.libs import get_adaptive_dTick
 from swiss_exp_tracker.app.libs import get_heightFigure
 from swiss_exp_tracker.app.libs import get_rxAxis_Date
 from swiss_exp_tracker.app.libs import get_ryAxis
@@ -155,7 +156,7 @@ class Fig:
                 )
             )
 
-            stick_Text.append(f"{Merchant} (n={len(pdf_Merchant)})")
+            stick_Text.append(f"{Merchant}<br>(n={len(pdf_Merchant)})")
             stick_Val.append(i)
 
         pdf_Merchant = pdf[pdf["Merchant"].isin(vis.s_Merchant_Grocery)].reset_index(
@@ -168,9 +169,20 @@ class Fig:
             ry_Axis, dTick_Grocery, npixel_Grocery, self.vk_Margin
         )
 
+        max_height = cfg.max_height_BoxPlot
+        dTick_Grocery_eff: float = dTick_Grocery
+        if height_Figure > max_height:
+            available_px = max_height - self.vk_Margin["t"] - self.vk_Margin["b"]
+            target_steps = max(1, int(available_px // npixel_Grocery))
+            dTick_Grocery_eff = get_adaptive_dTick(
+                pdf_Merchant["amount_CHF"].max(), target_steps
+            )
+            ry_Axis = get_ryAxis(dTick_Grocery_eff, pdf_Merchant["amount_CHF"], True)
+            height_Figure = float(max_height)
+
         fig.update_layout(
             xaxis={"tickmode": "array", "tickvals": stick_Val, "ticktext": stick_Text},
-            yaxis={"dtick": dTick_Grocery, "range": ry_Axis, "showline": True},
+            yaxis={"dtick": dTick_Grocery_eff, "range": ry_Axis, "showline": True},
             height=height_Figure,
         )
 
@@ -199,22 +211,17 @@ class Fig:
                     x=group["Period"],
                     y=group["total_CHF"],
                     name=Category,
-                    marker={"color": vis.vk_Food_col[Category]},
+                    marker={"color": vis.vk_Food_col.get(Category, "#95A5A6")},
                 )
             )
 
         dTick_Food = cfg.vk_dTick_Food[Freq]
-        npixel_Food = cfg.vk_npixel_Food[Freq]
         ry_Axis = get_ryAxis(dTick_Food, pdf_Food["totalPeriod_CHF"], True)
-
-        height_Figure = get_heightFigure(
-            ry_Axis, dTick_Food, npixel_Food, self.vk_Margin
-        )
 
         fig.update_layout(
             barmode="stack",
             yaxis={"dtick": dTick_Food, "range": ry_Axis, "showline": True},
-            height=height_Figure,
+            height=600,
         )
 
         return fig
@@ -234,11 +241,11 @@ class Fig:
                 go.Box(
                     y=pdf_Category["amount_CHF"],
                     name=Category,
-                    marker={"color": vis.vk_Food_col[Category]},
+                    marker={"color": vis.vk_Food_col.get(Category, "#95A5A6")},
                 )
             )
 
-            stick_Text.append(f"{Category} (n={len(pdf_Category)})")
+            stick_Text.append(f"{Category}<br>(n={len(pdf_Category)})")
             stick_Val.append(i)
 
         pdf_Category = pdf[
@@ -251,9 +258,20 @@ class Fig:
             ry_Axis, dTick_Food, npixel_Food, self.vk_Margin
         )
 
+        max_height = cfg.max_height_BoxPlot
+        dTick_Food_eff: float = dTick_Food
+        if height_Figure > max_height:
+            available_px = max_height - self.vk_Margin["t"] - self.vk_Margin["b"]
+            target_steps = max(1, int(available_px // npixel_Food))
+            dTick_Food_eff = get_adaptive_dTick(
+                pdf_Category["amount_CHF"].max(), target_steps
+            )
+            ry_Axis = get_ryAxis(dTick_Food_eff, pdf_Category["amount_CHF"], True)
+            height_Figure = float(max_height)
+
         fig.update_layout(
             xaxis={"tickmode": "array", "tickvals": stick_Val, "ticktext": stick_Text},
-            yaxis={"dtick": dTick_Food, "range": ry_Axis, "showline": True},
+            yaxis={"dtick": dTick_Food_eff, "range": ry_Axis, "showline": True},
             height=height_Figure,
         )
 
