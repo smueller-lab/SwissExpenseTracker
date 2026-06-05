@@ -11,6 +11,7 @@ from agents.exceptions import MaxTurnsExceeded
 from agents.exceptions import OutputGuardrailTripwireTriggered
 from tqdm import tqdm
 
+from swiss_exp_tracker.db.sql import groceries
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_grocery import grocery_agent
 from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCategoryData
 from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCategoryDetail
@@ -24,14 +25,7 @@ from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
 def load_pending_groceries() -> list[GroceryRow]:
     with get_connection() as db:
-        rows = db.execute(
-            """
-            SELECT id, article, article_normalized, location
-            FROM groceries_rfn
-            WHERE enrichment_status = 'pending'
-            ORDER BY id
-            """
-        ).fetchall()
+        rows = list(groceries.get_pending_groceries(db))
 
     return [
         GroceryRow(

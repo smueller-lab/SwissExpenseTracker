@@ -92,6 +92,8 @@ class MerchantStore:
         return self._to_merchant_metadata(metadata), similarity
 
     def save(self, merchant_raw: str, summary: str, metadata: MerchantMetaData) -> None:
+        if not merchant_raw:
+            return
         meta_dict = metadata.model_dump()
 
         # Flatten: chroma only accepts str/int/float/bool values in metadata

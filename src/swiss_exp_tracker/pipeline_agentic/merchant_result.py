@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sqlite3
 
+from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import MetadataResult
 
 
@@ -19,55 +20,24 @@ class MerchantResult:
         os.makedirs(self.dr_db, exist_ok=True)
 
     def save_merchant_result(self, merchant_result: MetadataResult) -> None:
-        table_name = "merchant_metadata_raw"
+        """Persist one raw merchant enrichment result to the DB."""
         with sqlite3.connect(self.path_db) as db:
-            db.execute(
-                f"""
-                CREATE TABLE IF NOT EXISTS {table_name} (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    created_at TEXT NOT NULL,
-                    reference_id TEXT,
-                    matched_merchant TEXT NOT NULL,
-                    cache_hit INTEGER NOT NULL,
-                    similarity REAL,
-                    search_tool TEXT,
-                    category_main TEXT,
-                    category_second TEXT,
-                    city TEXT
-                )
-                """
-            )
-
-            db.execute(
-                f"""
-                INSERT INTO {table_name} (
-                    created_at,
-                    reference_id,
-                    matched_merchant,
-                    cache_hit,
-                    similarity,
-                    search_tool,
-                    category_main,
-                    category_second,
-                    city
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    merchant_result.current_datetime.isoformat(),
-                    merchant_result.reference_id,
-                    merchant_result.matched_merchant,
-                    int(merchant_result.cache_hit),
-                    merchant_result.similarity,
-                    (
-                        merchant_result.search_tool.value
-                        if merchant_result.search_tool
-                        else None
-                    ),
-                    merchant_result.category_main,
-                    merchant_result.category_second,
-                    merchant_result.city,
+            agentic.create_merchant_metadata_raw_table(db)
+            agentic.insert_merchant_metadata_raw(
+                db,
+                created_at=merchant_result.current_datetime.isoformat(),
+                reference_id=merchant_result.reference_id,
+                matched_merchant=merchant_result.matched_merchant,
+                cache_hit=int(merchant_result.cache_hit),
+                similarity=merchant_result.similarity,
+                search_tool=(
+                    merchant_result.search_tool.value
+                    if merchant_result.search_tool
+                    else None
                 ),
+                category_main=merchant_result.category_main,
+                category_second=merchant_result.category_second,
+                city=merchant_result.city,
             )
             db.commit()
 
@@ -76,12 +46,5 @@ class MerchantResult:
         if refined_id is None:
             return
         with sqlite3.connect(self.path_db) as db:
-            db.execute(
-                """
-                UPDATE transactions_rfn
-                SET enrichment_status = 'enriched'
-                WHERE id = ?
-                """,
-                (refined_id,),
-            )
+            agentic.mark_transaction_enriched(db, refined_id=refined_id)
             db.commit()

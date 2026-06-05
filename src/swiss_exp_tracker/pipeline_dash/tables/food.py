@@ -6,15 +6,13 @@ import pandas as pd
 
 
 def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
-    groceries = df[df["category_main"] == "Groceries"].copy()
-    groceries["category_second"] = "Groceries"
-    restaurant = df[df["category_main"] == "Restaurant"].copy()
+    pdf = df[
+        (df["category_main"] == "Restaurant") & (df["transaction_type"] == "EXPENSE")
+    ].copy()
 
-    pdf = pd.concat([groceries, restaurant], ignore_index=True)
-    pdf = pdf[pdf["transaction_type"] == "EXPENSE"].copy()
-
+    pdf = pdf[pdf["date"].notna()].copy()
     pdf["MonthYear"] = pdf["date"].dt.to_period("M").dt.to_timestamp()
-    pdf["Year"] = pdf["date"].dt.year
+    pdf["Year"] = pdf["date"].dt.year.astype(int)
 
     monthly = (
         pdf.groupby(["MonthYear", "category_second"], as_index=False)[["amount"]]

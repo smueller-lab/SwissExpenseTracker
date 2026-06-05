@@ -4,6 +4,7 @@ import json
 
 from datetime import datetime
 
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_ingestion.data_models.data_sources import (
     SOURCE_MODEL_MAP,
 )
@@ -14,18 +15,11 @@ from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
 
 def _load_unprocessed_landing_rows(source_type: SourceType) -> list[LandingRow]:
-    query = """
-        SELECT tl.id, tl.file_id, tl.source_type, tl.raw_json, f.filename
-        FROM transactions_lnd tl
-        JOIN ingested_files f ON f.id = tl.file_id
-        WHERE tl.processed = 0
-          AND tl.source_type = f.source_type
-          AND tl.source_type = ?
-        ORDER BY tl.id
-    """
-
+    """Return all unprocessed landing rows for source_type, ordered by id."""
     with get_connection() as db:
-        rows = db.execute(query, (source_type.value,)).fetchall()
+        rows = list(
+            transactions.get_unprocessed_landing_rows(db, source_type=source_type.value)
+        )
 
     return [
         LandingRow(
@@ -40,6 +34,7 @@ def _load_unprocessed_landing_rows(source_type: SourceType) -> list[LandingRow]:
 
 
 def process_raw_source(source_type: SourceType) -> dict[str, int]:
+    """Promote unprocessed landing rows to transactions_raw for source_type."""
     create_all_tables()
     rows = _load_unprocessed_landing_rows(source_type)
 
@@ -59,48 +54,26 @@ def process_raw_source(source_type: SourceType) -> dict[str, int]:
                 ensure_ascii=False,
             )
 
-            db.execute(
-                """
-                INSERT INTO transactions_raw (
-                    landing_id,
-                    source_type,
-                    raw_json,
-                    source_file,
-                    created_at,
-                    processed
-                )
-                VALUES (?, ?, ?, ?, ?, 0)
-                """,
-                (
-                    row.landing_id,
-                    SourceType(row.source_type).value,
-                    validated_raw_json,
-                    row.source_file,
-                    datetime.now().isoformat(),
-                ),
+            transactions.insert_transactions_raw(
+                db,
+                landing_id=row.landing_id,
+                source_type=SourceType(row.source_type).value,
+                raw_json=validated_raw_json,
+                source_file=row.source_file,
+                created_at=datetime.now().isoformat(),
             )
 
-            db.execute(
-                "UPDATE transactions_lnd SET processed = 1 WHERE id = ?",
-                (row.landing_id,),
-            )
+            transactions.mark_lnd_processed(db, landing_id=row.landing_id)
 
             processed_file_ids.add(row.file_id)
             rows_processed += 1
             records_inserted += 1
 
         for file_id in processed_file_ids:
-            unprocessed_count = db.execute(
-                "SELECT COUNT(*) FROM transactions_lnd WHERE file_id = ? AND processed = 0",
-                (file_id,),
-            ).fetchone()
-            if unprocessed_count is None or int(unprocessed_count[0]) > 0:
+            count = transactions.count_unprocessed_lnd_for_file(db, file_id=file_id)
+            if count:
                 continue
-
-            db.execute(
-                "UPDATE ingested_files SET status = 'raw' WHERE id = ?",
-                (file_id,),
-            )
+            transactions.set_ingested_file_status(db, status="raw", file_id=file_id)
 
     return {
         "rows_found": len(rows),
@@ -110,6 +83,7 @@ def process_raw_source(source_type: SourceType) -> dict[str, int]:
 
 
 def run_raw() -> dict[str, dict[str, int]]:
+    """Run raw stage for all known source types."""
     results: dict[str, dict[str, int]] = {}
 
     for source_type in SOURCE_MODEL_MAP:

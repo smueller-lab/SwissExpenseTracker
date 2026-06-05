@@ -4,24 +4,18 @@ import json
 
 from datetime import datetime
 
+from swiss_exp_tracker.db.sql import positions
 from swiss_exp_tracker.pipeline_ingestion.data_models.position import SwissquotePosition
 from swiss_exp_tracker.pipeline_ingestion.db_positions import create_positions_tables
 from swiss_exp_tracker.pipeline_ingestion.db_positions import get_positions_connection
 
 
 def run_positions_rfn() -> dict[str, int]:
+    """Promote unprocessed positions_raw rows to positions_rfn, skipping duplicates."""
     create_positions_tables()
 
     with get_positions_connection() as db:
-        raw_rows = db.execute(
-            """
-            SELECT pr.id, pl.file_id, pr.raw_json, pr.source_file
-            FROM positions_raw pr
-            JOIN positions_lnd pl ON pl.id = pr.landing_id
-            WHERE pr.processed = 0
-            ORDER BY pr.id
-            """
-        ).fetchall()
+        raw_rows = list(positions.get_unprocessed_positions_raw_rows(db))
 
     rows_processed = 0
     records_inserted = 0
@@ -33,63 +27,42 @@ def run_positions_rfn() -> dict[str, int]:
             payload = json.loads(str(raw_json_str))
             position = SwissquotePosition.model_validate(payload)
 
-            cursor = db.execute(
-                """
-                INSERT OR IGNORE INTO positions_rfn (
-                    snapshot_date, account_id, asset_class,
-                    symbol, name, quantity, unit_cost, price, currency,
-                    total_value, total_value_chf, pnl_nominal_chf, pnl_pct_chf,
-                    position_weight_pct, source_file, created_at
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    position.snapshot_date.isoformat(),
-                    position.account_id,
-                    position.asset_class,
-                    position.symbol,
-                    position.name,
-                    position.quantity,
-                    position.unit_cost,
-                    position.price,
-                    position.currency,
-                    position.total_value,
-                    position.total_value_chf,
-                    position.pnl_nominal_chf,
-                    position.pnl_pct_chf,
-                    position.position_weight_pct,
-                    source_file,
-                    datetime.now().isoformat(),
-                ),
+            rowcount = positions.insert_positions_rfn_ignore(
+                db,
+                snapshot_date=position.snapshot_date.isoformat(),
+                account_id=position.account_id,
+                asset_class=position.asset_class,
+                symbol=position.symbol,
+                name=position.name,
+                quantity=position.quantity,
+                unit_cost=position.unit_cost,
+                price=position.price,
+                currency=position.currency,
+                total_value=position.total_value,
+                total_value_chf=position.total_value_chf,
+                pnl_nominal_chf=position.pnl_nominal_chf,
+                pnl_pct_chf=position.pnl_pct_chf,
+                position_weight_pct=position.position_weight_pct,
+                source_file=source_file,
+                created_at=datetime.now().isoformat(),
             )
 
-            if cursor.rowcount > 0:
+            if rowcount > 0:
                 records_inserted += 1
             else:
                 duplicates_ignored += 1
 
-            db.execute(
-                "UPDATE positions_raw SET processed = 1 WHERE id = ?",
-                (raw_id,),
-            )
+            positions.mark_positions_raw_processed(db, raw_id=raw_id)
             processed_file_ids.add(int(file_id))
             rows_processed += 1
 
         for file_id in processed_file_ids:
-            unprocessed = db.execute(
-                """
-                SELECT COUNT(*) FROM positions_raw pr
-                JOIN positions_lnd pl ON pl.id = pr.landing_id
-                WHERE pl.file_id = ? AND pr.processed = 0
-                """,
-                (file_id,),
-            ).fetchone()
-            if unprocessed is None or int(unprocessed[0]) > 0:
-                continue
-            db.execute(
-                "UPDATE ingested_files_pos SET status = 'refined' WHERE id = ?",
-                (file_id,),
+            count = positions.count_unprocessed_positions_raw_for_file(
+                db, file_id=file_id
             )
+            if count:
+                continue
+            positions.set_positions_file_status(db, status="refined", file_id=file_id)
 
     return {
         "rows_found": len(raw_rows),
