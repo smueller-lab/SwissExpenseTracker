@@ -4,6 +4,8 @@ import json
 
 from datetime import datetime
 
+from swiss_exp_tracker.db.sql import groceries
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_ingestion.data_models.grocery import GroceryItem
 from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceType
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
@@ -14,20 +16,15 @@ _SOURCE_TYPE = SourceType.MIGROS_GROCERY
 
 
 def run_groceries_raw() -> dict[str, int]:
+    """Promote unprocessed groceries_lnd rows to groceries_raw."""
     create_grocery_tables()
 
     with get_connection() as db:
-        rows = db.execute(
-            """
-            SELECT gl.id, gl.file_id, gl.raw_json, gl.is_bonus_row, f.filename
-            FROM groceries_lnd gl
-            JOIN ingested_files f ON f.id = gl.file_id
-            WHERE gl.processed = 0
-              AND gl.source_type = ?
-            ORDER BY gl.id
-            """,
-            (_SOURCE_TYPE.value,),
-        ).fetchall()
+        rows = list(
+            groceries.get_unprocessed_groceries_lnd_rows(
+                db, source_type=_SOURCE_TYPE.value
+            )
+        )
 
     if not rows:
         return {"rows_found": 0, "rows_processed": 0, "records_inserted": 0}
@@ -46,39 +43,26 @@ def run_groceries_raw() -> dict[str, int]:
                 ensure_ascii=False,
             )
 
-            db.execute(
-                """
-                INSERT INTO groceries_raw
-                    (landing_id, source_type, raw_json, source_file, created_at, processed)
-                VALUES (?, ?, ?, ?, ?, 0)
-                """,
-                (
-                    landing_id,
-                    _SOURCE_TYPE.value,
-                    canonical_json,
-                    source_file,
-                    datetime.now().isoformat(),
-                ),
+            groceries.insert_groceries_raw(
+                db,
+                landing_id=landing_id,
+                source_type=_SOURCE_TYPE.value,
+                raw_json=canonical_json,
+                source_file=source_file,
+                created_at=datetime.now().isoformat(),
             )
-            db.execute(
-                "UPDATE groceries_lnd SET processed = 1 WHERE id = ?",
-                (landing_id,),
-            )
+            groceries.mark_groceries_lnd_processed(db, landing_id=landing_id)
 
             processed_file_ids.add(file_id)
             rows_processed += 1
             records_inserted += 1
 
         for file_id in processed_file_ids:
-            unprocessed = db.execute(
-                "SELECT COUNT(*) FROM groceries_lnd WHERE file_id = ? AND processed = 0",
-                (file_id,),
-            ).fetchone()
-            if unprocessed and int(unprocessed[0]) == 0:
-                db.execute(
-                    "UPDATE ingested_files SET status = 'raw' WHERE id = ?",
-                    (file_id,),
-                )
+            count = groceries.count_unprocessed_groceries_lnd_for_file(
+                db, file_id=file_id
+            )
+            if not count:
+                transactions.set_ingested_file_status(db, status="raw", file_id=file_id)
 
     return {
         "rows_found": len(rows),

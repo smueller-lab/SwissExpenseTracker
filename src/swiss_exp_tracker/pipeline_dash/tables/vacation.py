@@ -9,7 +9,8 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     pdf = df[
         (df["transaction_type"] == "EXPENSE") & (df["category_main"] == "Travel")
     ].copy()
-    pdf["Year"] = pdf["date"].dt.year
+    pdf = pdf[pdf["date"].notna()].copy()
+    pdf["Year"] = pdf["date"].dt.year.astype(int)
 
     result = (
         pdf.groupby(["Year", "category_second"], as_index=False)[["amount"]]

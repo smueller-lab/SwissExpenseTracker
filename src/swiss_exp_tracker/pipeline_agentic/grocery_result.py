@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sqlite3
 
+from swiss_exp_tracker.db.sql import groceries
 from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCategoryResult
 
 
@@ -20,61 +21,30 @@ class GroceryResult:
         self._create_tables()
 
     def _create_tables(self) -> None:
+        """Create grocery_categorization_raw table and rfn view if absent."""
         with sqlite3.connect(_DB_PATH) as db:
-            db.execute(
-                """
-                CREATE TABLE IF NOT EXISTS grocery_categorization_raw (
-                    id              INTEGER PRIMARY KEY AUTOINCREMENT,
-                    created_at      TEXT NOT NULL,
-                    rfn_id          INTEGER NOT NULL,
-                    article         TEXT NOT NULL,
-                    matched_article TEXT NOT NULL,
-                    cache_hit       INTEGER NOT NULL,
-                    similarity      REAL,
-                    category_main   TEXT NOT NULL,
-                    category_detail TEXT NOT NULL
-                )
-                """
-            )
-            db.execute(
-                """
-                CREATE VIEW IF NOT EXISTS grocery_categorization_rfn AS
-                SELECT * FROM grocery_categorization_raw
-                WHERE id = (
-                    SELECT MAX(id)
-                    FROM grocery_categorization_raw g2
-                    WHERE g2.rfn_id = grocery_categorization_raw.rfn_id
-                )
-                """
-            )
+            groceries.create_grocery_categorization_raw_table(db)
+            groceries.create_grocery_categorization_rfn_view(db)
             db.commit()
 
     def save_grocery_result(self, result: GroceryCategoryResult) -> None:
+        """Persist one grocery categorization result to the DB."""
         with sqlite3.connect(_DB_PATH) as db:
-            db.execute(
-                """
-                INSERT INTO grocery_categorization_raw (
-                    created_at, rfn_id, article, matched_article,
-                    cache_hit, similarity, category_main, category_detail
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    result.current_datetime.isoformat(),
-                    result.rfn_id,
-                    result.article,
-                    result.matched_article,
-                    int(result.cache_hit),
-                    result.similarity,
-                    result.category_main.value,
-                    result.category_detail.value,
-                ),
+            groceries.insert_grocery_categorization_raw(
+                db,
+                created_at=result.current_datetime.isoformat(),
+                rfn_id=result.rfn_id,
+                article=result.article,
+                matched_article=result.matched_article,
+                cache_hit=int(result.cache_hit),
+                similarity=result.similarity,
+                category_main=result.category_main.value,
+                category_detail=result.category_detail.value,
             )
             db.commit()
 
     def mark_grocery_enriched(self, rfn_id: int) -> None:
+        """Set enrichment_status = 'enriched' for the given groceries_rfn row id."""
         with sqlite3.connect(_DB_PATH) as db:
-            db.execute(
-                "UPDATE groceries_rfn SET enrichment_status = 'enriched' WHERE id = ?",
-                (rfn_id,),
-            )
+            groceries.mark_grocery_enriched(db, rfn_id=rfn_id)
             db.commit()

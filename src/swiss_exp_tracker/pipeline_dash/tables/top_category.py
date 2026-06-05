@@ -4,6 +4,8 @@ import sqlite3
 
 import pandas as pd
 
+from swiss_exp_tracker.pipeline_dash.config import TOP_EXPENSES_EXCLUDE_MAIN
+
 
 def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     df = df.copy()
@@ -11,7 +13,7 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
 
     pdf = df[
         (df["transaction_type"] == "EXPENSE")
-        & ~df["category_main"].isin(["Housing", "Government"])
+        & ~df["category_main"].isin(TOP_EXPENSES_EXCLUDE_MAIN)
     ].copy()
 
     date_max = df["date"].max()

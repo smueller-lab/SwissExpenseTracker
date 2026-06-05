@@ -15,8 +15,9 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
             & (df["category_main"].isin(NET_BALANCE_EXPENSE_EXCLUDE_MAIN))
         )
     ]
+    df = df[df["date"].notna()]
     df["Month"] = df["date"].dt.to_period("M")
-    df["Year"] = df["date"].dt.year
+    df["Year"] = df["date"].dt.year.astype(int)
 
     by_month = (
         df.groupby(["Month", "transaction_type"])["amount"]

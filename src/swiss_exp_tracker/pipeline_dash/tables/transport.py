@@ -20,7 +20,8 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     )
     pdf = pdf[~exclude_mask].copy()
 
-    pdf["Year"] = pdf["date"].dt.year
+    pdf = pdf[pdf["date"].notna()].copy()
+    pdf["Year"] = pdf["date"].dt.year.astype(int)
     pdf["Month_num"] = pdf["date"].dt.month
     pdf["category_transport"] = pdf["category_second"].fillna(pdf["category_main"])
 

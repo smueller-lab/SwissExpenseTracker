@@ -4,13 +4,14 @@ import sqlite3
 
 import pandas as pd
 
+from swiss_exp_tracker.db.sql import positions
 from swiss_exp_tracker.pipeline_ingestion.config import POSITIONS_DB_PATH
 
 
 class PositionsLoader:
     def __init__(self) -> None:
         with sqlite3.connect(str(POSITIONS_DB_PATH)) as con:
-            self.pdf = pd.read_sql("SELECT * FROM positions_use", con)
+            self.pdf = pd.read_sql(positions.get_positions_use.sql, con)
 
         self.pdf["date"] = pd.to_datetime(self.pdf["date"])
         self.pdf["pnl_chf"] = self.pdf["pnl_chf"].fillna(0.0)

@@ -39,6 +39,9 @@ class MerchantManager:
         with trace("Research trace", trace_id=trace_id):
             # 1. Use merchant and person flag from refined DB row
             merchant_name = (transaction.merchant or "").strip()
+            if not merchant_name:
+                return
+
             merchant = MerchantExtractor(
                 merchant=merchant_name,
                 is_person=bool(transaction.is_person),

@@ -8,6 +8,7 @@ from datetime import datetime
 
 from tqdm import tqdm
 
+from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import Transaction
 from swiss_exp_tracker.pipeline_agentic.merchant_manager import MerchantManager
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
@@ -26,21 +27,7 @@ def load_pending_transactions() -> list[Transaction]:
 
     with get_connection() as db:
         db.row_factory = None  # Reset row factory to get tuples
-        rows = db.execute(
-            """
-            SELECT 
-                id,
-                date,
-                merchant_normalized,
-                booking_text,
-                reference,
-                amount,
-                is_person
-            FROM transactions_rfn
-            WHERE enrichment_status = 'pending'
-            ORDER BY created_at ASC
-            """
-        ).fetchall()
+        rows = list(agentic.get_pending_transactions(db))
 
     for row in rows:
         (

@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from swiss_exp_tracker.db.sql import positions
 from swiss_exp_tracker.pipeline_ingestion.config import LANDING_ZONE_DIR
 from swiss_exp_tracker.pipeline_ingestion.data_models.position import (
     SwissquotePositionRaw,
@@ -32,6 +33,7 @@ _FILENAME_RE = re.compile(r"Positions_(\d+)_(\d{2})(\d{2})(\d{4})_\d{2}_\d{2}\.x
 
 
 def _cell_str(value: object) -> str:
+    """Convert a cell value to a stripped string, returning '' for None or NaN."""
     if value is None:
         return ""
     if isinstance(value, float) and math.isnan(value):
@@ -60,10 +62,11 @@ def _parse_filename(filename: str) -> tuple[str, str]:
 
 
 def _parse_positions_xls(file_path: Path) -> list[SwissquotePositionRaw]:
+    """Parse a Swissquote XLS positions file into a list of SwissquotePositionRaw models."""
     account_id, snapshot_date = _parse_filename(file_path.name)
 
     frame = pd.read_excel(file_path, engine="xlrd", header=None)
-    positions: list[SwissquotePositionRaw] = []
+    parsed_positions: list[SwissquotePositionRaw] = []
     current_asset_class = ""
 
     for _, row in frame.iloc[1:].iterrows():
@@ -79,7 +82,7 @@ def _parse_positions_xls(file_path: Path) -> list[SwissquotePositionRaw]:
         # Subtotal/total rows (any language) always have a non-numeric quantity.
         if s1 and not s0 and _is_numeric(row.iloc[2]):
             name = _cell_str(row.iloc[13]) if len(row) > 13 else ""
-            positions.append(
+            parsed_positions.append(
                 SwissquotePositionRaw(
                     symbol=s1,
                     asset_class=current_asset_class,
@@ -99,10 +102,11 @@ def _parse_positions_xls(file_path: Path) -> list[SwissquotePositionRaw]:
                 )
             )
 
-    return positions
+    return parsed_positions
 
 
 def run_positions_landing() -> dict[str, int]:
+    """Process new Swissquote XLS files: parse, register, and batch-insert to positions_lnd."""
     create_positions_tables()
     folder = LANDING_ZONE_DIR / SourceType.SWISSQUOTE.value.lower()
     new_files = get_new_positions_files(folder)
@@ -118,19 +122,17 @@ def run_positions_landing() -> dict[str, int]:
         mark_positions_file_processed(file_path, len(rows), "landing")
         file_id = get_latest_positions_file_id(file_path.name)
 
+        now = datetime.now().isoformat()
+        rows_data = [
+            {
+                "file_id": file_id,
+                "raw_json": json.dumps(row.model_dump(mode="json")),
+                "created_at": now,
+            }
+            for row in rows
+        ]
         with get_positions_connection() as db:
-            for row in rows:
-                db.execute(
-                    """
-                    INSERT INTO positions_lnd (file_id, raw_json, created_at, processed)
-                    VALUES (?, ?, ?, 0)
-                    """,
-                    (
-                        file_id,
-                        json.dumps(row.model_dump(mode="json")),
-                        datetime.now().isoformat(),
-                    ),
-                )
+            positions.insert_positions_lnd(db, rows_data)
 
         records_inserted += len(rows)
         files_processed += 1

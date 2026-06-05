@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_dash.config import GLOBAL_EXCLUDE
 from swiss_exp_tracker.pipeline_dash.tables import balance
 from swiss_exp_tracker.pipeline_dash.tables import car
@@ -34,44 +35,23 @@ def _ensure_balance_chf(con: sqlite3.Connection) -> None:
     Runs as part of run_dashboard_pipeline so the dashboard can build correctly
     even when called on a DB that pre-dates the balance_chf column.
     """
-    rfn_cols = {
-        row[1] for row in con.execute("PRAGMA table_info(transactions_rfn)").fetchall()
-    }
+    rfn_cols = {row[1] for row in transactions.get_rfn_column_names(con)}
     if "balance_chf" not in rfn_cols:
-        con.execute("ALTER TABLE transactions_rfn ADD COLUMN balance_chf REAL")
-        rows = con.execute(
-            """
-            SELECT rfn.id, raw.raw_json
-            FROM transactions_rfn rfn
-            JOIN transactions_raw raw ON raw.id = rfn.raw_id
-            WHERE rfn.source_type = 'ZKB_DEBIT'
-            """
-        ).fetchall()
+        con.execute(transactions.alter_rfn_add_balance_chf.sql)
+        rows = transactions.get_rfn_rows_for_balance_backfill(con)
         for row_id, raw_json_str in rows:
             data = json.loads(raw_json_str)
             balance_val = data.get("Balance CHF")
             if balance_val is not None:
-                con.execute(
-                    "UPDATE transactions_rfn SET balance_chf = ? WHERE id = ?",
-                    (float(balance_val), row_id),
+                transactions.set_rfn_balance_chf(
+                    con, balance_chf=float(balance_val), rfn_id=row_id
                 )
 
-    use_cols = {
-        row[1] for row in con.execute("PRAGMA table_info(transactions_use)").fetchall()
-    }
+    use_cols = {row[1] for row in transactions.get_use_column_names(con)}
     if "balance_chf" not in use_cols:
-        con.execute("ALTER TABLE transactions_use ADD COLUMN balance_chf REAL")
+        con.execute(transactions.alter_transactions_use_add_balance_chf.sql)
 
-    con.execute(
-        """
-        UPDATE transactions_use
-        SET balance_chf = (
-            SELECT t.balance_chf FROM transactions_rfn t
-            WHERE t.reference = transactions_use.reference
-        )
-        WHERE balance_chf IS NULL
-        """
-    )
+    transactions.backfill_transactions_use_balance_chf(con)
     con.commit()
 
 
@@ -89,7 +69,7 @@ def run_dashboard_pipeline(db_path: Path | None = None) -> None:
     with sqlite3.connect(db_path) as con:
         _ensure_balance_chf(con)
 
-        df = pd.read_sql("SELECT * FROM transactions_use", con)
+        df = pd.read_sql(transactions.get_transactions_use.sql, con)
         df["date"] = pd.to_datetime(df["date"])
 
         for cat_main_val, cat_second_val, merchant_substr in GLOBAL_EXCLUDE:
