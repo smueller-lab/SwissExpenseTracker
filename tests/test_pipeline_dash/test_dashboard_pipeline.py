@@ -45,9 +45,8 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
     "dash_cat_main": {"category_main", "amount", "perc", "Year"},
     "dash_stats": {
         "Balance_current",
-        "Balance_net_3months",
-        "Balance_net_12months",
         "Balance_net_currentYear",
+        "Expense_avg_12months",
     },
     "dash_top_category": {"category_main", "amount_MonthLast", "MonthLast"},
     "dash_top_expenses": {"date", "amount", "merchant", "category_main"},
