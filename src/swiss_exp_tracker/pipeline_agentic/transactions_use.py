@@ -10,7 +10,6 @@ only those not already present in the destination table (idempotent on re-runs).
 
 from __future__ import annotations
 
-import os
 import sqlite3
 
 from tqdm import tqdm
@@ -29,7 +28,7 @@ from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
-
+from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
 # Merchant-name substrings + exact amounts → (category_main, category_second)
 AMOUNT_CORRECTIONS: list[tuple[list[str], list[float], tuple[str, str]]] = [
@@ -60,14 +59,9 @@ AMOUNT_THRESHOLD_CORRECTIONS: list[tuple[list[str], float, tuple[str, str]]] = [
 ]
 
 
-oj = os.path.join
-
-
 def run_transactions_use() -> None:
     """Join transactions_rfn + merchant_metadata_rfn → transactions_use."""
-    path_db = oj("./database", "transactions.db")
-
-    with sqlite3.connect(path_db) as db:
+    with get_connection() as db:
         db.row_factory = sqlite3.Row
 
         agentic.create_transactions_use_table(db)
@@ -93,9 +87,7 @@ def run_transactions_use() -> None:
 
 def _sync_categories_from_rfn() -> None:
     """Update existing transactions_use rows whose rfn categories changed."""
-    path_db = oj("./database", "transactions.db")
-
-    with sqlite3.connect(path_db) as db:
+    with get_connection() as db:
         db.row_factory = sqlite3.Row
 
         rows = list(agentic.get_transactions_use_sync_candidates(db))
@@ -118,9 +110,7 @@ def _sync_categories_from_rfn() -> None:
 
 def _apply_amount_corrections() -> None:
     """Apply merchant+amount based category overrides to transactions_use."""
-    path_db = oj("./database", "transactions.db")
-
-    with sqlite3.connect(path_db) as db:
+    with get_connection() as db:
         db.row_factory = sqlite3.Row
         rows = agentic.get_all_transactions_use_for_corrections(db)
 
@@ -186,14 +176,12 @@ def _apply_shared_housing_roommate_offset() -> None:
     repeated runs always produce the same result even if income rows were
     re-inserted by a previous run_transactions_use() call.
     """
-    path_db = oj("./database", "transactions.db")
-
     # dynamic LIKE clause from config list: cannot be expressed as static aiosql SQL
     like_clauses = " OR ".join(
         f"lower(tu.merchant) LIKE '%{p.lower()}%'" for p in HOUSING_RENT_2
     )
 
-    with sqlite3.connect(path_db) as db:
+    with get_connection() as db:
         db.row_factory = sqlite3.Row
 
         # dynamic LIKE clause from config list: cannot be expressed as static aiosql SQL
@@ -262,9 +250,7 @@ def _apply_shared_housing_roommate_offset() -> None:
 
 def _backfill_balance_chf_use() -> None:
     """Propagate balance_chf from transactions_rfn into existing transactions_use rows."""
-    path_db = oj("./database", "transactions.db")
-
-    with sqlite3.connect(path_db) as db:
+    with get_connection() as db:
         transactions.backfill_transactions_use_balance_chf(db)
         db.commit()
 

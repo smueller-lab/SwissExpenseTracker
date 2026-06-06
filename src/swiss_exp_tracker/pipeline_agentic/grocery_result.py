@@ -6,7 +6,6 @@ import sqlite3
 from swiss_exp_tracker.db.sql import groceries
 from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCategoryResult
 
-
 oj = os.path.join
 
 __all__ = ["GroceryResult"]

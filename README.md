@@ -2,7 +2,6 @@
 
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![Dash](https://img.shields.io/badge/Dashboard-Plotly_Dash-informational)
-![AI](https://img.shields.io/badge/AI-OpenAI_Agents-blueviolet)
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
 ![License](https://img.shields.io/badge/license-GPL--v3-blue)
 
@@ -10,7 +9,7 @@
 
 💡 **Status:** This project is under active development. Features may change, and some components may not be fully stable yet. Feedback is welcome!
 
-Ever reach the end of the month, open your banking app, and just stare — quietly horrified — who stealed all my money? I'm so glad you ask and congrats for finding this page because the pain is finally over! 🎉
+Ever reach the end of the month, open your banking app, and you are asking yourself: where did all my money go? I'm so glad you ask and congrats for finding this page because the pain is finally over! 🎉
 
 **Swiss Expense Tracker** turns that monthly existential crisis into actual answers. Drop your bank exports in a folder 📂, run one command ⚡, and an AI agent pipeline 🤖 labels every transaction, breaks down your spending by merchant and category 🏷️, tracks your investments 📈, and serves it all up in a slick interactive dashboard ✨. You'll know exactly why you're broke 💸. Which is somehow better than not knowing 🙃
 
@@ -33,7 +32,7 @@ Ever reach the end of the month, open your banking app, and just stare — quiet
   - [🖥️ Launch the dashboard](#-launch-the-dashboard)
 - [🔎 Validate pipeline results](#-validate-pipeline-results)
   - [✏️ Post-processing](#️-post-processing)
-  - [🗄️ Databases & Vector stores](#️-databases--vector-stores)
+  - [🗄️ Databases &amp; Vector stores](#️-databases--vector-stores)
 - [📚 Dev Docs](#-dev-docs)
 - [🛠️ Tech Stack](#-tech-stack)
 - [📄 Licence](#-licence)
@@ -209,7 +208,7 @@ $DATA_DIR/
 
 You only need keys for the providers you want to use — the pipeline tries them in order and skips any that are unconfigured. **Tavily** has a generous free tier and is the recommended starting point.
 
-For OpenAI, `gpt-4.1-mini` is used by default — inexpensive and accurate enough for categorisation. Check [OpenAI pricing](https://platform.openai.com/docs/pricing) before running.
+For OpenAI, `gpt-4o-mini` is used by default — inexpensive and accurate enough for categorisation. Check [OpenAI pricing](https://platform.openai.com/docs/pricing) before running.
 
 ---
 
@@ -320,7 +319,7 @@ Detailed technical documentation lives in `.dev-docs/`:
 | Component              | Technology                                |
 | ---------------------- | ----------------------------------------- |
 | Pipeline & data models | Python 3.12, Pydantic v2, SQLite          |
-| AI agents              | OpenAI Agents SDK (`gpt-4.1-mini`)      |
+| AI agents              | OpenAI Agents SDK (`gpt-4o-mini`)       |
 | Merchant cache         | ChromaDB (cosine-similarity vector store) |
 | Web search             | Tavily, Brave Search, Scrape.do, Exa      |
 | Dashboard              | Plotly Dash, Plotly                       |

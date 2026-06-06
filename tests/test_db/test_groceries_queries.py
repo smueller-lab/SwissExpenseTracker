@@ -10,7 +10,6 @@ from pathlib import Path
 from swiss_exp_tracker.db.sql import groceries as gq
 from swiss_exp_tracker.db.sql import transactions
 
-
 # ---------------------------------------------------------------------------
 # Factories
 # ---------------------------------------------------------------------------

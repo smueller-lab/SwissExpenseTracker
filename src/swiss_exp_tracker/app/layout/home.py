@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pandas as pd
+
 from dash import html
 
 from swiss_exp_tracker.app.components.cards import make_CategoryDonut_card
@@ -11,20 +13,33 @@ from swiss_exp_tracker.app.components.cards import make_table_card
 from swiss_exp_tracker.app.components.cards import make_TopCategory_card
 from swiss_exp_tracker.app.vis.figure import Fig
 
-
 F = Fig()
 
 
 def layout(data: Any) -> Any:
-    z_TopCategory = data.pdf_TopCat.sort_values(
-        by="amount_MonthLast", ascending=False
-    ).iloc[0]
+    if data.pdf_TopCat.empty:
+        top_category: str = "—"
+        month_last: pd.Timestamp = pd.Timestamp.today()
+        amount_month_last: float = 0.0
+        amount_month_prev: float = 0.0
+        amount_avg_12m: float = 0.0
+        diff_prev_pct: float = 0.0
+        diff_12m_pct: float = 0.0
+    else:
+        _row = data.pdf_TopCat.sort_values(by="amount_MonthLast", ascending=False).iloc[
+            0
+        ]
+        top_category = str(_row["category_main"])
+        month_last = _row["MonthLast"].to_timestamp()
+        amount_month_last = float(_row["amount_MonthLast"])
+        amount_month_prev = float(_row["amount_MonthPrev"])
+        amount_avg_12m = float(_row["amount_AVG_12m"])
+        diff_prev_pct = float(_row["diff_prev_pct"])
+        diff_12m_pct = float(_row["diff_12m_pct"])
 
-    TopCategory = z_TopCategory["category_main"]
-    MonthLast = z_TopCategory["MonthLast"]
-    MonthLast_pretty = z_TopCategory["MonthLast"].strftime("%Y-%B")
+    month_last_pretty: str = month_last.strftime("%Y-%B")
     pdf_TopExpenses_Category_Month = data.get_TopExpenses_Category_Month(
-        Category=TopCategory, Month=MonthLast
+        Category=top_category, Month=month_last
     )
 
     return html.Div(
@@ -53,17 +68,17 @@ def layout(data: Any) -> Any:
             ##
             make_TopCategory_card(
                 title="Top Category",
-                MonthLast=MonthLast_pretty,
-                Category=z_TopCategory["category_main"],
-                amount_MonthLast=z_TopCategory["amount_MonthLast"],
-                amount_MonthPrev=z_TopCategory["amount_MonthPrev"],
-                amount_12m_avg=z_TopCategory["amount_AVG_12m"],
-                diff_prev_pct=z_TopCategory["diff_prev_pct"],
-                diff_12m_pct=z_TopCategory["diff_12m_pct"],
+                MonthLast=month_last_pretty,
+                Category=top_category,
+                amount_MonthLast=amount_month_last,
+                amount_MonthPrev=amount_month_prev,
+                amount_12m_avg=amount_avg_12m,
+                diff_prev_pct=diff_prev_pct,
+                diff_12m_pct=diff_12m_pct,
                 width=4,
             ),
             make_table_card(
-                title=f"Top Expenses - {TopCategory} - {MonthLast_pretty}",
+                title=f"Top Expenses - {top_category} - {month_last_pretty}",
                 s_col=data.get_scol_DashTable(pdf_TopExpenses_Category_Month),
                 data=pdf_TopExpenses_Category_Month.to_dict("records"),
                 width=8,

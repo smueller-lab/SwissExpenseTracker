@@ -11,7 +11,6 @@ from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceT
 from swiss_exp_tracker.pipeline_ingestion.db import create_all_tables
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
-
 TRACKABLE_EXTENSIONS = {".csv", ".xlsx", ".xls"}
 
 

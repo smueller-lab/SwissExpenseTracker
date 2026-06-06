@@ -13,7 +13,6 @@ from swiss_exp_tracker.app.dash_components import format_diff
 from swiss_exp_tracker.app.dash_components import get_balance_class
 from swiss_exp_tracker.app.dash_components import make_card_title
 
-
 vis = VIS()
 
 

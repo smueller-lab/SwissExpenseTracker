@@ -10,7 +10,6 @@ from agents import output_guardrail
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import MerchantMetaData
 
-
 INSTRUCTIONS = """
 ## Role
 You are an expert in categorizing Merchants.

@@ -6,7 +6,6 @@ import plotly.io as pio  # pyright: ignore[reportMissingTypeStubs]
 
 import swiss_exp_tracker.app.vis.ploty_template  # pyright: ignore[reportUnusedImport] # noqa: F401
 
-
 pio.templates.default = "myTemp"
 
 _COLORS = [
@@ -23,7 +22,34 @@ _COLORS = [
 ]
 
 
+def _make_no_data_fig(label: str) -> go.Figure:
+    """Return a styled placeholder figure when data is unavailable."""
+    return go.Figure(
+        layout=go.Layout(
+            paper_bgcolor="#12263A",
+            plot_bgcolor="#12263A",
+            annotations=[
+                go.layout.Annotation(
+                    text=label,
+                    xref="paper",
+                    yref="paper",
+                    x=0.5,
+                    y=0.5,
+                    showarrow=False,
+                    font={"color": "white", "size": 16},
+                )
+            ],
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+        )
+    )
+
+
 def fig_allocation_donut(pdf_latest: pd.DataFrame) -> go.Figure:
+    if pdf_latest.empty:
+        return _make_no_data_fig(
+            "No Swissquote data found. Import your positions data first."
+        )
     total = pdf_latest["value_chf"].sum()
     pct = (
         pdf_latest["value_chf"] / total * 100
@@ -60,6 +86,10 @@ def fig_allocation_donut(pdf_latest: pd.DataFrame) -> go.Figure:
 
 
 def fig_portfolio_progression(pdf: pd.DataFrame) -> go.Figure:
+    if pdf.empty:
+        return _make_no_data_fig(
+            "No Swissquote data found. Import your positions data first."
+        )
     pdf_agg = pdf.groupby("date")[["value_chf", "invested_chf"]].sum().reset_index()
 
     fig = go.Figure()
@@ -101,6 +131,8 @@ def fig_portfolio_progression(pdf: pd.DataFrame) -> go.Figure:
 
 
 def fig_position_value(pdf: pd.DataFrame, symbols: list[str]) -> go.Figure:
+    if pdf.empty or not symbols:
+        return _make_no_data_fig("No position data available for the selected symbols.")
     fig = go.Figure()
     pdf_filtered = pdf[pdf["symbol"].isin(symbols)]
     for i, symbol in enumerate(symbols):
@@ -141,6 +173,8 @@ def fig_position_value(pdf: pd.DataFrame, symbols: list[str]) -> go.Figure:
 
 
 def fig_position_pct(pdf: pd.DataFrame, symbols: list[str]) -> go.Figure:
+    if pdf.empty or not symbols:
+        return _make_no_data_fig("No position data available for the selected symbols.")
     fig = go.Figure()
     pdf_filtered = pdf[pdf["symbol"].isin(symbols)]
     for i, symbol in enumerate(symbols):

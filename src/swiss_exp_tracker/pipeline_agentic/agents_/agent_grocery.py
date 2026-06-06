@@ -10,7 +10,6 @@ from agents import output_guardrail
 from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCategoryData
 from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCategoryMain
 
-
 INSTRUCTIONS = """
 ## Role
 You are an expert in categorising Swiss grocery products.

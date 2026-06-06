@@ -27,7 +27,10 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
             pdf = pdf[pdf["date"].dt.year == current_year]
 
         if pdf.empty:
-            return html.P("No data", className="kpi-value")
+            return html.P(
+                "No Swissquote data found. Import your positions data first.",
+                className="kpi-subtext",
+            )
 
         latest = pdf["date"].max()
         pdf_snap = pdf[pdf["date"] == latest]

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import plotly.io as pio  # pyright: ignore[reportMissingTypeStubs]
 
-
 myTemp = {
     "layout": {
         "template": "plotly_dark",

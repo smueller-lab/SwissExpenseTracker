@@ -7,6 +7,7 @@ from agents import ModelSettings
 from agents import function_tool
 from pydantic import BaseModel
 
+from swiss_exp_tracker.pipeline_agentic.web_search import API_KEYS
 from swiss_exp_tracker.pipeline_agentic.web_search import BRAVE_SEARCH_FREE_CREDIT_LIMIT
 from swiss_exp_tracker.pipeline_agentic.web_search import EXA_FREE_CREDIT_LIMIT
 from swiss_exp_tracker.pipeline_agentic.web_search import SCRAPE_DO_FREE_CREDIT_LIMIT
@@ -23,6 +24,10 @@ from swiss_exp_tracker.pipeline_agentic.web_search import save_scrape_do_usage
 from swiss_exp_tracker.pipeline_agentic.web_search import save_tavily_usage
 from swiss_exp_tracker.pipeline_agentic.web_search import scrape_do_web_search
 from swiss_exp_tracker.pipeline_agentic.web_search import tavily_web_search
+
+
+class AllProvidersExhaustedError(RuntimeError):
+    """Raised when all web-search providers are exhausted and no pay-per-use keys are set."""
 
 
 class WebSearchTool(Enum):
@@ -146,6 +151,19 @@ def search_web(query: str) -> SearchToolResult:
             save_exa_usage(_exa_free_credits_used)
         # Any EXA_UNAVAILABLE → fall through to as-you-go.
 
+    # ── 5 & 6. Pay-per-use fallbacks — only when at least one key is configured ─
+    if API_KEYS.brave_search_api_key is None and API_KEYS.exa_api_key is None:
+        return _tool_result(
+            summary=(
+                "SEARCH_UNAVAILABLE: all providers exhausted and no pay-per-use keys configured.\n"
+                "Free-tier limits: Tavily 1,000/month, Brave Search 1,000/month, "
+                "Scrape.do 1,000/month, Exa 1,000/month.\n"
+                "To continue: set BRAVE_SEARCH_API_KEY or EXA_API_KEY in .env for unlimited pay-per-use, "
+                "or wait for the monthly free-tier reset."
+            ),
+            tool_used=WebSearchTool.NO_WEBSEARCH,
+        )
+
     # ── 5. Brave Search as-you-go (pay-per-use fallback) ─────────────────────
     brave_result = brave_web_search(query)
     _brave_api_called = not any(
@@ -178,7 +196,7 @@ def search_web(query: str) -> SearchToolResult:
 
     return _tool_result(
         summary="SEARCH_UNAVAILABLE: all providers exhausted or unavailable.",
-        tool_used=WebSearchTool.BRAVE,
+        tool_used=WebSearchTool.NO_WEBSEARCH,
     )
 
 
