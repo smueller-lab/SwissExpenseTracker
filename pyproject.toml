@@ -33,10 +33,26 @@ black = "^25.1.0"
 mypy = "^1.15.0"
 pre-commit = "^4.2.0"
 types-tqdm = "^4.67.3.20260408"
+pytest = ">=7.0"
+pytest-cov = ">=4.0"
+pytest-asyncio = ">=0.23"
+pytest-mock = ">=3.0"
+selenium = ">=4.0"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
 build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "pytest-mock>=3.15.1",
+    "selenium>=4.44.0",
+    "psutil (>=7.2.2,<8.0.0)",
+    "multiprocess (>=0.70.19,<0.71.0)",
+]
 
 [tool.ruff]
 extend-exclude = []
@@ -83,9 +99,22 @@ ban-relative-imports = "all"
 [tool.ruff.lint.isort]
 force-single-line = true
 lines-between-types = 1
-lines-after-imports = 2
+lines-after-imports = -1
 known-first-party = ["swiss_exp_tracker"]
 required-imports = ["from __future__ import annotations"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = ["-ra", "-q", "--strict-markers", "--strict-config"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError"]
 
 [tool.black]
 line-length = 88

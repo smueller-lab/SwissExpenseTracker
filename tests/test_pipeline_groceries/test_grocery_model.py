@@ -11,7 +11,6 @@ import pytest
 from swiss_exp_tracker.pipeline_ingestion.data_models.grocery import GroceryItem
 from swiss_exp_tracker.pipeline_ingestion.data_models.grocery import GroceryUnit
 
-
 TEST_DATA_DIR = Path(__file__).resolve().parents[1] / "test_data"
 
 
@@ -25,9 +24,9 @@ def _make_row(**overrides: object) -> dict[str, object]:
     base: dict[str, object] = {
         "Datum": "17.05.2026",
         "Zeit": "09:04:29",
-        "Filiale": "M EX Altstetten",
-        "Kassennummer": "257",
-        "Transaktionsnummer": "51",
+        "Filiale": "filiale_2",
+        "Kassennummer": "2572",
+        "Transaktionsnummer": "511",
         "Artikel": "Vollmilch Past 1l",
         "Menge": "1",
         "Aktion": "0.00",
@@ -41,7 +40,7 @@ def test_german_aliases_parsed() -> None:
     item = GroceryItem.model_validate(_make_row())
     assert item.date == date(2026, 5, 17)
     assert item.time == time(9, 4, 29)
-    assert item.location == "M EX Altstetten"
+    assert item.location == "filiale_2"
     assert item.article == "Vollmilch Past 1l"
     assert item.quantity == 1.0
     assert item.discount == 0.0

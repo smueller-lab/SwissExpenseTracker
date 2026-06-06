@@ -37,13 +37,12 @@ nosetests.xml
 *.cover
 *.py,cover
 .hypothesis/
+tests/test_web_search/cassettes
 
 # My data files
-Pipeline/cfg_cleaning.py
 app/data/*.json
 
 # database files
-merchant_db/
 merchant_vector_store/
 grocery_vector_store/
 database/

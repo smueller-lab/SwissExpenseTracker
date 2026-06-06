@@ -6,7 +6,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
@@ -49,7 +48,6 @@ from swiss_exp_tracker.pipeline_ingestion.stages.transactions.stage_03_refined i
 from swiss_exp_tracker.pipeline_ingestion.stages.transactions.stage_04_postprocess import (
     run_postprocess,
 )
-
 
 logger = logging.getLogger(__name__)
 

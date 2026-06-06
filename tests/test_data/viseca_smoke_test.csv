@@ -1,0 +1,2 @@
+TransactionId,CardId,Date,ValutaDate,Amount,Currency,OriginalAmount,OriginalCurrency,MerchantName,MerchantPlace,MerchantCountry,StateType,Details,Type,Exchange Rate
+T_SMOKE_1,723,2025-01-15 10:00:00,2025-01-16 00:00:00,55.0,CHF,55.0,CHF,Coffee Shop,Zurich,CHE,BOOKED,Coffee Shop,purchase,1

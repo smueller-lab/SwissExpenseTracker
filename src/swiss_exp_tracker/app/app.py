@@ -9,9 +9,17 @@ from swiss_exp_tracker.app.layout.app import create_app_layout
 from swiss_exp_tracker.pipeline_dash.pipeline import run_dashboard_pipeline
 
 
-app = dash.Dash(__name__, suppress_callback_exceptions=True, title="Expense Tracker")
+def create_app_factory(
+    data_loader: DataLoader, pos_loader: PositionsLoader
+) -> dash.Dash:
+    """Return a configured Dash app instance wired to the given data loaders."""
+    _app = dash.Dash(
+        __name__, suppress_callback_exceptions=True, title="Expense Tracker"
+    )
+    _app.layout = create_app_layout()
+    register_all_callbacks(_app, data_loader, pos_loader)
+    return _app
 
-server = app.server
 
 # ----- Rebuild dash_* tables from latest transactions_use -----
 run_dashboard_pipeline()
@@ -20,13 +28,8 @@ run_dashboard_pipeline()
 data = DataLoader()
 pos_data = PositionsLoader()
 
-
-# ----- Set layout -----
-app.layout = create_app_layout()
-
-
-# ----- register callbacks -----
-register_all_callbacks(app, data, pos_data)
+app = create_app_factory(data, pos_data)
+server = app.server
 
 
 # ----- Run app -----

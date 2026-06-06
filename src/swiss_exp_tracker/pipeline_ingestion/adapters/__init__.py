@@ -4,5 +4,4 @@ from swiss_exp_tracker.pipeline_ingestion.adapters.adapters import RevolutAdapte
 from swiss_exp_tracker.pipeline_ingestion.adapters.adapters import VisecaAdapter
 from swiss_exp_tracker.pipeline_ingestion.adapters.adapters import ZKBDebitAdapter
 
-
 __all__ = ["RevolutAdapter", "VisecaAdapter", "ZKBDebitAdapter"]

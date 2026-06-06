@@ -1,27 +1,19 @@
 from __future__ import annotations
 
-import os
-import sqlite3
-
 from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import MetadataResult
-
-
-oj = os.path.join
+from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
 __all__ = ["MerchantResult", "MetadataResult"]
 
 
 class MerchantResult:
     def __init__(self) -> None:
-        self.dr_db = "./database"
-        self.path_db = oj(self.dr_db, "transactions.db")
-
-        os.makedirs(self.dr_db, exist_ok=True)
+        pass
 
     def save_merchant_result(self, merchant_result: MetadataResult) -> None:
         """Persist one raw merchant enrichment result to the DB."""
-        with sqlite3.connect(self.path_db) as db:
+        with get_connection() as db:
             agentic.create_merchant_metadata_raw_table(db)
             agentic.insert_merchant_metadata_raw(
                 db,
@@ -45,6 +37,6 @@ class MerchantResult:
         """Update transactions_rfn.enrichment_status to 'enriched' for the given row id."""
         if refined_id is None:
             return
-        with sqlite3.connect(self.path_db) as db:
+        with get_connection() as db:
             agentic.mark_transaction_enriched(db, refined_id=refined_id)
             db.commit()

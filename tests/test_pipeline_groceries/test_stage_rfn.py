@@ -62,7 +62,7 @@ def _make_raw_json(
     discount: float = 0.0,
     date: str = "2026-05-17",
     time_str: str = "09:04:29",
-    location: str = "M EX Altstetten",
+    location: str = "location_1",
 ) -> str:
     return json.dumps(
         {
@@ -179,7 +179,7 @@ def test_rfn_bonus_rows_not_inserted(tmp_db: Path) -> None:
         {
             "date": "2026-05-17",
             "time": "09:04:29",
-            "location": "M EX Altstetten",
+            "location": "location_1",
             "article": "Cumulus Bonus",
             "quantity": 1.0,
             "discount": 0.0,

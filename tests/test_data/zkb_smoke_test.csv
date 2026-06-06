@@ -1,0 +1,4 @@
+Date,Booking text,Curr,Amount details,ZKB reference,Reference number,Debit CHF,Credit CHF,Value date,Balance CHF,Payment purpose,Details
+12.01.2025,Debit TWINT: Migros,,,L99101,,45.20,,12.01.2025,5000,,
+13.01.2025,Salary: ACME AG,,,L99102,,,3500.00,13.01.2025,8500,,
+14.01.2025,Purchase ZKB Visa Debit card: Coop,,,L99103,,23.50,,14.01.2025,8476.50,,

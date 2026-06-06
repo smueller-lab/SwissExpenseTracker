@@ -12,7 +12,6 @@ from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.db.sql import groceries as gq
 from swiss_exp_tracker.db.sql import transactions
 
-
 # ---------------------------------------------------------------------------
 # Fixture — standalone SQLite DB with all required tables
 # ---------------------------------------------------------------------------

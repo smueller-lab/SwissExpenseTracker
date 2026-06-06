@@ -28,7 +28,6 @@ from swiss_exp_tracker.pipeline_ingestion.file_tracker_positions import (
     mark_positions_file_processed,
 )
 
-
 _FILENAME_RE = re.compile(r"Positions_(\d+)_(\d{2})(\d{2})(\d{4})_\d{2}_\d{2}\.xls")
 
 

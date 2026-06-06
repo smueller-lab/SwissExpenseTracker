@@ -11,6 +11,9 @@ from agents.exceptions import OutputGuardrailTripwireTriggered
 from tqdm import tqdm
 
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_metadata import metadata_agent
+from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import (
+    AllProvidersExhaustedError,
+)
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import SearchToolResult
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import WebSearchTool
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import summary_agent
@@ -134,10 +137,13 @@ class MerchantManager:
     ) -> SearchToolResult:
         """Get merchant summary. Returns (summary, search_tool_used)."""
         try:
-            result = await Runner.run(
+            run_result = await Runner.run(
                 summary_agent, merchant.model_dump_json(), max_turns=10
             )
-            return result.final_output_as(SearchToolResult)
+            search_result = run_result.final_output_as(SearchToolResult)
+            if search_result.tool_used == WebSearchTool.NO_WEBSEARCH:
+                raise AllProvidersExhaustedError(search_result.summary)
+            return search_result
         except MaxTurnsExceeded:
             tqdm.write(
                 f"[WARN] MaxTurnsExceeded for summary of '{merchant.merchant}' — returning fallback"
@@ -180,9 +186,14 @@ class MerchantManager:
         tqdm.write(
             f"[WARN] All {max_retries} attempts failed for '{merchant.merchant}' — returning fallback"
         )
-        return MerchantMetaData(
+        metadata = MerchantMetaData(
             name=merchant.merchant,
             category_main=None,
             category_second=None,
             city=None,
         )
+        tqdm.write(
+            f"[WARN] '{merchant.merchant}' — no category found after {max_retries} retries, "
+            "saved with category_main=None"
+        )
+        return metadata
