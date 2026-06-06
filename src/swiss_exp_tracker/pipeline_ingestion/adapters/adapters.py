@@ -20,7 +20,6 @@ from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
 )
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import ZKBTransaction
 
-
 S = TypeVar("S")
 
 

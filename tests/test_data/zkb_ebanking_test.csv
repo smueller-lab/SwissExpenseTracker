@@ -1,0 +1,4 @@
+Date,Booking text,Curr,Amount details,ZKB reference,Reference number,Debit CHF,Credit CHF,Value date,Balance CHF,Payment purpose,Details
+,Debit eBanking (1),,,L99001,,,,,,,
+15.01.2025,Salary payment: ACME Corp,CHF,2500,L99001-1,,,,15.01.2025,15000,,
+15.01.2025,Utility payment: EWZ,CHF,85,L99001-2,,,,15.01.2025,15000,,

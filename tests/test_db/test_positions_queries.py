@@ -9,7 +9,6 @@ from pathlib import Path
 
 from swiss_exp_tracker.db.sql import positions as pos_sql
 
-
 # ---------------------------------------------------------------------------
 # Factories
 # ---------------------------------------------------------------------------

@@ -4,7 +4,6 @@ import sqlite3
 
 import pandas as pd
 
-
 CAR_EXCLUDE_SECOND: list[str] = ["Purchase", "Car Rental"]
 
 

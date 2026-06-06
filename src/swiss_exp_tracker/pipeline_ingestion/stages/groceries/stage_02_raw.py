@@ -11,7 +11,6 @@ from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceT
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 from swiss_exp_tracker.pipeline_ingestion.db_groceries import create_grocery_tables
 
-
 _SOURCE_TYPE = SourceType.MIGROS_GROCERY
 
 

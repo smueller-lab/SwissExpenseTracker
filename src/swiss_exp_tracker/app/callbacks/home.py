@@ -7,7 +7,6 @@ from dash import Output
 
 from swiss_exp_tracker.app.vis.figure import Fig
 
-
 F = Fig()
 
 

@@ -182,15 +182,19 @@ class DataLoader:
                 else 50.0
             )
 
-    def get_TopExpenses_Category_Month(self, Category: str, Month: str) -> pd.DataFrame:
+    def get_TopExpenses_Category_Month(
+        self, Category: str, Month: pd.Timestamp
+    ) -> pd.DataFrame:
+        """Return top 7 expenses for Category in the month of Month."""
         pdf = self.pdf_Master.copy()
         pdf["Month"] = pdf["date"].dt.to_period("M")
         pdf["Date"] = pdf["date"].dt.strftime("%d-%m-%Y")
+        month_period = pd.Period(Month, "M")
 
         pdf = pdf[
             (pdf["category_main"] == Category)
             & (pdf["transaction_type"] == "EXPENSE")
-            & (pdf["Month"] == Month)
+            & (pdf["Month"] == month_period)
         ].reset_index(drop=True)
 
         pdf = pdf.sort_values(by="amount_CHF", ascending=False).head(7)

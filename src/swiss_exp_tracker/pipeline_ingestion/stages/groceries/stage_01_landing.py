@@ -17,7 +17,6 @@ from swiss_exp_tracker.pipeline_ingestion.db_groceries import create_grocery_tab
 from swiss_exp_tracker.pipeline_ingestion.file_tracker import get_new_files
 from swiss_exp_tracker.pipeline_ingestion.file_tracker import mark_file_processed
 
-
 _SOURCE_TYPE = SourceType.MIGROS_GROCERY
 
 

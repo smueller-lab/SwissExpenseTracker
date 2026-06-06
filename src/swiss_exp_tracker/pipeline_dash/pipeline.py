@@ -25,7 +25,6 @@ from swiss_exp_tracker.pipeline_dash.tables import top_expenses
 from swiss_exp_tracker.pipeline_dash.tables import transport
 from swiss_exp_tracker.pipeline_dash.tables import vacation
 
-
 logger = logging.getLogger(__name__)
 
 

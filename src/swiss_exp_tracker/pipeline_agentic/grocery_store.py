@@ -12,7 +12,6 @@ from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCatego
 from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCategoryDetail
 from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCategoryMain
 
-
 load_dotenv(override=True)
 
 PTH_CHROMA = "./grocery_vector_store"

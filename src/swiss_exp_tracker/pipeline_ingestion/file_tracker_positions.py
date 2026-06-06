@@ -9,7 +9,6 @@ from swiss_exp_tracker.db.sql import positions
 from swiss_exp_tracker.pipeline_ingestion.db_positions import create_positions_tables
 from swiss_exp_tracker.pipeline_ingestion.db_positions import get_positions_connection
 
-
 _TRACKABLE_EXTENSIONS = {".csv", ".xlsx", ".xls"}
 
 
