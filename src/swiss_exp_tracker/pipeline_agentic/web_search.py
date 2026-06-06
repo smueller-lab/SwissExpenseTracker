@@ -15,7 +15,6 @@ from pydantic import BaseModel
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
-
 load_dotenv(override=True)
 
 

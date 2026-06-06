@@ -28,7 +28,6 @@ from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
 
-
 oj = os.path.join
 
 # ---------------------------------------------------------------------------

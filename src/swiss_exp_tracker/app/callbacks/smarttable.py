@@ -6,7 +6,6 @@ from dash import Input
 from dash import Output
 from dash import html
 
-
 _EXCLUDED_SECOND = frozenset(
     [
         "Money Transfer",

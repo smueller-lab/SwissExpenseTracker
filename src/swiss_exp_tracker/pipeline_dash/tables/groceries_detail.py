@@ -5,7 +5,6 @@ import sqlite3
 import numpy as np
 import pandas as pd
 
-
 HEALTH_WEIGHTS: dict[str, float] = {
     "Fresh Produce": 1.0,
     "Dairy & Eggs": 0.6,

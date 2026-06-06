@@ -4,7 +4,6 @@ from pathlib import Path
 
 from user_config import DIR_DATA
 
-
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 INGESTION_DB_DIR = PROJECT_ROOT / "database"

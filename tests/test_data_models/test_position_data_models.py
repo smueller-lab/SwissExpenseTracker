@@ -12,7 +12,6 @@ from swiss_exp_tracker.pipeline_ingestion.data_models.position import (
     SwissquotePositionRaw,
 )
 
-
 TEST_DATA_DIR = Path(__file__).resolve().parents[1] / "test_data"
 
 
@@ -104,6 +103,6 @@ def test_positions_weights_sum_to_one() -> None:
         p.position_weight_pct for p in positions if p.position_weight_pct is not None
     ]
     assert weights, "No position weights found"
-    assert (
-        abs(sum(weights) - 1.0) < 0.01
-    ), f"Weights sum to {sum(weights):.4f}, expected 1.0"
+    assert abs(sum(weights) - 1.0) < 0.01, (
+        f"Weights sum to {sum(weights):.4f}, expected 1.0"
+    )

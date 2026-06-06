@@ -9,7 +9,6 @@ from swiss_exp_tracker.pipeline_agentic.grocery_result import GroceryResult
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 from swiss_exp_tracker.pipeline_ingestion.db_groceries import create_grocery_tables
 
-
 # (article LIKE pattern, correct category_main, correct category_detail)
 _CORRECTIONS: list[tuple[str, GroceryCategoryMain, GroceryCategoryDetail]] = [
     ("Aproz%", GroceryCategoryMain.BEVERAGES, GroceryCategoryDetail.WATER),

@@ -9,7 +9,6 @@ import pytest
 
 from swiss_exp_tracker.pipeline_dash.pipeline import run_dashboard_pipeline
 
-
 DASH_TABLES = [
     "dash_balance",
     "dash_groceries",

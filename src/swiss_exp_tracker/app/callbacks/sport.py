@@ -11,7 +11,6 @@ from dash import ctx
 from swiss_exp_tracker.app.libs import get_adaptive_dTick
 from swiss_exp_tracker.app.vis.figure import Fig
 
-
 F = Fig()
 
 _NPIXEL_SPORT = 60

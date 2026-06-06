@@ -17,7 +17,6 @@ from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
 )
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import ZKBTransaction
 
-
 if TYPE_CHECKING:
     from swiss_exp_tracker.pipeline_ingestion.adapters.adapters import BaseAdapter
 

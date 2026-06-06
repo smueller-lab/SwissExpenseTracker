@@ -11,15 +11,17 @@ from dotenv import load_dotenv
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import MerchantMetaData
 
-
 load_dotenv(override=True)
 
 PTH_CHROMA = "./merchant_vector_store"
 
 
 class MerchantStore:
-    def __init__(self) -> None:
-        self.client = chromadb.PersistentClient(path=PTH_CHROMA)
+    def __init__(self, path: str | None = None) -> None:
+        """Initialise the Chroma persistent store; path defaults to PTH_CHROMA."""
+        self.client = chromadb.PersistentClient(
+            path=path if path is not None else PTH_CHROMA
+        )
         self.ef = embedding_functions.DefaultEmbeddingFunction()
         self.collection = self.client.get_or_create_collection(
             name="merchants",

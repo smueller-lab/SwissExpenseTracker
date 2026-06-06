@@ -16,10 +16,32 @@ from swiss_exp_tracker.app.libs import get_heightFigure
 from swiss_exp_tracker.app.libs import get_rxAxis_Date
 from swiss_exp_tracker.app.libs import get_ryAxis
 
-
 vis = VIS()
 cfg = config()
 pio.templates.default = "myTemp"
+
+
+def _make_no_data_fig(label: str) -> go.Figure:
+    """Return a styled placeholder figure when data is unavailable."""
+    return go.Figure(
+        layout=go.Layout(
+            paper_bgcolor="#12263A",
+            plot_bgcolor="#12263A",
+            annotations=[
+                go.layout.Annotation(
+                    text=label,
+                    xref="paper",
+                    yref="paper",
+                    x=0.5,
+                    y=0.5,
+                    showarrow=False,
+                    font={"color": "white", "size": 16},
+                )
+            ],
+            xaxis={"visible": False},
+            yaxis={"visible": False},
+        )
+    )
 
 
 class Fig:
@@ -29,6 +51,9 @@ class Fig:
         ].layout.margin  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
 
     def fig_BalancePerDay(self, pdf_Balance: pd.DataFrame) -> go.Figure:
+        """Return a scatter figure showing daily account balance over time."""
+        if pdf_Balance.empty:
+            return _make_no_data_fig("balance progression")
         fig = go.Figure()
 
         fig.add_trace(
@@ -72,6 +97,9 @@ class Fig:
     def fig_BarGrocery(
         self, pdf_Grocery: pd.DataFrame, Freq: Literal["Monthly", "Yearly"]
     ) -> go.Figure:
+        """Return a stacked bar chart of grocery spending per merchant."""
+        if pdf_Grocery.empty:
+            return _make_no_data_fig("grocery spending")
         if Freq not in ["Monthly", "Yearly"]:
             raise ValueError(f"Invalid Freq={Freq}, Expected one of: Monthly, Yearly")
 
@@ -109,6 +137,9 @@ class Fig:
     def fig_BarGrocery_pct(
         self, pdf_Grocery: pd.DataFrame, Freq: Literal["Monthly", "Yearly"]
     ) -> go.Figure:
+        """Return a stacked bar chart of grocery merchant share as percentages."""
+        if pdf_Grocery.empty:
+            return _make_no_data_fig("grocery share")
         if Freq not in ["Monthly", "Yearly"]:
             raise ValueError(f"Invalid Freq={Freq}, Expected one of: Monthly, Yearly")
 
@@ -140,6 +171,9 @@ class Fig:
         return fig
 
     def fig_BoxGrocery(self, pdf: pd.DataFrame) -> go.Figure:
+        """Return a box plot of per-visit spend for each grocery merchant."""
+        if pdf.empty:
+            return _make_no_data_fig("grocery visits")
         fig = go.Figure()
 
         stick_Text = []
@@ -191,6 +225,9 @@ class Fig:
     def fig_BarFood(
         self, pdf_Food: pd.DataFrame, Freq: Literal["Monthly", "Yearly"]
     ) -> go.Figure:
+        """Return a stacked bar chart of food spending by category."""
+        if pdf_Food.empty:
+            return _make_no_data_fig("food spending")
         if Freq not in ["Monthly", "Yearly"]:
             raise ValueError(f"Invalid Freq={Freq}, Expected one of: Monthly, Yearly")
 
@@ -227,6 +264,9 @@ class Fig:
         return fig
 
     def fig_BoxFood(self, pdf: pd.DataFrame) -> go.Figure:
+        """Return a box plot of per-transaction spend for each food category."""
+        if pdf.empty:
+            return _make_no_data_fig("food categories")
         fig = go.Figure()
 
         stick_Text = []
@@ -278,6 +318,9 @@ class Fig:
         return fig
 
     def fig_DonutCategoryMain(self, pdf_CatMain: pd.DataFrame) -> go.Figure:
+        """Return a donut chart of total spend broken down by main expense category."""
+        if pdf_CatMain.empty:
+            return _make_no_data_fig("expense categories")
         fig = go.Figure(
             go.Pie(
                 labels=pdf_CatMain["category_main"],
@@ -301,6 +344,9 @@ class Fig:
         col_amount: str,
         min_pct: float = 1.0,
     ) -> go.Figure:
+        """Return a donut chart for any category/amount column pair; suppresses labels below min_pct."""
+        if pdf.empty:
+            return _make_no_data_fig("category breakdown")
         total = pdf[col_amount].sum()
         pct = pdf[col_amount] / total * 100 if total > 0 else pdf[col_amount] * 0
 
@@ -326,6 +372,9 @@ class Fig:
         return fig
 
     def fig_BarVacation(self, pdf_Vacation: pd.DataFrame) -> go.Figure:
+        """Return a stacked bar chart of vacation spending by year and category."""
+        if pdf_Vacation.empty:
+            return _make_no_data_fig("vacation spending")
         fig = go.Figure()
 
         z_YearExpense = pdf_Vacation.groupby("Year")["Total"].sum()
@@ -361,6 +410,9 @@ class Fig:
         dTick: float,
         npixel: float,
     ) -> go.Figure:
+        """Return a stacked bar chart of yearly totals grouped by a category column."""
+        if pdf.empty:
+            return _make_no_data_fig("yearly category spending")
         fig = go.Figure()
 
         z_YearExpense = pdf.groupby("Year")[col_amount].sum()
@@ -396,6 +448,9 @@ class Fig:
         npixel: float,
         col_map: dict[str, str] | None = None,
     ) -> go.Figure:
+        """Return a stacked bar chart of spend per period, grouped by a category column."""
+        if pdf.empty:
+            return _make_no_data_fig("category spending")
         fig = go.Figure()
 
         if col_map is None:
@@ -443,6 +498,9 @@ class Fig:
         return fig
 
     def fig_HeatmapMonthly(self, pdf: pd.DataFrame) -> go.Figure:
+        """Return a month x year heatmap of total CHF spend, newest year at top."""
+        if pdf.empty:
+            return _make_no_data_fig("monthly spending heatmap")
         s_month_order = [
             pdf[pdf["Month_num"] == i]["Month_name"].values[0] for i in range(1, 13)
         ]
@@ -468,6 +526,11 @@ class Fig:
     def fig_BarGroceryCat(
         self, pdf: pd.DataFrame, Freq: Literal["Monthly", "Yearly"]
     ) -> go.Figure:
+        """Return a stacked bar chart of grocery spend by main category."""
+        if pdf.empty:
+            return _make_no_data_fig(
+                "No Migros Cumulus data found. Import your Cumulus receipt data first."
+            )
         if Freq not in ["Monthly", "Yearly"]:
             raise ValueError(f"Invalid Freq={Freq}, Expected one of: Monthly, Yearly")
 
@@ -550,6 +613,11 @@ class Fig:
         category_main: str | None = None,
         category_detail: str | None = None,
     ) -> go.Figure:
+        """Return a donut chart of grocery item spend, drillable by main/detail category."""
+        if pdf_items.empty:
+            return _make_no_data_fig(
+                "No Migros Cumulus data found. Import your Cumulus receipt data first."
+            )
         if category_main is None:
             grouped = (
                 pdf_items[pdf_items["price_chf"] > 0]
@@ -617,6 +685,11 @@ class Fig:
         return fig
 
     def fig_HealthIndex(self, pdf: pd.DataFrame) -> go.Figure:
+        """Return a line chart of monthly grocery health index scores with colour-coded bands."""
+        if pdf.empty:
+            return _make_no_data_fig(
+                "No Migros Cumulus data found. Import your Cumulus receipt data first."
+            )
         fig = go.Figure()
 
         fig.add_hrect(y0=70, y1=100, fillcolor="#4caf50", opacity=0.12, line_width=0)
@@ -658,6 +731,11 @@ class Fig:
         return fig
 
     def fig_HeatmapGroceryCat(self, pdf: pd.DataFrame) -> go.Figure:
+        """Return a monthly heatmap of grocery spend per category with CHF annotations."""
+        if pdf.empty:
+            return _make_no_data_fig(
+                "No Migros Cumulus data found. Import your Cumulus receipt data first."
+            )
         pdf_monthly = pdf[pdf["Freq"] == "Monthly"].copy()
         sorted_raw = sorted(pdf_monthly["Period"].unique().tolist())
         x_labels = [pd.to_datetime(p).strftime("%b %Y") for p in sorted_raw]
@@ -730,10 +808,16 @@ class Fig:
         Period: Literal["Month", "Week"],
         Year: int | None = None,
     ) -> go.Figure:
+        """Return a correlation heatmap of spending across categories, pivoted by Period."""
+        if pdf.empty:
+            return _make_no_data_fig("category correlation")
         df = pdf.copy()
 
         if Year is not None:
             df = df[df["Year"] == Year].reset_index(drop=True)
+
+        if df[Period].nunique() < 2:
+            return _make_no_data_fig("category correlation")
 
         df_pivot = df.pivot_table(
             index=Period,

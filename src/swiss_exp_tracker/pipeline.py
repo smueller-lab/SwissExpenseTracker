@@ -22,7 +22,6 @@ from swiss_exp_tracker.pipeline_agentic.transactions_use import run_transactions
 from swiss_exp_tracker.pipeline_dash.pipeline import run_dashboard_pipeline
 from swiss_exp_tracker.pipeline_ingestion.pipeline import run_ingestion
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",

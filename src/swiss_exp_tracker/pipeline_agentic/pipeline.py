@@ -9,10 +9,12 @@ from datetime import datetime
 from tqdm import tqdm
 
 from swiss_exp_tracker.db.sql import agentic
+from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import (
+    AllProvidersExhaustedError,
+)
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import Transaction
 from swiss_exp_tracker.pipeline_agentic.merchant_manager import MerchantManager
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
-
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
@@ -78,12 +80,19 @@ async def run_all_transactions(
     semaphore = asyncio.Semaphore(concurrency)
     merchant_locks: dict[str, asyncio.Lock] = {}
     t_start = time.perf_counter()
+    # Shared flag: set to an error when all providers are exhausted so the
+    # gather loop can stop cleanly without cancelling in-flight tasks.
+    exhausted_exc: AllProvidersExhaustedError | None = None
 
     with tqdm(
         total=len(transactions), unit="tx", desc="Enriching transactions"
     ) as pbar:
 
         async def process_one(transaction: Transaction) -> None:
+            nonlocal exhausted_exc
+            if exhausted_exc is not None:
+                return
+
             merchant_key = (
                 (transaction.merchant or transaction.booking_text or "").strip().lower()
             )
@@ -94,11 +103,27 @@ async def run_all_transactions(
             async with semaphore, merchant_lock:
                 merchant_label = transaction.merchant or transaction.booking_text or "?"
                 pbar.set_postfix_str(merchant_label[:40], refresh=True)
-                async for _step in manager.run(transaction):
-                    pass  # steps are logged inside manager.run via print
+                try:
+                    async for _step in manager.run(transaction):
+                        pass  # steps are logged inside manager.run via print
+                except AllProvidersExhaustedError as exc:
+                    exhausted_exc = exc
+                    tqdm.write(
+                        f"\n[STOP] All web-search providers are exhausted and no pay-per-use keys are configured.\n"
+                        f"{exc}\n"
+                        "To resume enrichment:\n"
+                        "  • Set BRAVE_SEARCH_API_KEY in .env for unlimited Brave Search pay-per-use.\n"
+                        "  • Set EXA_API_KEY in .env for unlimited Exa pay-per-use.\n"
+                        "  • Or wait for the monthly free-tier reset (Tavily/Brave/Scrape.do/Exa: 1,000 req/month each).\n"
+                        "Pipeline stopped. No further transactions will be processed this run."
+                    )
+                    return
                 pbar.update(1)
 
         await asyncio.gather(*(process_one(tx) for tx in transactions))
+
+    if exhausted_exc is not None:
+        return
 
     elapsed = time.perf_counter() - t_start
     tqdm.write(

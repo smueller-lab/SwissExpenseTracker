@@ -5,7 +5,6 @@ from pathlib import Path
 
 from dash.dash_table import FormatTemplate
 
-
 DB_PATH = Path(__file__).resolve().parents[3] / "database" / "transactions.db"
 
 

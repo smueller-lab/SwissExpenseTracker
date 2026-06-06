@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-
 # Substring → canonical brand name (applied in order; first match wins)
 GROCERY_MERCHANT_NORMALIZE: list[tuple[str, str]] = [
     ("migrolino", "Migrolino"),

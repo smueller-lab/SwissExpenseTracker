@@ -13,7 +13,6 @@ from swiss_exp_tracker.app.callbacks import smarttable
 from swiss_exp_tracker.app.callbacks import sport
 from swiss_exp_tracker.app.callbacks import transport
 
-
 _PAGE_CALLBACKS = [
     home,
     food,
