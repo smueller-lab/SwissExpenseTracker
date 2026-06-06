@@ -258,7 +258,7 @@ def _clean_debit_ebanking(
     booking_text = zkb_model.BookingText.strip()
 
     if re.fullmatch(
-        r"Debit (?:eBanking(?: Mobile)?|Mobile Banking|Standing order) \(\d+\)",
+        r"Debit (?:eBanking(?: Mobile)?|Mobile Banking|Standing order)(?: \(\d+\))?",
         booking_text,
     ):
         context.parent_date = zkb_model.Date or zkb_model.ValueDate

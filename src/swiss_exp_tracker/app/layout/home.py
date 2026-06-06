@@ -16,7 +16,7 @@ from swiss_exp_tracker.app.vis.figure import Fig
 F = Fig()
 
 
-def layout(data: Any) -> Any:
+def layout(data: Any, pos: Any) -> Any:
     if data.pdf_TopCat.empty:
         top_category: str = "—"
         month_last: pd.Timestamp = pd.Timestamp.today()
@@ -45,15 +45,14 @@ def layout(data: Any) -> Any:
     return html.Div(
         [
             make_number_card("Current Balance", data.z_StatsTable["Balance_current"]),
+            make_number_card("Portfolio Value", pos.total_value),
             make_number_card(
-                "Avg net Balance 3 mo", data.z_StatsTable["Balance_net_3months"]
-            ),
-            make_number_card(
-                "Avg net Balance 12 mo", data.z_StatsTable["Balance_net_12months"]
-            ),
-            make_number_card(
-                f"Net Balance ({data.max_data_year})",
+                f"Total Savings ({data.max_data_year})",
                 data.z_StatsTable["Balance_net_currentYear"],
+            ),
+            make_number_card(
+                "Avg Expenses (12m)",
+                data.z_StatsTable["Expense_avg_12months"],
             ),
             ##
             make_figure_card(
