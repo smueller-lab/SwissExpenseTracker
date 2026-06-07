@@ -378,8 +378,14 @@ class Fig:
         fig = go.Figure()
 
         z_YearExpense = pdf_Vacation.groupby("Year")["Total"].sum()
+        category_order = (
+            pdf_Vacation.groupby("category_second")["Total"]
+            .sum()
+            .sort_values(ascending=False)
+            .index.tolist()
+        )
 
-        for Category in pdf_Vacation["category_second"].unique():
+        for Category in category_order:
             group = pdf_Vacation[pdf_Vacation["category_second"] == Category]
             fig.add_trace(
                 go.Bar(
@@ -400,6 +406,34 @@ class Fig:
             height=height_Figure,
         )
 
+        return fig
+
+    def fig_BoxplotVacation(self, pdf: pd.DataFrame) -> go.Figure:
+        """Return a boxplot of per-transaction spend for the top 4 vacation categories."""
+        if pdf.empty:
+            return _make_no_data_fig("vacation transaction data")
+
+        totals = pdf.groupby("category_second")["amount"].sum()
+        top4 = totals.nlargest(4).sort_values(ascending=False).index.tolist()
+        pdf_top4 = pdf[pdf["category_second"].isin(top4)].copy()
+
+        dTick = get_adaptive_dTick(float(pdf_top4["amount"].max()))
+        ry_Axis = get_ryAxis(dTick, pdf_top4["amount"], True)
+
+        fig = go.Figure()
+        for category in top4:
+            fig.add_trace(
+                go.Box(
+                    y=pdf_top4[pdf_top4["category_second"] == category]["amount"],
+                    name=category,
+                    boxpoints="outliers",
+                )
+            )
+
+        fig.update_layout(
+            showlegend=False,
+            yaxis={"dtick": dTick, "range": ry_Axis, "showline": True},
+        )
         return fig
 
     def fig_BarYearlyByCategory(
@@ -757,9 +791,10 @@ class Fig:
         )
         pivot = pivot.reindex(index=cat_order, columns=x_labels, fill_value=0)
 
+        pivot_vals = pivot.to_numpy(dtype=float)
         text: list[list[str]] = [
             [
-                f"{pivot.iloc[r, c]:.0f}" if pivot.iloc[r, c] > 0 else ""  # type: ignore[operator]
+                f"{pivot_vals[r, c]:.0f}" if pivot_vals[r, c] > 0 else ""
                 for c in range(pivot.shape[1])
             ]
             for r in range(pivot.shape[0])
@@ -798,6 +833,52 @@ class Fig:
                 text=cat,
                 showarrow=False,
             )
+
+        return fig
+
+    def fig_BarSportActivities(self, pdf: pd.DataFrame) -> go.Figure:
+        """Return a grouped yearly bar chart of activity counts for Golf, Tennis, and Padel."""
+        if pdf.empty:
+            return _make_no_data_fig("sport activity data")
+
+        sorted_years = sorted(pdf["year"].unique().tolist())
+        year_strs = [str(y) for y in sorted_years]
+
+        sport_order = (
+            pdf.groupby("sport")["activity_count"]
+            .sum()
+            .sort_values(ascending=False)
+            .index.tolist()
+        )
+
+        fig = go.Figure()
+        for sport in sport_order:
+            group = pdf[pdf["sport"] == sport].set_index("year")["activity_count"]
+            y_vals = [int(group.get(yr, 0)) for yr in sorted_years]
+            fig.add_trace(
+                go.Bar(
+                    x=year_strs,
+                    y=y_vals,
+                    name=sport,
+                    marker={"color": vis.vk_Sport_col.get(sport, "#95A5A6")},
+                )
+            )
+
+        z_totals = pdf.groupby("year")["activity_count"].sum()
+        max_total = float(z_totals.max())
+        dTick = get_adaptive_dTick(max_total, target_steps=8)
+        ry_Axis = get_ryAxis(dTick, z_totals, True)
+
+        fig.update_layout(
+            barmode="group",
+            xaxis={
+                "type": "category",
+                "categoryorder": "array",
+                "categoryarray": year_strs,
+            },
+            yaxis={"dtick": dTick, "range": ry_Axis, "showline": True},
+            height=cfg.height_Sport,
+        )
 
         return fig
 

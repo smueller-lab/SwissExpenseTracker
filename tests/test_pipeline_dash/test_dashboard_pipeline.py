@@ -22,6 +22,7 @@ DASH_TABLES = [
     "dash_transport",
     "dash_transport_heatmap",
     "dash_sport",
+    "dash_sport_activities",
 ]
 
 EXPECTED_COLUMNS: dict[str, set[str]] = {
@@ -55,6 +56,7 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
     "dash_transport": {"Year", "category_transport", "amount"},
     "dash_transport_heatmap": {"Year", "Month_num", "amount", "Month_name"},
     "dash_sport": {"category_sport", "Total", "Freq", "Period"},
+    "dash_sport_activities": {"year", "sport", "activity_count"},
 }
 
 
