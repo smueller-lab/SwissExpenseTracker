@@ -160,7 +160,10 @@ def make_table_card(
         html.Tr(
             [
                 html.Th(
-                    col["name"], className="" if col["id"] in vis.s_Col_Text else "num"
+                    col["name"],
+                    className=col.get(
+                        "header_class", "" if col["id"] in vis.s_Col_Text else "num"
+                    ),
                 )
                 for col in s_col
             ]

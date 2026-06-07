@@ -29,6 +29,21 @@ This applies to spacing corrections too — if a card looks misaligned, fix the 
 
 The layout uses a 12-column grid (`className="grid"`). Every card declares its column span via the `width` argument of a `make_*_card` helper, which renders as `className=f"card col-{width}"`.
 
+**All cards on a page live inside a single `className="grid"` div.** Never split rows into separate `className="grid"` containers. The CSS grid's `gap: var(--card-gap)` applies between every item in the grid — both within a row and between rows — giving consistent spacing throughout. Multiple stacked grid containers produce zero spacing between rows.
+
+- Wrong: three separate `html.Div(..., className="grid")` elements for three rows.
+- Right: one `html.Div([card1, card2, ..., cardN], className="grid")` containing all cards; the grid wraps naturally when column spans reach 12.
+
+## Category color consistency
+
+When the same set of categories appears in more than one chart on the same page (e.g. a bar chart and a donut, or a boxplot and a donut), every chart must assign the same color to the same category. A category that is red in one chart must not be blue in another on the same page.
+
+**How to achieve this:** Plotly assigns colors from the template colorway by trace/slice position (colorway[0] for the first trace, colorway[1] for the second, etc.). To keep colors consistent, sort the categories in the same order — typically total spend descending — before building every figure that shows those categories. Do not mix sort keys (e.g. median in one chart, total in another) when color consistency matters.
+
+- Do not hard-code a single fallback color (e.g. `"#95A5A6"`) for all traces in a multi-category figure — this collapses all categories to grey and loses the distinction.
+- When a figure uses explicit `marker_color`, build the color list from the same sorted category order used by the other charts on the page.
+- When categories have no named color map in `VIS`, omit `marker_color` entirely and let Plotly cycle through its colorway automatically.
+
 **Row totals must equal 12.** Sum the `width` values of all cards in a logical row:
 - Sum < 12: dead space — widen a card or add a card.
 - Sum > 12: cards overlap — reduce a width or split to a new row.

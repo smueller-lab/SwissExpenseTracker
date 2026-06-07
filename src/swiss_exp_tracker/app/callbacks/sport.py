@@ -8,10 +8,12 @@ from dash import Input
 from dash import Output
 from dash import ctx
 
+from swiss_exp_tracker.app.config import config
 from swiss_exp_tracker.app.libs import get_adaptive_dTick
 from swiss_exp_tracker.app.vis.figure import Fig
 
 F = Fig()
+cfg = config()
 
 _NPIXEL_SPORT = 60
 
@@ -54,4 +56,5 @@ def register_callbacks(app: Any, data: Any) -> None:
             dTick=dTick,
             npixel=_NPIXEL_SPORT,
         )
+        fig.update_layout(height=cfg.height_Sport)
         return fig, monthly_class, yearly_class

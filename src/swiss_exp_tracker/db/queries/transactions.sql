@@ -340,6 +340,10 @@ SELECT Month, expense, income, NetBalance FROM dash_net_balance_month
 -- Select all rows from dash_vacation.
 SELECT * FROM dash_vacation
 
+-- name: get_dash_vacation_transactions
+-- Select all rows from dash_vacation_transactions.
+SELECT * FROM dash_vacation_transactions
+
 -- name: get_dash_transport
 -- Select all rows from dash_transport.
 SELECT * FROM dash_transport
@@ -351,6 +355,10 @@ SELECT * FROM dash_transport_heatmap
 -- name: get_dash_sport
 -- Select all rows from dash_sport.
 SELECT * FROM dash_sport
+
+-- name: get_dash_sport_activities
+-- Select all rows from dash_sport_activities.
+SELECT * FROM dash_sport_activities
 
 -- name: get_dash_car
 -- Select all rows from dash_car.

@@ -17,7 +17,7 @@ F = Fig()
 _TOP_ARTICLES_COLS = [
     {"name": "Article", "id": "article"},
     {"name": "Category", "id": "category_main"},
-    {"name": "Count", "id": "count"},
+    {"name": "Count", "id": "count", "header_class": ""},
     {"name": "Total CHF", "id": "total_chf"},
 ]
 

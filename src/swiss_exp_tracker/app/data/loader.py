@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import calendar
 import sqlite3
 
 from pathlib import Path
@@ -111,6 +112,9 @@ class DataLoader:
 
             # Vacation
             self.pdf_Vacation = pd.read_sql(transactions.get_dash_vacation.sql, con)
+            self.pdf_VacationTransactions = pd.read_sql(
+                transactions.get_dash_vacation_transactions.sql, con
+            )
 
             # Transport
             self.pdf_Transport = pd.read_sql(transactions.get_dash_transport.sql, con)
@@ -127,6 +131,56 @@ class DataLoader:
 
             # Sport
             self.pdf_Sport = pd.read_sql(transactions.get_dash_sport.sql, con)
+
+            self.pdf_SportActivities: pd.DataFrame = pd.read_sql(
+                transactions.get_dash_sport_activities.sql, con
+            )
+
+            pdf_yearly = self.pdf_Sport[self.pdf_Sport["Freq"] == "Yearly"]
+            if pdf_yearly.empty:
+                self.v_SportAvgPerYear: float = 0.0
+            else:
+                self.v_SportAvgPerYear = float(
+                    pdf_yearly["Total"].sum() / pdf_yearly["Period"].nunique()
+                )
+
+            pdf_monthly = self.pdf_Sport[self.pdf_Sport["Freq"] == "Monthly"].copy()
+            if pdf_monthly.empty:
+                self.v_SportCurrentYtd: float = 0.0
+                self.v_SportPctVsLastYtd: float | None = None
+                self.s_SportYtdLabel: str = "Current Year"
+            else:
+                _years = pdf_monthly["Period"].str[:4].astype(int)
+                _months = pdf_monthly["Period"].str[5:7].astype(int)
+                pdf_monthly = pdf_monthly.assign(_year=_years, _month=_months)
+
+                current_year = int(pdf_monthly["_year"].max())
+                max_month = int(
+                    pdf_monthly.loc[
+                        pdf_monthly["_year"] == current_year, "_month"
+                    ].max()
+                )
+
+                mask_current = (pdf_monthly["_year"] == current_year) & (
+                    pdf_monthly["_month"] <= max_month
+                )
+                current_ytd = float(pdf_monthly.loc[mask_current, "Total"].sum())
+                self.v_SportCurrentYtd = current_ytd
+
+                last_year = current_year - 1
+                mask_last = (pdf_monthly["_year"] == last_year) & (
+                    pdf_monthly["_month"] <= max_month
+                )
+                last_year_ytd = float(pdf_monthly.loc[mask_last, "Total"].sum())
+                if last_year_ytd == 0:
+                    self.v_SportPctVsLastYtd = None
+                else:
+                    self.v_SportPctVsLastYtd = (
+                        (current_ytd - last_year_ytd) / last_year_ytd * 100
+                    )
+
+                month_abbr = calendar.month_abbr[max_month]
+                self.s_SportYtdLabel = f"YTD {month_abbr} {current_year}"
 
             # Car
             self.pdf_Car = pd.read_sql(transactions.get_dash_car.sql, con)
