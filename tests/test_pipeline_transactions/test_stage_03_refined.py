@@ -257,6 +257,85 @@ def test_zkb_ebanking_detail_row_inherits_date(tmp_db: Path) -> None:
         assert date_val is not None
 
 
+def test_zkb_mobile_banking_parent_row_skipped(tmp_db: Path) -> None:
+    """'Debit Mobile Banking' without a count suffix is dropped as a master row."""
+    parent_json = json.dumps(
+        {
+            "Date": None,
+            "Booking text": "Debit Mobile Banking",
+            "Curr": None,
+            "Amount details": None,
+            "ZKB reference": "L99002",
+            "Reference number": None,
+            "Debit CHF": None,
+            "Credit CHF": None,
+            "Value date": "2024-03-15",
+            "Balance CHF": None,
+            "Payment purpose": None,
+            "Details": None,
+        }
+    )
+    _seed_raw_row(tmp_db, parent_json, "ZKB_DEBIT")
+
+    result = process_refined_source(SourceType.ZKB_DEBIT)
+
+    assert result["records_inserted"] == 0
+
+    with sqlite3.connect(tmp_db) as db:
+        raw_processed = db.execute(
+            "SELECT processed FROM transactions_raw LIMIT 1"
+        ).fetchone()[0]
+    assert raw_processed == 1
+
+
+def test_zkb_mobile_banking_detail_rows_kept(tmp_db: Path) -> None:
+    """Detail rows following a 'Debit Mobile Banking' parent are inserted into rfn."""
+    parent_json = json.dumps(
+        {
+            "Date": None,
+            "Booking text": "Debit Mobile Banking",
+            "Curr": None,
+            "Amount details": None,
+            "ZKB reference": "L99003",
+            "Reference number": None,
+            "Debit CHF": None,
+            "Credit CHF": None,
+            "Value date": "2024-03-15",
+            "Balance CHF": None,
+            "Payment purpose": None,
+            "Details": None,
+        }
+    )
+    detail_json = json.dumps(
+        {
+            "Date": None,
+            "Booking text": "Migros",
+            "Curr": "CHF",
+            "Amount details": "25.40",
+            "ZKB reference": None,
+            "Reference number": None,
+            "Debit CHF": None,
+            "Credit CHF": None,
+            "Value date": None,
+            "Balance CHF": None,
+            "Payment purpose": None,
+            "Details": None,
+        }
+    )
+    _seed_raw_row(tmp_db, parent_json, "ZKB_DEBIT")
+    _seed_raw_row(tmp_db, detail_json, "ZKB_DEBIT")
+
+    result = process_refined_source(SourceType.ZKB_DEBIT)
+
+    assert result["records_inserted"] == 1
+
+    with sqlite3.connect(tmp_db) as db:
+        date_val = db.execute(
+            "SELECT date FROM transactions_rfn WHERE source_type='ZKB_DEBIT'"
+        ).fetchone()[0]
+    assert date_val is not None
+
+
 # ---------------------------------------------------------------------------
 # Revolut skip conditions
 # ---------------------------------------------------------------------------

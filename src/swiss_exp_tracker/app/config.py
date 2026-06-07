@@ -33,6 +33,9 @@ class config:
     # default ry_Axis
     ry_Axis_Pct = [0, 100]
 
+    # fixed height shared by all sport page charts (expenses + activities)
+    height_Sport: int = 450
+
     # max figure height for box plots — prevents outliers from stretching the plot
     max_height_BoxPlot: int = 700
 
@@ -128,7 +131,7 @@ class VIS:
         "Swimming Pool": "#1ABC9C",
         "Swimming": "#1ABC9C",
         "Tennis": "#F39C12",
-        "Padel": "#E67E22",
+        "Padel": "#E74C3C",
         "Fitness Center": "#9B59B6",
         "Fitness": "#9B59B6",
         "Yoga Studio": "#8E44AD",

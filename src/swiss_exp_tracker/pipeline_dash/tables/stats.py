@@ -47,13 +47,16 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
         float(zkb.sort_values("date")["balance_chf"].iloc[-1]) if len(zkb) > 0 else None
     )
 
+    expense_avg_12m = (
+        float(by_month["expense"].tail(12).mean()) if len(by_month) > 0 else 0.0
+    )
+
     stats = pd.DataFrame(
         [
             {
                 "Balance_current": balance_current,
-                "Balance_net_3months": float(by_month["net"].tail(3).mean()),
-                "Balance_net_12months": float(by_month["net"].tail(12).mean()),
                 "Balance_net_currentYear": float(ytd_net),
+                "Expense_avg_12months": expense_avg_12m,
             }
         ]
     )

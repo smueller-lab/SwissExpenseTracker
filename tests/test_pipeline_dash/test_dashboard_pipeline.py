@@ -22,6 +22,7 @@ DASH_TABLES = [
     "dash_transport",
     "dash_transport_heatmap",
     "dash_sport",
+    "dash_sport_activities",
 ]
 
 EXPECTED_COLUMNS: dict[str, set[str]] = {
@@ -45,9 +46,8 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
     "dash_cat_main": {"category_main", "amount", "perc", "Year"},
     "dash_stats": {
         "Balance_current",
-        "Balance_net_3months",
-        "Balance_net_12months",
         "Balance_net_currentYear",
+        "Expense_avg_12months",
     },
     "dash_top_category": {"category_main", "amount_MonthLast", "MonthLast"},
     "dash_top_expenses": {"date", "amount", "merchant", "category_main"},
@@ -56,6 +56,7 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
     "dash_transport": {"Year", "category_transport", "amount"},
     "dash_transport_heatmap": {"Year", "Month_num", "amount", "Month_name"},
     "dash_sport": {"category_sport", "Total", "Freq", "Period"},
+    "dash_sport_activities": {"year", "sport", "activity_count"},
 }
 
 

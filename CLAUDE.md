@@ -5,9 +5,9 @@
 Before finishing any task that modifies Python files, always run:
 
 ```bash
-python -m ruff check <file>
-python -m black --check <file>
-python -m mypy <file> --ignore-missing-imports
+poetry run python -m ruff check <file>
+poetry run python -m black --check <file>
+poetry run mypy --config-file pyproject.toml src
 ```
 
 Fix all reported issues before marking the task complete.

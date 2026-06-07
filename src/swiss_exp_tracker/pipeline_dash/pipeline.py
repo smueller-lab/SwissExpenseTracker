@@ -96,7 +96,7 @@ def run_dashboard_pipeline(db_path: Path | None = None) -> None:
             ("dash_net_balance_month", net_balance_month),
             ("dash_vacation", vacation),
             ("dash_transport + dash_transport_heatmap", transport),
-            ("dash_sport", sport),
+            ("dash_sport + dash_sport_activities", sport),
             ("dash_car", car),
             ("dash_retail + dash_retail_donut + dash_retail_top", retail),
         ]

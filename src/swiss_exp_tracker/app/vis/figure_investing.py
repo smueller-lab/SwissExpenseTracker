@@ -98,18 +98,20 @@ def fig_portfolio_progression(pdf: pd.DataFrame) -> go.Figure:
         go.Scatter(
             x=pdf_agg["date"],
             y=pdf_agg["invested_chf"],
-            mode="lines",
+            mode="lines+markers",
             name="Invested",
             line={"width": 2, "dash": "dash", "color": "#95A5A6"},
+            marker={"size": 5, "color": "#95A5A6"},
         )
     )
     fig.add_trace(
         go.Scatter(
             x=pdf_agg["date"],
             y=pdf_agg["value_chf"],
-            mode="lines",
+            mode="lines+markers",
             name="Portfolio Value",
             line={"width": 2, "color": "#19D3F3"},
+            marker={"size": 5, "color": "#19D3F3"},
             fill="tonexty",
             fillcolor="rgba(25, 211, 243, 0.15)",
         )
@@ -146,9 +148,10 @@ def fig_position_value(pdf: pd.DataFrame, symbols: list[str]) -> go.Figure:
             go.Scatter(
                 x=grp["date"],
                 y=grp["value_chf"],
-                mode="lines",
+                mode="lines+markers",
                 name=symbol,
                 line={"color": _COLORS[i % len(_COLORS)]},
+                marker={"size": 5, "color": _COLORS[i % len(_COLORS)]},
                 hovertemplate=(
                     f"<b>{symbol}</b> — {name}<br>"
                     "%{x|%Y-%m-%d}<br>CHF %{y:,.0f}<extra></extra>"
@@ -188,9 +191,10 @@ def fig_position_pct(pdf: pd.DataFrame, symbols: list[str]) -> go.Figure:
             go.Scatter(
                 x=grp["date"],
                 y=grp["pnl_pct"] * 100,
-                mode="lines",
+                mode="lines+markers",
                 name=symbol,
                 line={"color": _COLORS[i % len(_COLORS)]},
+                marker={"size": 5, "color": _COLORS[i % len(_COLORS)]},
                 hovertemplate=(
                     f"<b>{symbol}</b> — {name}<br>"
                     "%{x|%Y-%m-%d}<br>%{y:+.2f} %<extra></extra>"

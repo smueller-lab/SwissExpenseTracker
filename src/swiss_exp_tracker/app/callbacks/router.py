@@ -23,7 +23,7 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
     )
     def display_page(pth: str) -> Any:  # pyright: ignore[reportUnusedFunction]
         if pth == "/":
-            return home_layout(data)
+            return home_layout(data, pos)
         elif pth == "/groceries":
             return groceries_layout(data)
         elif pth == "/m-cumulus":
@@ -42,7 +42,7 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
             return smarttable_layout(data)
         elif pth == "/investing":
             return investing_layout(data, pos)
-        return home_layout(data)
+        return home_layout(data, pos)
 
     @app.callback(  # type: ignore[untyped-decorator]
         [
