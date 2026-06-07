@@ -28,15 +28,15 @@ This check is about correctness of intent — does the code actually do what the
 ### 2. Automated checks — run on all changed files
 
 ```
-python -m ruff check <changed files>
-python -m black --check <changed files>
-python -m mypy <changed files> --ignore-missing-imports
+poetry run python -m ruff check <changed files>
+poetry run python -m black --check <changed files>
+poetry run mypy --config-file pyproject.toml src
 ```
 
 ### 2. Full test suite
 
 ```
-pytest tests/
+poetry run python -m pytest tests/
 ```
 
 All tests must pass. Any failure is a blocking issue.
