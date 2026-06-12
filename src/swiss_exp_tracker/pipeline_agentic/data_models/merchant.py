@@ -240,6 +240,7 @@ class CategorySecond(StrEnum):
     TRAVEL_APARTMENT = "Apartment"
     TRAVEL_CAR_RENTAL = "Car Rental"
     TRAVEL_TICKET = "Ticket Booking"
+    TRAVEL_ALL_INCLUSIVE = "All Inclusive"
 
     # INSURANCE
     # Use for ALL insurance premiums/policies and insurance providers.

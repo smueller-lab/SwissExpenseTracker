@@ -6,12 +6,14 @@ from dash import html
 
 from swiss_exp_tracker.app.components.cards import make_figure_card
 from swiss_exp_tracker.app.components.cards import make_figure_card_MonthYear
+from swiss_exp_tracker.app.config import VIS
 from swiss_exp_tracker.app.config import config
 from swiss_exp_tracker.app.dash_components import make_page_title
 from swiss_exp_tracker.app.vis.figure import Fig
 
 F = Fig()
 cfg = config()
+vis = VIS()
 
 
 def layout(data: Any) -> Any:
@@ -28,6 +30,7 @@ def layout(data: Any) -> Any:
                             col_amount="amount_CHF",
                             dTick=cfg.dTick_Transport,
                             npixel=cfg.npixel_Transport,
+                            col_map=vis.vk_Transport_col,
                         ),
                         width=12,
                     ),
