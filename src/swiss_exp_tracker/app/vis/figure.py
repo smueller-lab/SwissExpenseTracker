@@ -443,6 +443,7 @@ class Fig:
         col_amount: str,
         dTick: float,
         npixel: float,
+        col_map: dict[str, str] | None = None,
     ) -> go.Figure:
         """Return a stacked bar chart of yearly totals grouped by a category column."""
         if pdf.empty:
@@ -451,15 +452,23 @@ class Fig:
 
         z_YearExpense = pdf.groupby("Year")[col_amount].sum()
 
-        for Category in pdf[col_catgeory].unique():
+        category_order = (
+            pdf.groupby(col_catgeory)[col_amount]
+            .sum()
+            .sort_values(ascending=False)
+            .index.tolist()
+        )
+
+        for Category in category_order:
             group = pdf[pdf[col_catgeory] == Category]
-            fig.add_trace(
-                go.Bar(
-                    x=group["Year"],
-                    y=group[col_amount],
-                    name=Category,
-                )
-            )
+            bar_kwargs: dict[str, object] = {
+                "x": group["Year"],
+                "y": group[col_amount],
+                "name": Category,
+            }
+            if col_map is not None:
+                bar_kwargs["marker"] = {"color": col_map.get(Category, "#95A5A6")}
+            fig.add_trace(go.Bar(**bar_kwargs))
 
         ry_Axis = get_ryAxis(dTick, z_YearExpense, True)
         height_Figure = get_heightFigure(ry_Axis, dTick, npixel, self.vk_Margin)

@@ -24,6 +24,8 @@ from swiss_exp_tracker.config import HOUSING_RENT_3_AMOUNTS
 from swiss_exp_tracker.config import HOUSING_RENT_AMOUNTS_1
 from swiss_exp_tracker.config import INVESTING_BROKERAGE_1
 from swiss_exp_tracker.config import INVESTING_BROKERAGE_1_MIN_AMOUNT
+from swiss_exp_tracker.config import TRAVEL_ALL_INCLUSIVE_1
+from swiss_exp_tracker.config import TRAVEL_ALL_INCLUSIVE_1_YEAR
 from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
@@ -55,6 +57,15 @@ AMOUNT_THRESHOLD_CORRECTIONS: list[tuple[list[str], float, tuple[str, str]]] = [
         HOUSING_DEPOSIT_1,
         HOUSING_DEPOSIT_1_MIN_AMOUNT,
         (CategoryMain.HOUSING.value, CategorySecond.HOUSING_DEPOSIT.value),
+    ),
+]
+
+# Merchant-name substrings + exact year → (category_main, category_second)
+YEAR_CORRECTIONS: list[tuple[list[str], int, tuple[str, str]]] = [
+    (
+        TRAVEL_ALL_INCLUSIVE_1,
+        TRAVEL_ALL_INCLUSIVE_1_YEAR,
+        (CategoryMain.TRAVEL.value, CategorySecond.TRAVEL_ALL_INCLUSIVE.value),
     ),
 ]
 
@@ -148,6 +159,27 @@ def _apply_amount_corrections() -> None:
                     if (
                         any(p.lower() in merchant_key for p in patterns)
                         and abs(amount) > min_amount
+                    ):
+                        if (
+                            row["category_main"] != cat_main
+                            or row["category_second"] != cat_second
+                        ):
+                            agentic.update_transactions_use_category_correction(
+                                db,
+                                category_main=cat_main,
+                                category_second=cat_second,
+                                id=row["id"],
+                            )
+                            rows_updated += 1
+                        matched = True
+                        break
+
+            if not matched:
+                row_year = int((row["date"] or "")[:4]) if row["date"] else None
+                for patterns, year, (cat_main, cat_second) in YEAR_CORRECTIONS:
+                    if (
+                        any(p.lower() in merchant_key for p in patterns)
+                        and row_year == year
                     ):
                         if (
                             row["category_main"] != cat_main

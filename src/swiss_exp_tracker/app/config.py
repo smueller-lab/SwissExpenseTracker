@@ -124,6 +124,29 @@ class VIS:
         "Car Wash": "#1ABC9C",
     }
 
+    # shared categories must use the exact same hex as vk_Car_col
+    vk_Transport_col = {
+        "Fuel": "#F39C12",
+        "Parking": "#3498DB",
+        "Service & Repair": "#E74C3C",
+        "Car Rental": "#9B59B6",
+        "Wash": "#1ABC9C",
+        "Flight": "#19D3F3",
+        "Train": "#E38A04",
+        "Bus": "#2ECC71",
+        "Taxi": "#FAF263",
+        "Public Transport": "#5DADE2",
+        "Metro": "#8E44AD",
+        "Ferry": "#1F618D",
+        "Travel": "#E67E22",
+        "Airport Services": "#F1C40F",
+        "Bike Rental": "#27AE60",
+        "Cable Car": "#148F77",
+        "Toll Payment": "#7F8C8D",
+        "Logistics": "#BDC3C7",
+        "General Warehousing": "#95A5A6",
+    }
+
     vk_Sport_col = {
         "Golf": "#4580F6",
         "Running": "#2ECC71",
