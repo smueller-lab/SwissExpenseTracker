@@ -45,7 +45,7 @@ def _make_rfn_row(**overrides: object) -> dict[str, object]:
         "amount": 42.50,
         "transaction_type": "EXPENSE",
         "booking_text": "Test booking text",
-        "merchant_normalized": "Migros",
+        "merchant_normalized": "Freshmart",
         "is_person": 0,
         "currency": "CHF",
         "reference": "REF-001",
@@ -62,8 +62,8 @@ def _make_transaction(**overrides: object) -> Transaction:
     base: dict[str, object] = {
         "refined_id": 1,
         "Date": None,
-        "merchant": "Migros",
-        "Booking text": "Migros_1",
+        "merchant": "Freshmart",
+        "Booking text": "Freshmart_1",
         "ZKB reference": "REF-001",
         "Balance CHF": None,
         "amount_chf": -42.50,
@@ -225,18 +225,18 @@ async def test_run_vector_cache_hit_skips_agent_calls(
         tmp_db,
         reference="REF-CACHE-001",
         enrichment_status="pending",
-        merchant_normalized="Migros",
+        merchant_normalized="Freshmart",
     )
 
     tx = _make_transaction(
         refined_id=rfn_id,
-        merchant="Migros",
+        merchant="Freshmart",
         is_person=False,
         **{"ZKB reference": "REF-CACHE-001"},
     )
 
     cached_metadata = MerchantMetaData(
-        name="Migros",
+        name="Freshmart",
         category_main=CategoryMain.GROCERIES,
         category_second=CategorySecond.GROCERIES_SUPERMARKET,
         city="Zurich",
@@ -296,12 +296,12 @@ async def test_run_vector_cache_miss_calls_summary_and_metadata_agents(
         tmp_db,
         reference="REF-MISS-001",
         enrichment_status="pending",
-        merchant_normalized="Coop",
+        merchant_normalized="DailyStore",
     )
 
     tx = _make_transaction(
         refined_id=rfn_id,
-        merchant="Coop",
+        merchant="DailyStore",
         is_person=False,
         **{"ZKB reference": "REF-MISS-001"},
     )
@@ -311,7 +311,7 @@ async def test_run_vector_cache_miss_calls_summary_and_metadata_agents(
         tool_used=WebSearchTool.TAVILY,
     )
     metadata_result = MerchantMetaData(
-        name="Coop",
+        name="DailyStore",
         category_main=CategoryMain.GROCERIES,
         category_second=CategorySecond.GROCERIES_SUPERMARKET,
         city="Basel",
@@ -338,7 +338,7 @@ async def test_run_vector_cache_miss_calls_summary_and_metadata_agents(
         f"Expected 2 Runner.run calls, got {len(mock_runner.call_log)}"  # type: ignore[attr-defined]
     )
     assert len(mock_store.save_calls) == 1, "store.save should be called once"
-    assert mock_store.save_calls[0][0] == "Coop"
+    assert mock_store.save_calls[0][0] == "DailyStore"
 
     with sqlite3.connect(tmp_db) as db:
         count = db.execute(
@@ -421,9 +421,9 @@ async def test_run_metadata_all_retries_fail_saves_with_null_category(
         ).fetchone()[0]
     assert status == "enriched"
 
-    assert any("[WARN]" in msg for msg in warn_messages), (
-        f"Expected at least one [WARN] line; got: {warn_messages}"
-    )
+    assert any(
+        "[WARN]" in msg for msg in warn_messages
+    ), f"Expected at least one [WARN] line; got: {warn_messages}"
 
 
 async def test_run_all_providers_exhausted_raises(
@@ -439,7 +439,7 @@ async def test_run_all_providers_exhausted_raises(
 
     tx = _make_transaction(
         refined_id=rfn_id,
-        merchant="Lidl",
+        merchant="ValueShop",
         **{"ZKB reference": "REF-EXHAUST-001"},
     )
 
@@ -528,12 +528,12 @@ async def test_run_max_turns_exceeded_for_summary_returns_fallback_and_continues
 
     tx = _make_transaction(
         refined_id=rfn_id,
-        merchant="Aldi",
+        merchant="BudgetMart",
         **{"ZKB reference": "REF-MAXTURNS-001"},
     )
 
     metadata_result = MerchantMetaData(
-        name="Aldi",
+        name="BudgetMart",
         category_main=CategoryMain.GROCERIES,
         category_second=CategorySecond.GROCERIES_SUPERMARKET,
         city="Bern",
@@ -572,9 +572,9 @@ async def test_run_max_turns_exceeded_for_summary_returns_fallback_and_continues
     assert len(mock_runner.call_log) == 2  # type: ignore[attr-defined]
 
     # Warn message should mention the max-turns fallback.
-    assert any("WARN" in msg or "MaxTurns" in msg for msg in warn_messages), (
-        f"Expected a warning for MaxTurnsExceeded; got: {warn_messages}"
-    )
+    assert any(
+        "WARN" in msg or "MaxTurns" in msg for msg in warn_messages
+    ), f"Expected a warning for MaxTurnsExceeded; got: {warn_messages}"
 
     with sqlite3.connect(tmp_db) as db:
         status = db.execute(

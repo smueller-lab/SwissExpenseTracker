@@ -27,7 +27,7 @@ def _make_grocery_row(**overrides: object) -> dict[str, object]:
     base: dict[str, object] = {
         "Freq": "Monthly",
         "Period": "2024-01-01",
-        "Merchant": "Coop",
+        "Merchant": "DailyStore",
         "total_CHF": 150.0,
         "totalPeriod_CHF": 150.0,
         "pct": 100.0,

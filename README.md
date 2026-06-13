@@ -257,19 +257,105 @@ Open [http://localhost:8050](http://localhost:8050) in your browser.
 
 ### ✏️ Post-processing
 
-After the pipeline runs, **you need to review and edit two files** before the dashboard data is accurate. The agent does a great job on ordinary merchants, but some transactions require hard-coded rules that only you can define:
+After the pipeline runs, **you need to review and edit one file** before the dashboard data is accurate. The agent does a great job on ordinary merchants, but some transactions require rules that only you can define:
 
-| Situation                                                           | What to do                                                               |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Salary deposits, rent transfers, or other predictable fixed amounts | Add a rule in `pipeline_agentic/transactions_use.py`                   |
-| A merchant the agent consistently puts in the wrong category        | Add an override in `pipeline_agentic/clean_pipeline_output.py`         |
-| A shared expense (e.g. splitting rent with a flatmate)              | Add a shared-cost adjustment in `pipeline_agentic/transactions_use.py` |
+| Situation                                                        | What to do                                                                              |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Salary deposits or other predictable income                      | Add your employer name(s) under `salary.employers`                                    |
+| Rent transfers with a known amount history                       | Add the landlord under `housing.rent` with the amounts list                           |
+| Shared rent with a flatmate                                      | Add a `shared_housing` entry with the roommate's monthly offset                       |
+| A one-off deposit (e.g. rental deposit)                          | Add a `housing.deposits` entry with a minimum amount threshold                        |
+| Recurring self-transfers to a brokerage                          | Add an `investing.transfers` entry with the exact transaction dates                   |
+| A travel package booked through a person                         | Add a `travel.all_inclusive` entry with the merchant and year                         |
+| A merchant always put in the wrong category                      | Add a `custom_rules` entry with the correct `category_main` and `category_second` |
+| One specific transaction got the wrong merchant name or category | Add a `reference_id_corrections` entry with the reference ID from the DB              |
 
-**`pipeline_agentic/clean_pipeline_output.py`** — exact-match and substring-based category overrides applied to merchant names before they reach `transactions_use`.
+**Auto-detection** runs as part of the pipeline and writes `pipeline_agentic/config/detected_rules.yaml` automatically — it picks up salary employers and recurring rent merchants from your transaction history without any manual input. Review that file after the first run; if the detected values look correct you do not need to add anything to `user_config.yaml` for those fields.
 
-**`pipeline_agentic/transactions_use.py`** — amount-based corrections and shared-cost splits. This is also where salary and rent are classified, since those cannot be detected from the merchant name alone.
+> After editing `user_config.yaml`, re-run the pipeline. The full pipeline runs, but ingestion and agentic enrichment are no-ops when no new CSV files are present. The correction stages (post-clean and transactions_use) always re-process **all** existing rows, so your config changes are applied to every historical transaction.
 
-> After editing these files, re-run the pipeline — it will skip already-processed raw transactions and only redo the post-processing step.
+---
+
+### 🗂️ Custom corrections reference (`user_config.yaml`)
+
+All manual corrections live in `pipeline_agentic/config/user_config.yaml`. The pipeline never writes to this file, so your edits are always preserved. Below is a fully annotated example covering every available key:
+
+```yaml
+salary:
+  # Merchant substrings classified as your main salary income.
+  # Auto-detection fills this automatically; add entries here only to extend or correct it.
+  employers:
+    - "Acme AG"
+    - "Freelance GmbH"
+
+  # Merchants to remove from the auto-detected employer list (false positives).
+  employers_exclude:
+    - "some detected false positive"
+
+  # One-off income transfers from a named person classified as salary donations.
+  donations:
+    - name: "max mustermann"
+
+housing:
+  # Recurring rent payments. List every amount the rent has been at over time
+  # so that historical transactions are also classified correctly.
+  # If a merchant appears in both detected_rules.yaml and here, your entry wins.
+  rent:
+    - merchant: "landlord name"
+      amounts: [1200.0, 1150.0, 1100.0]
+
+  # Merchant names to remove from the auto-detected rent list (false positives).
+  rent_exclude:
+    - "debit standing order"
+
+  # One-time deposits (e.g. a rental security deposit).
+  # Any transaction from this merchant above min_amount is classified as Housing/Deposit.
+  deposits:
+    - merchant: "landlord name"
+      min_amount: 2400.0
+
+investing:
+  # Self-transfers to a brokerage account. Use exact dates to avoid misclassifying
+  # any other future transfer from the same person.
+  transfers:
+    - merchant: "investing account"
+      dates: ["2024-09-02", "2025-01-21", "2026-04-02"]
+    # Alternatively, use min_amount if the merchant is unique enough and you transfer regularly:
+    # - merchant: "swissquote bank"
+    #   min_amount: 500.0
+
+travel:
+  # Lump-sum travel packages booked through a person (e.g. a group trip organiser).
+  # Prefer exact dates so only that specific transaction is affected.
+  # Use year as a fallback if you only know the year and the merchant is unique enough.
+  all_inclusive:
+    - merchant: "trip organiser name"
+      dates: ["2025-07-31"]
+
+custom_rules:
+  # Catch-all overrides: any transaction whose merchant contains this substring
+  # gets the specified category, regardless of what the agent decided.
+  # category_main and category_second must match the enum values in the codebase.
+  # exact_match: false (default) — substring match; true — full merchant name must match exactly.
+  - merchant: "my gym"
+    category_main: "Sport"
+    category_second: "Gym"
+  - merchant: "fuel station keyword"
+    category_main: "Car"
+    category_second: "Fuel"
+  - merchant: "exact merchant name"
+    category_main: "Payment Services"
+    category_second: "Money Transfer"
+    exact_match: true
+
+reference_id_corrections:
+  # Pinpoint corrections keyed by the transaction's stable reference_id.
+  # The reference_id appears in transactions_use.reference and in the DB.
+  - reference_id: "NOID-abc123..."
+    merchant: "Correct Merchant Name"
+    category_main: "category_1"
+    category_second: "category_2"
+```
 
 ---
 

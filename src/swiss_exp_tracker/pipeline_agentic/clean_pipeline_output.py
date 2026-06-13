@@ -12,42 +12,81 @@ Set ``city_override`` to ``None`` to keep the original city from the raw row.
 
 from __future__ import annotations
 
+import logging
 import os
 import sqlite3
 
-from tqdm import tqdm
-
-from swiss_exp_tracker.config import CAR_FUEL_1
-from swiss_exp_tracker.config import HOUSING_RENT_2
-from swiss_exp_tracker.config import RESTAURANT_BAKERY_1
-from swiss_exp_tracker.config import RETAIL_SPORTS_1
-from swiss_exp_tracker.config import SALARY_DONATION_1
-from swiss_exp_tracker.config import SPORT_GOLF_1
-from swiss_exp_tracker.config import work_places
+from swiss_exp_tracker.config.user_config_loader import load as load_config
+from swiss_exp_tracker.config.user_config_schema import MergedConfig
 from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
 
 oj = os.path.join
 
-# ---------------------------------------------------------------------------
-# Manual corrections
-# Key   : matched_merchant (case-insensitive exact match)
-# Value : (category_main, category_second, city_override or None)
-# ---------------------------------------------------------------------------
+logger = logging.getLogger(__name__)
+
+_cfg: MergedConfig = load_config()
+
+
+def _build_containment_corrections(
+    cfg: MergedConfig,
+) -> dict[str, tuple[str, str, str | None]]:
+    """Return lowercase merchant substring → (category_main, category_second, city) for personal entries."""
+    result: dict[str, tuple[str, str, str | None]] = {}
+    for employer in cfg.salary.employers:
+        result[employer.lower()] = (
+            CategoryMain.SALARY.value,
+            CategorySecond.SALARY_MAIN.value,
+            None,
+        )
+    for donation in cfg.salary.donations:
+        result[donation.name.lower()] = (
+            CategoryMain.SALARY.value,
+            CategorySecond.SALARY_DONATION.value,
+            None,
+        )
+    for rent in cfg.housing.rent:
+        result[rent.merchant.lower()] = (
+            CategoryMain.HOUSING.value,
+            CategorySecond.HOUSING_RENT.value,
+            None,
+        )
+    for shared in cfg.housing.shared_housing:
+        result[shared.merchant.lower()] = (
+            CategoryMain.HOUSING.value,
+            CategorySecond.HOUSING_RENT.value,
+            None,
+        )
+    for deposit in cfg.housing.deposits:
+        result[deposit.merchant.lower()] = (
+            CategoryMain.HOUSING.value,
+            CategorySecond.HOUSING_DEPOSIT.value,
+            None,
+        )
+    for rule in cfg.custom_rules:
+        if not rule.exact_match:
+            result[rule.merchant.lower()] = (
+                rule.category_main,
+                rule.category_second,
+                None,
+            )
+    return result
+
+
+def _build_exact_corrections(
+    cfg: MergedConfig,
+) -> dict[str, tuple[str, str, str | None]]:
+    """Return lowercase merchant → (category_main, category_second, city) for exact-match rules."""
+    return {
+        rule.merchant.lower(): (rule.category_main, rule.category_second, None)
+        for rule in cfg.custom_rules
+        if rule.exact_match
+    }
+
+
 # Exact-match corrections: matched_merchant (case-insensitive) -> (category_main, category_second, city_override)
-CORRECTIONS: dict[str, tuple[str, str, str | None]] = {
-    "revolut": (
-        CategoryMain.PAYMENT_SERVICES.value,
-        CategorySecond.PAYMENT_MONEY_TRANSFER.value,
-        None,
-    ),
-    "p corporate hospitality": (
-        CategoryMain.ENTERTAINMENT.value,
-        CategorySecond.ENTERTAINMENT_SPORTS.value,
-        None,
-    ),
-}
+CORRECTIONS: dict[str, tuple[str, str, str | None]] = _build_exact_corrections(_cfg)
 
 # Containment corrections: if any substring in the list is contained in matched_merchant,
 # the correction is applied (case-insensitive).
@@ -61,54 +100,35 @@ BANK_KEYWORDS: list[str] = [
     "ubs bank",
 ]
 
+_personal_corrections = _build_containment_corrections(_cfg)
 CONTAINMENT_CORRECTIONS: list[tuple[list[str], tuple[str, str, str | None]]] = [
     (
         BANK_KEYWORDS,
         (CategoryMain.PAYMENT_SERVICES.value, CategorySecond.PAYMENT_FEES.value, None),
     ),
-    (work_places, (CategoryMain.SALARY.value, CategorySecond.SALARY_MAIN.value, None)),
-    (
-        SALARY_DONATION_1,
-        (CategoryMain.SALARY.value, CategorySecond.SALARY_DONATION.value, None),
-    ),
-    (
-        HOUSING_RENT_2,
-        (CategoryMain.HOUSING.value, CategorySecond.HOUSING_RENT.value, None),
-    ),
-    (SPORT_GOLF_1, (CategoryMain.SPORT.value, CategorySecond.SPORT_GOLF.value, None)),
-    (CAR_FUEL_1, (CategoryMain.CAR.value, CategorySecond.CAR_FUEL.value, None)),
-    (
-        RETAIL_SPORTS_1,
-        (CategoryMain.RETAIL.value, CategorySecond.RETAIL_SPORTS.value, None),
-    ),
-    (
-        RESTAURANT_BAKERY_1,
-        (CategoryMain.RESTAURANT.value, CategorySecond.RESTAURANT_CAFE.value, None),
-    ),
+    *[
+        ([merchant], correction)
+        for merchant, correction in _personal_corrections.items()
+    ],
 ]
+
+
+def _build_reference_id_corrections(
+    cfg: MergedConfig,
+) -> dict[str, tuple[str, str, str, str | None]]:
+    """Return reference_id → (merchant, category_main, category_second, city) from user config."""
+    return {
+        c.reference_id: (c.merchant, c.category_main, c.category_second, c.city)
+        for c in cfg.reference_id_corrections
+    }
+
 
 # Per-reference-id corrections: overrides matched_merchant name AND categories.
 # Keyed by reference_id (the value in transactions_use.reference / merchant_metadata.reference_id).
 # Value: (merchant_name, category_main, category_second, city_override or None to keep existing).
-REFERENCE_ID_CORRECTIONS: dict[str, tuple[str, str, str, str | None]] = {
-    "NOID-337ce749-2152-45e3-aa98-1083fb846006": (
-        "Migros Golfpark Waldkirch",
-        CategoryMain.SPORT.value,
-        CategorySecond.SPORT_GOLF.value,
-        "Waldkirch",
-    ),
-}
-
-# SWITZERLAND FIRST
-# Parkingpay App, Transport, Parking -> should be Car_Parking
-# Liegenschaft Neumarkt, Housing Rent -> Idk
-# Raststätte Knonauer Amt, Car Service Reapi -> should be Fueling
-
-# Restaurant Parking is not possible
-# add SPA to categories
-# Any place that serve food should be restaurant except for Bar
-
-# Car, car washing
+REFERENCE_ID_CORRECTIONS: dict[str, tuple[str, str, str, str | None]] = (
+    _build_reference_id_corrections(_cfg)
+)
 
 
 def run_post_clean() -> None:
@@ -130,7 +150,7 @@ def run_post_clean() -> None:
         table_exists = agentic.check_merchant_metadata_raw_exists(db)
         db.row_factory = sqlite3.Row
         if not table_exists:
-            tqdm.write("post_clean: merchant_metadata_raw not found, skipping")
+            logger.warning("post_clean: merchant_metadata_raw not found, skipping")
             return
 
         # Latest raw row per reference_id — include rows not yet in rfn
@@ -195,7 +215,7 @@ def run_post_clean() -> None:
 
         db.commit()
 
-    tqdm.write(f"post_clean: {rows_inserted} rows written to merchant_metadata_rfn")
+    logger.debug("post_clean: %d rows written to merchant_metadata_rfn", rows_inserted)
 
     _apply_corrections_to_existing_rfn()
 
@@ -221,7 +241,7 @@ def _apply_corrections_to_existing_rfn() -> None:
         table_exists = agentic.check_merchant_metadata_rfn_exists(db)
         db.row_factory = sqlite3.Row
         if not table_exists:
-            tqdm.write(
+            logger.warning(
                 "post_clean: merchant_metadata_rfn not found, skipping corrections"
             )
             return
@@ -263,7 +283,7 @@ def _apply_corrections_to_existing_rfn() -> None:
 
         db.commit()
 
-    tqdm.write(f"post_clean: {rows_updated} existing rfn rows corrected")
+    logger.debug("post_clean: %d existing rfn rows corrected", rows_updated)
 
     _apply_reference_id_corrections()
 
@@ -302,4 +322,4 @@ def _apply_reference_id_corrections() -> None:
             rows_updated += 1
         db.commit()
 
-    tqdm.write(f"post_clean: {rows_updated} reference-id corrections applied")
+    logger.debug("post_clean: %d reference-id corrections applied", rows_updated)

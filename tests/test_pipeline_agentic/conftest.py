@@ -11,7 +11,6 @@ import pytest
 from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.db.sql import transactions
 
-
 # ---------------------------------------------------------------------------
 # Schema helper
 # ---------------------------------------------------------------------------
