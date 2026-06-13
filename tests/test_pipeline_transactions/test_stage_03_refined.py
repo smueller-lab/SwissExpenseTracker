@@ -309,7 +309,7 @@ def test_zkb_mobile_banking_detail_rows_kept(tmp_db: Path) -> None:
     detail_json = json.dumps(
         {
             "Date": None,
-            "Booking text": "Migros",
+            "Booking text": "Freshmart",
             "Curr": "CHF",
             "Amount details": "25.40",
             "ZKB reference": None,

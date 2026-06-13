@@ -70,6 +70,12 @@ UPDATE transactions_rfn
 SET enrichment_status = 'enriched'
 WHERE id = :refined_id
 
+-- name: mark_transaction_skipped!
+-- Set enrichment_status to skipped for a transactions_rfn row with no merchant to enrich.
+UPDATE transactions_rfn
+SET enrichment_status = 'skipped'
+WHERE id = :refined_id
+
 -- name: insert_merchant_metadata_raw!
 -- Insert one raw merchant metadata result row.
 INSERT INTO merchant_metadata_raw (

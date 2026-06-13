@@ -80,10 +80,10 @@ async def test_search_web_uses_tavily_when_credits_available(
         lambda q: "TAVILY_RESULTS\nsome text about Migros",
     )
 
-    result = await _call_search_web("Migros")
+    result = await _call_search_web("Freshmart")
 
     assert result.tool_used == WebSearchTool.TAVILY
-    assert "Migros" in result.summary or "some text" in result.summary
+    assert "Freshmart" in result.summary or "some text" in result.summary
 
 
 async def test_search_web_falls_through_when_tavily_missing_key(
@@ -102,7 +102,7 @@ async def test_search_web_falls_through_when_tavily_missing_key(
         lambda q: "BRAVE_RESULTS\nbrave result text",
     )
 
-    result = await _call_search_web("Migros")
+    result = await _call_search_web("Freshmart")
 
     assert result.tool_used == WebSearchTool.BRAVE
 
@@ -125,7 +125,7 @@ async def test_search_web_falls_through_on_tavily_credits_exceeded(
         lambda q: "BRAVE_RESULTS\nbrave result text",
     )
 
-    result = await _call_search_web("Migros")
+    result = await _call_search_web("Freshmart")
 
     assert result.tool_used == WebSearchTool.BRAVE
 
@@ -152,7 +152,7 @@ async def test_search_web_falls_through_on_brave_missing_key(
         lambda q: "SCRAPEDO_RESULTS\nscrapedo result text",
     )
 
-    result = await _call_search_web("Migros")
+    result = await _call_search_web("Freshmart")
 
     assert result.tool_used == WebSearchTool.SCRAPE_DO
 
@@ -179,7 +179,7 @@ async def test_search_web_falls_through_on_scrape_do_missing_key(
         lambda q: "EXA_RESULTS:1\nsome exa text",
     )
 
-    result = await _call_search_web("Migros")
+    result = await _call_search_web("Freshmart")
 
     assert result.tool_used == WebSearchTool.EXA
 
@@ -204,7 +204,7 @@ async def test_search_web_returns_no_websearch_when_all_free_exhausted_and_no_pa
 
     monkeypatch.setattr(f"{_MODULE}.API_KEYS", _MockApiKeys())
 
-    result = await _call_search_web("Migros")
+    result = await _call_search_web("Freshmart")
 
     assert result.tool_used == WebSearchTool.NO_WEBSEARCH
     assert "SEARCH_UNAVAILABLE" in result.summary
@@ -234,7 +234,7 @@ async def test_search_web_continues_silently_when_one_payperus_key_present(
     )
 
     # Should NOT raise AllProvidersExhaustedError
-    result = await _call_search_web("Migros")
+    result = await _call_search_web("Freshmart")
 
     assert result.tool_used == WebSearchTool.BRAVE
     assert "brave pay-per-use text" in result.summary

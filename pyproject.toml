@@ -25,6 +25,7 @@ dash-ag-grid = "^32.3.2"
 chromadb = "^1.5.5"
 xlrd = ">=2.0.1"
 aiosql = "^12.0"
+pyyaml = "^6.0.3"
 
 [tool.poetry.group.dev.dependencies]
 kaleido = "^1.1.0"
@@ -41,6 +42,7 @@ selenium = ">=4.44.0"
 psutil = ">=5.8.0"
 multiprocess = ">=0.70.12"
 pytest-recording = "^0.13.4"
+types-pyyaml = "^6.0.12.20260518"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
