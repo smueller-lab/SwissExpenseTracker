@@ -34,6 +34,7 @@ class EnrichmentStatus(Enum):
     PENDING = "pending"
     DONE = "done"
     FAILED = "failed"
+    SKIPPED = "skipped"
 
 
 class UnifiedTransaction(BaseModel):

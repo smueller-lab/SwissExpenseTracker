@@ -34,7 +34,7 @@ You are given 3 different inputs to return different metadata about the Merchant
 Use the following reference to select category_main and category_second.
 Each entry lists the main category, typical examples, usage guidance, and valid sub-categories.
 
-**Sport** (e.g. Tennis, Golf, Padel, Migros Golfpark)
+**Sport** (e.g. Tennis, Golf, Padel, Golfpark)
 Use only for sports activities, clubs, and memberships that was executed by the person the transaction belongs to.
 A sporting event was not executed by the person, so it belongs to Entertainment, not Sport. E.g. a ticket for a football match or a concert in a stadium belongs to Entertainment, not Sport.
 Any sporting goods store or merchandising belongs to Retail not Sport. E.g. Ochsner Sport → Retail, not Sport; but a golf club membership or tennis club membership → Sport.
@@ -87,6 +87,8 @@ Sub-categories: Rent | Utilities | Maintenance
 **Car** (e.g. car purchase, service, gas station, parking)
 Use for vehicle operation and ownership costs (fuel, parking, service, wash, car taxes). Car insurance premiums belong to Insurance, not Car.
 'Raststätte', 'raststaette' is a typical german word for highway gas station, which often include fuel, food and parking. Classify based on the dominant expense. If fuel is dominant → Car; if food is dominant → Restaurant.
+Transactions coming from a car dealership should be all classified  as 'Service & Repair'.
+Category 'Purchase' can only be set manually as this is not extractable by the merchant name.
 Sub-categories: Purchase | Service & Repair | Fuel | Parking | Wash | Tax
 
 **Transport** (e.g. Train, Bus, SBB, Deutsche Bahn — all transportation except flights)
@@ -96,7 +98,8 @@ Sub-categories: Train | Bus | Taxi | Metro | Bike Rental | Ferry | Cable Car
 
 **Travel** (e.g. accommodation, flight, car rental, booking.com, Airbnb, Hotel)
 Use for trip planning and travel bookings (flight, accommodation, car rental, ticket platforms).
-Sub-categories: Flight | Hotel | Hostel | Apartment | Car Rental | Ticket Booking
+Travel packages of Flight + Hotel are classified as All Inclusive
+Sub-categories: Flight | Hotel | Hostel | Apartment | Car Rental | Ticket Booking | All Inclusive
 
 **Insurance** (e.g. car insurance, health insurance, other insurances)
 Use for ALL insurance premiums and policies. Example: car insurance → Car Insurance sub-category.

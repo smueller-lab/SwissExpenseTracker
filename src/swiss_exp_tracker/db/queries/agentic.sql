@@ -70,6 +70,12 @@ UPDATE transactions_rfn
 SET enrichment_status = 'enriched'
 WHERE id = :refined_id
 
+-- name: mark_transaction_skipped!
+-- Set enrichment_status to skipped for a transactions_rfn row with no merchant to enrich.
+UPDATE transactions_rfn
+SET enrichment_status = 'skipped'
+WHERE id = :refined_id
+
 -- name: insert_merchant_metadata_raw!
 -- Insert one raw merchant metadata result row.
 INSERT INTO merchant_metadata_raw (
@@ -241,8 +247,8 @@ SET category_main = :category_main,
 WHERE id = :id
 
 -- name: get_all_transactions_use_for_corrections
--- Return id, merchant, amount, and category columns from transactions_use for correction logic.
-SELECT id, merchant, amount, category_main, category_second FROM transactions_use
+-- Return id, date, merchant, amount, and category columns from transactions_use for correction logic.
+SELECT id, date, merchant, amount, category_main, category_second FROM transactions_use
 
 -- name: update_transactions_use_category_correction!
 -- Overwrite category_main and category_second for the given transactions_use row id.

@@ -43,6 +43,9 @@ class MerchantManager:
             # 1. Use merchant and person flag from refined DB row
             merchant_name = (transaction.merchant or "").strip()
             if not merchant_name:
+                # No merchant to research (e.g. card-bill settlement rows) —
+                # mark skipped so it leaves the pending pool permanently.
+                self.result.mark_transaction_skipped(transaction.refined_id)
                 return
 
             merchant = MerchantExtractor(

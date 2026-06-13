@@ -40,3 +40,11 @@ class MerchantResult:
         with get_connection() as db:
             agentic.mark_transaction_enriched(db, refined_id=refined_id)
             db.commit()
+
+    def mark_transaction_skipped(self, refined_id: int | None) -> None:
+        """Set enrichment_status to 'skipped' for a row with no merchant to enrich."""
+        if refined_id is None:
+            return
+        with get_connection() as db:
+            agentic.mark_transaction_skipped(db, refined_id=refined_id)
+            db.commit()

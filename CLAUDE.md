@@ -23,6 +23,28 @@ def get_ryAxis(d_Tick: float, z: pd.Series, q_ZeroStart: bool = False) -> list[f
 
 Don't pad to 3 lines — a single line is fine when the signature is self-explanatory. Extra lines are for non-obvious constraints, workarounds, or invariants only.
 
+## Typing — attribute access
+
+Do not reach into objects with `getattr(obj, "attr", default)` or `hasattr(obj, "attr")` to handle "it might be one of several types." Both defeat static checking: the type checker cannot verify the attribute exists or infer its type, so real bugs slip through and `object`-typed values never narrow.
+
+Type the parameter for what it actually accepts and narrow with `isinstance` — the checker verifies the access and narrows the type automatically.
+
+```python
+# Wrong — getattr/hasattr hide the type from the checker
+def _to_type_str(value: object) -> str:
+    if hasattr(value, "value"):
+        return str(value.value).upper()   # checker can't verify .value
+    return str(value).upper()
+
+# Right — explicit union + isinstance narrowing
+def _to_type_str(value: str | Enum) -> str:
+    if isinstance(value, Enum):
+        return str(value.value).upper()   # value is narrowed to Enum
+    return str(value).upper()
+```
+
+`getattr`/`hasattr` are acceptable only for genuinely dynamic attribute names (e.g. names computed at runtime) — never as a substitute for a proper type annotation.
+
 ## Pydantic
 
 - Always `BaseModel` — not plain dataclasses or `TypedDict`.

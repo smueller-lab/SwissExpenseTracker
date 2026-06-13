@@ -49,7 +49,7 @@ def _make_rfn_row(**overrides: object) -> dict[str, object]:
         "amount": 42.50,
         "transaction_type": "EXPENSE",
         "booking_text": "Test booking text",
-        "merchant_normalized": "Migros",
+        "merchant_normalized": "Freshmart",
         "is_person": 0,
         "currency": "CHF",
         "reference": "REF-E2E-001",
@@ -132,7 +132,7 @@ def _insert_rfn_metadata(
     reference_id: str,
     category_main: str,
     category_second: str = "Supermarket",
-    matched_merchant: str = "Migros",
+    matched_merchant: str = "Freshmart",
     city: str = "Zurich",
 ) -> None:
     """Insert a merchant_metadata_rfn row directly (simulates the raw→rfn migration step)."""
@@ -165,16 +165,16 @@ async def test_smoke_e2e_pending_transaction_reaches_transactions_use(
     _insert_rfn_row(
         tmp_db,
         reference="REF-E2E-001",
-        merchant_normalized="Migros",
+        merchant_normalized="Freshmart",
         is_person=0,
         enrichment_status="pending",
     )
 
     summary_result = SearchToolResult(
-        summary="Migros is a Swiss supermarket.", tool_used=WebSearchTool.TAVILY
+        summary='"Freshmart" is a generic supermarket.', tool_used=WebSearchTool.TAVILY
     )
     metadata_result = MerchantMetaData(
-        name="Migros",
+        name="Freshmart",
         category_main=CategoryMain.GROCERIES,
         category_second=CategorySecond.GROCERIES_SUPERMARKET,
         city="Zurich",
@@ -217,7 +217,7 @@ async def test_smoke_e2e_pending_transaction_reaches_transactions_use(
         tmp_db,
         reference_id="REF-E2E-001",
         category_main=CategoryMain.GROCERIES.value,
-        matched_merchant="Migros",
+        matched_merchant="Freshmart",
     )
 
     # Step 4: run_transactions_use
@@ -231,7 +231,7 @@ async def test_smoke_e2e_pending_transaction_reaches_transactions_use(
     assert use_count == 1
     assert use_row is not None
     assert use_row[0] == CategoryMain.GROCERIES.value
-    assert use_row[1] == "Migros"
+    assert use_row[1] == "Freshmart"
 
 
 async def test_smoke_e2e_person_transaction_reaches_transactions_use(
@@ -406,6 +406,6 @@ async def test_smoke_e2e_all_providers_exhausted_stops_pipeline(
         status = db.execute(
             "SELECT enrichment_status FROM transactions_rfn WHERE reference = 'REF-E2E-EXHAUST-001'"
         ).fetchone()[0]
-    assert status == "pending", (
-        "enrichment_status should remain 'pending' when all providers are exhausted"
-    )
+    assert (
+        status == "pending"
+    ), "enrichment_status should remain 'pending' when all providers are exhausted"
