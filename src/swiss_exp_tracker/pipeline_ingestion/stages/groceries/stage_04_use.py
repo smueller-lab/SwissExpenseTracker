@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from tqdm import tqdm
+import logging
 
 from swiss_exp_tracker.db.sql import groceries
 from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCategoryDetail
@@ -8,6 +8,8 @@ from swiss_exp_tracker.pipeline_agentic.data_models.grocery import GroceryCatego
 from swiss_exp_tracker.pipeline_agentic.grocery_result import GroceryResult
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 from swiss_exp_tracker.pipeline_ingestion.db_groceries import create_grocery_tables
+
+logger = logging.getLogger(__name__)
 
 # (article LIKE pattern, correct category_main, correct category_detail)
 _CORRECTIONS: list[tuple[str, GroceryCategoryMain, GroceryCategoryDetail]] = [
@@ -62,7 +64,7 @@ def run_groceries_use() -> dict[str, int]:
         corrected = _apply_corrections(db)
         db.commit()
 
-    tqdm.write(
-        f"groceries_use: {len(rows)} rows written, {corrected} corrections applied"
+    logger.debug(
+        "groceries_use: %d rows written, %d corrections applied", len(rows), corrected
     )
     return {"rows_written": len(rows), "rows_corrected": corrected}

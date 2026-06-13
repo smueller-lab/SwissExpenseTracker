@@ -102,7 +102,7 @@ def run_dashboard_pipeline(db_path: Path | None = None) -> None:
         ]
 
         for table_name, module in builders:
-            logger.info("Building %s", table_name)
+            logger.debug("Building %s", table_name)
             module.build(df, con)
 
-    logger.info("Dashboard tables built successfully")
+    logger.info("Dashboard tables built successfully (%d builders)", len(builders))

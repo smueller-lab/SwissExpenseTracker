@@ -132,7 +132,7 @@ def _make_groceries_rfn_row(**overrides: object) -> dict[str, object]:
         "source_type": "COOP",
         "date": "2026-01-15",
         "time": "10:30:00",
-        "location": "Coop Basel",
+        "location": "DailyStore Basel",
         "article": "Banana",
         "article_normalized": "banana",
         "unit": "kg",

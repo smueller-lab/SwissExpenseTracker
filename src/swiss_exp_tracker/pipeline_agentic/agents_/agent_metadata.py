@@ -34,7 +34,7 @@ You are given 3 different inputs to return different metadata about the Merchant
 Use the following reference to select category_main and category_second.
 Each entry lists the main category, typical examples, usage guidance, and valid sub-categories.
 
-**Sport** (e.g. Tennis, Golf, Padel, Migros Golfpark)
+**Sport** (e.g. Tennis, Golf, Padel, Golfpark)
 Use only for sports activities, clubs, and memberships that was executed by the person the transaction belongs to.
 A sporting event was not executed by the person, so it belongs to Entertainment, not Sport. E.g. a ticket for a football match or a concert in a stadium belongs to Entertainment, not Sport.
 Any sporting goods store or merchandising belongs to Retail not Sport. E.g. Ochsner Sport → Retail, not Sport; but a golf club membership or tennis club membership → Sport.

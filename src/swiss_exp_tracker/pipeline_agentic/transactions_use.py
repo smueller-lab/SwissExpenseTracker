@@ -10,64 +10,150 @@ only those not already present in the destination table (idempotent on re-runs).
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 
-from tqdm import tqdm
-
-from swiss_exp_tracker.config import HOUSING_DEPOSIT_1
-from swiss_exp_tracker.config import HOUSING_DEPOSIT_1_MIN_AMOUNT
-from swiss_exp_tracker.config import HOUSING_RENT_1
-from swiss_exp_tracker.config import HOUSING_RENT_2
-from swiss_exp_tracker.config import HOUSING_RENT_2_ROOMMATE_OFFSET
-from swiss_exp_tracker.config import HOUSING_RENT_3
-from swiss_exp_tracker.config import HOUSING_RENT_3_AMOUNTS
-from swiss_exp_tracker.config import HOUSING_RENT_AMOUNTS_1
-from swiss_exp_tracker.config import INVESTING_BROKERAGE_1
-from swiss_exp_tracker.config import INVESTING_BROKERAGE_1_MIN_AMOUNT
-from swiss_exp_tracker.config import TRAVEL_ALL_INCLUSIVE_1
-from swiss_exp_tracker.config import TRAVEL_ALL_INCLUSIVE_1_YEAR
+from swiss_exp_tracker.config.user_config_loader import load as load_config
+from swiss_exp_tracker.config.user_config_schema import MergedConfig
+from swiss_exp_tracker.config.user_config_schema import SharedHousingRule
 from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategoryMain
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import CategorySecond
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
+logger = logging.getLogger(__name__)
+
+_cfg: MergedConfig = load_config()
+
+
+def _build_amount_corrections(
+    cfg: MergedConfig,
+) -> list[tuple[list[str], list[float], tuple[str, str]]]:
+    """Return rent merchant → exact-amount list entries for Housing/Rent category overrides."""
+    result: list[tuple[list[str], list[float], tuple[str, str]]] = []
+    for rent in cfg.housing.rent:
+        if rent.amounts:
+            result.append(
+                (
+                    [rent.merchant],
+                    rent.amounts,
+                    (CategoryMain.HOUSING.value, CategorySecond.HOUSING_RENT.value),
+                )
+            )
+    return result
+
+
+def _build_date_corrections(
+    cfg: MergedConfig,
+) -> list[tuple[list[str], list[str], tuple[str, str]]]:
+    """Return merchant → date list entries for date-specific category overrides."""
+    result: list[tuple[list[str], list[str], tuple[str, str]]] = []
+    for transfer in cfg.investing.transfers:
+        if transfer.dates:
+            result.append(
+                (
+                    [transfer.merchant],
+                    [d[:10] for d in transfer.dates],
+                    (
+                        CategoryMain.INVESTING.value,
+                        CategorySecond.INVESTING_BROKERAGE.value,
+                    ),
+                )
+            )
+    for travel in cfg.travel.all_inclusive:
+        if travel.dates:
+            result.append(
+                (
+                    [travel.merchant],
+                    [d[:10] for d in travel.dates],
+                    (
+                        CategoryMain.TRAVEL.value,
+                        CategorySecond.TRAVEL_ALL_INCLUSIVE.value,
+                    ),
+                )
+            )
+    return result
+
+
+def _build_threshold_corrections(
+    cfg: MergedConfig,
+) -> list[tuple[list[str], float, tuple[str, str]]]:
+    """Return merchant → min_amount entries for Investing/Brokerage and Housing/Deposit overrides."""
+    result: list[tuple[list[str], float, tuple[str, str]]] = []
+    for transfer in cfg.investing.transfers:
+        if transfer.min_amount is not None:
+            result.append(
+                (
+                    [transfer.merchant],
+                    transfer.min_amount,
+                    (
+                        CategoryMain.INVESTING.value,
+                        CategorySecond.INVESTING_BROKERAGE.value,
+                    ),
+                )
+            )
+    for deposit in cfg.housing.deposits:
+        result.append(
+            (
+                [deposit.merchant],
+                deposit.min_amount,
+                (CategoryMain.HOUSING.value, CategorySecond.HOUSING_DEPOSIT.value),
+            )
+        )
+    return result
+
+
+def _build_year_corrections(
+    cfg: MergedConfig,
+) -> list[tuple[list[str], int, tuple[str, str]]]:
+    """Return travel merchant → year entries for Travel/AllInclusive category overrides."""
+    result: list[tuple[list[str], int, tuple[str, str]]] = []
+    for travel in cfg.travel.all_inclusive:
+        if travel.year is not None:
+            result.append(
+                (
+                    [travel.merchant],
+                    travel.year,
+                    (
+                        CategoryMain.TRAVEL.value,
+                        CategorySecond.TRAVEL_ALL_INCLUSIVE.value,
+                    ),
+                )
+            )
+    return result
+
+
+def _get_roommate_config(cfg: MergedConfig) -> list[SharedHousingRule]:
+    """Return list of shared_housing configs (merchant, roommate_offset)."""
+    return cfg.housing.shared_housing
+
+
 # Merchant-name substrings + exact amounts → (category_main, category_second)
-AMOUNT_CORRECTIONS: list[tuple[list[str], list[float], tuple[str, str]]] = [
-    (
-        HOUSING_RENT_1,
-        HOUSING_RENT_AMOUNTS_1,
-        (CategoryMain.HOUSING.value, CategorySecond.HOUSING_RENT.value),
-    ),
-    (
-        HOUSING_RENT_3,
-        HOUSING_RENT_3_AMOUNTS,
-        (CategoryMain.HOUSING.value, CategorySecond.HOUSING_RENT.value),
-    ),
-]
+AMOUNT_CORRECTIONS: list[tuple[list[str], list[float], tuple[str, str]]] = (
+    _build_amount_corrections(_cfg)
+)
+
+# Merchant-name substrings + specific dates (YYYY-MM-DD) → (category_main, category_second)
+DATE_CORRECTIONS: list[tuple[list[str], list[str], tuple[str, str]]] = (
+    _build_date_corrections(_cfg)
+)
 
 # Merchant-name substrings + minimum amount (exclusive) → (category_main, category_second)
-AMOUNT_THRESHOLD_CORRECTIONS: list[tuple[list[str], float, tuple[str, str]]] = [
-    (
-        INVESTING_BROKERAGE_1,
-        INVESTING_BROKERAGE_1_MIN_AMOUNT,
-        (CategoryMain.INVESTING.value, CategorySecond.INVESTING_BROKERAGE.value),
-    ),
-    (
-        HOUSING_DEPOSIT_1,
-        HOUSING_DEPOSIT_1_MIN_AMOUNT,
-        (CategoryMain.HOUSING.value, CategorySecond.HOUSING_DEPOSIT.value),
-    ),
-]
+AMOUNT_THRESHOLD_CORRECTIONS: list[tuple[list[str], float, tuple[str, str]]] = (
+    _build_threshold_corrections(_cfg)
+)
 
 # Merchant-name substrings + exact year → (category_main, category_second)
-YEAR_CORRECTIONS: list[tuple[list[str], int, tuple[str, str]]] = [
-    (
-        TRAVEL_ALL_INCLUSIVE_1,
-        TRAVEL_ALL_INCLUSIVE_1_YEAR,
-        (CategoryMain.TRAVEL.value, CategorySecond.TRAVEL_ALL_INCLUSIVE.value),
-    ),
-]
+YEAR_CORRECTIONS: list[tuple[list[str], int, tuple[str, str]]] = (
+    _build_year_corrections(_cfg)
+)
+
+_roommate_configs = _get_roommate_config(_cfg)
+HOUSING_RENT_2: list[str] = [r.merchant for r in _roommate_configs]
+HOUSING_RENT_2_ROOMMATE_OFFSET: float = (
+    _roommate_configs[0].roommate_offset if _roommate_configs else 0.0
+)
 
 
 def run_transactions_use() -> None:
@@ -90,7 +176,7 @@ def run_transactions_use() -> None:
 
         db.commit()
 
-    tqdm.write(f"transactions_use: {len(rows_to_insert)} rows written")
+    logger.debug("transactions_use: %d rows written", len(rows_to_insert))
 
     _backfill_balance_chf_use()
     _sync_categories_from_rfn()
@@ -114,7 +200,7 @@ def _sync_categories_from_rfn() -> None:
 
         db.commit()
 
-    tqdm.write(f"transactions_use: {len(rows)} rows synced from rfn")
+    logger.debug("transactions_use: %d rows synced from rfn", len(rows))
 
     _apply_amount_corrections()
 
@@ -149,6 +235,27 @@ def _apply_amount_corrections() -> None:
                         )
                         rows_updated += 1
                     break
+
+            if not matched:
+                row_date = (row["date"] or "")[:10]
+                for patterns, dates, (cat_main, cat_second) in DATE_CORRECTIONS:
+                    if (
+                        any(p.lower() in merchant_key for p in patterns)
+                        and row_date in dates
+                    ):
+                        if (
+                            row["category_main"] != cat_main
+                            or row["category_second"] != cat_second
+                        ):
+                            agentic.update_transactions_use_category_correction(
+                                db,
+                                category_main=cat_main,
+                                category_second=cat_second,
+                                id=row["id"],
+                            )
+                            rows_updated += 1
+                        matched = True
+                        break
 
             if not matched:
                 for (
@@ -196,7 +303,7 @@ def _apply_amount_corrections() -> None:
 
         db.commit()
 
-    tqdm.write(f"transactions_use: {rows_updated} rows corrected by amount")
+    logger.debug("transactions_use: %d rows corrected by amount", rows_updated)
 
     _apply_shared_housing_roommate_offset()
 
@@ -275,8 +382,8 @@ def _apply_shared_housing_roommate_offset() -> None:
 
         db.commit()
 
-    tqdm.write(
-        f"transactions_use: {rows_adjusted} Shared housing roommate offsets applied"
+    logger.debug(
+        "transactions_use: %d Shared housing roommate offsets applied", rows_adjusted
     )
 
 
@@ -286,4 +393,4 @@ def _backfill_balance_chf_use() -> None:
         transactions.backfill_transactions_use_balance_chf(db)
         db.commit()
 
-    tqdm.write("transactions_use: balance_chf backfilled from transactions_rfn")
+    logger.debug("transactions_use: balance_chf backfilled from transactions_rfn")

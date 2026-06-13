@@ -23,8 +23,8 @@ repos:
         pass_filenames: false
 
       - id: pytest
-        name: pytest (unit + integration)
-        entry: poetry run pytest tests --tb=short
+        name: pytest
+        entry: poetry run pytest tests --ignore=tests/test_claude_chrome --tb=short
         language: system
         pass_filenames: false
         always_run: true

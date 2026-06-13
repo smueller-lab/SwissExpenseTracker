@@ -23,6 +23,7 @@ One entry per distinct implementation component. Components that touch different
 ```
 #### Builder Task: <name>
 
+- **Description**: Short description what the builder is doing and why it is doing that.
 - **Files to create/modify**: exact relative paths from project root
 - **Acceptance criteria**: measurable outcomes (e.g. "adapter sets amount = abs(value)", "layout row widths sum to 12")
 - **Constraints**: what must NOT be done (e.g. "do not touch test files", "do not modify any DB schema file without user approval")
