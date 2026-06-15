@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import math
+
 from typing import Any
 
 import pandas as pd
@@ -204,6 +206,181 @@ def make_table_card(
 
     return html.Div(
         [make_card_title(title), html.Table([header, body], className="simple-table")],
+        className=f"card card-graph col-{width}",
+    )
+
+
+def make_balance_sheet_card(
+    title: str,
+    pdf: pd.DataFrame,
+    width: int = 12,
+) -> Any:
+    """Return a full-width card with the year x metric balance-sheet matrix.
+
+    total_plus and yoy_saved_pct cells are colored balance-positive/negative;
+    rate columns carry a '%' suffix; CHF columns are formatted ,.0f.
+    """
+    _COLS: list[dict[str, Any]] = [
+        {"id": "year", "name": "Year", "fmt": "text", "color": False},
+        {"id": "income", "name": "Income", "fmt": "chf", "color": False},
+        {"id": "expense", "name": "Spent", "fmt": "chf", "color": False},
+        {"id": "invested", "name": "Invested", "fmt": "chf", "color": False},
+        {"id": "total_plus", "name": "Net Gain", "fmt": "chf", "color": True},
+        {"id": "savings_rate_pct", "name": "Gain %", "fmt": "pct", "color": True},
+        {"id": "expense_rate_pct", "name": "Exp %", "fmt": "pct", "color": False},
+        {"id": "yoy_saved_pct", "name": "NetGain YoY %", "fmt": "pct", "color": True},
+        {"id": "in_plus", "name": "Result", "fmt": "res", "color": False},
+    ]
+
+    header = html.Thead(
+        html.Tr(
+            [
+                html.Th(
+                    col["name"],
+                    className="" if col["fmt"] == "text" else "num",
+                )
+                for col in _COLS
+            ]
+        )
+    )
+
+    def _render_cell(col: dict[str, Any], row: Any) -> Any:
+        """Return a styled html.Td for a single balance-sheet matrix cell."""
+        val: Any = row[col["id"]]
+        fmt: str = col["fmt"]
+        colored: bool = bool(col["color"])
+        missing: bool = bool(pd.isna(val))
+
+        if fmt == "text":
+            return html.Td(str(int(val)) if not missing else "—", className="")
+
+        if fmt == "res":
+            pos = (not missing) and int(val) == 1
+            return html.Td(
+                "▲ +" if pos else "▼ -",
+                className="num balance-positive" if pos else "num balance-negative",
+            )
+
+        if fmt == "chf":
+            text = f"{val:,.0f}" if not missing else "—"
+        else:
+            text = f"{val:.1f} %" if not missing else "—"
+
+        if colored and not missing:
+            if val > 0:
+                cls = "num balance-positive"
+            elif val < 0:
+                cls = "num balance-negative"
+            else:
+                cls = "num"
+        else:
+            cls = "num"
+
+        return html.Td(text, className=cls)
+
+    body = html.Tbody(
+        [
+            html.Tr([_render_cell(col, row) for col in _COLS])
+            for _, row in pdf.iterrows()
+        ]
+    )
+
+    return html.Div(
+        [make_card_title(title), html.Table([header, body], className="simple-table")],
+        className=f"card card-graph col-{width}",
+    )
+
+
+def make_category_spend_card(
+    title: str,
+    pdf_pivot: pd.DataFrame,
+    pdf_yoy: pd.DataFrame,
+    width: int = 12,
+) -> Any:
+    """Return a full-width card with the major-category spend pivot table.
+
+    Rows are years descending; each cell shows the yearly spend and a colored YoY %
+    delta — balance-negative when spend rose, balance-positive when spend fell.
+    """
+    cat_cols = [c for c in pdf_pivot.columns if c != "year"]
+
+    header = html.Thead(
+        html.Tr(
+            [html.Th("Year", className="")]
+            + [html.Th(cat, className="num") for cat in cat_cols]
+        )
+    )
+
+    def _cat_cell(cat: str, pivot_row: Any, yoy_row: Any) -> Any:
+        """Return a styled html.Td containing the spend amount and YoY delta."""
+        amount: Any = pivot_row[cat] if cat in pivot_row.index else 0.0
+        yoy_val: Any = yoy_row[cat] if cat in yoy_row.index else None
+        amt_text = f"{amount:,.0f}" if pd.notna(amount) else "—"
+
+        if pd.isna(yoy_val):
+            return html.Td(
+                [
+                    html.Span(amt_text),
+                    html.Br(),
+                    html.Span("—", className="num cat-delta"),
+                ],
+                className="num",
+            )
+
+        # Infinite YoY (prior year was 0) is not meaningful — show no delta.
+        if math.isinf(yoy_val):
+            return html.Td(
+                [
+                    html.Span(amt_text),
+                    html.Br(),
+                    html.Span("", className="num cat-delta"),
+                ],
+                className="num",
+            )
+
+        sign = "+" if yoy_val >= 0 else ""
+        delta_text = f"{sign}{yoy_val:.1f} %"
+        delta_cls = (
+            "num cat-delta balance-negative"
+            if yoy_val > 0
+            else "num cat-delta balance-positive"
+        )
+        return html.Td(
+            [
+                html.Span(amt_text),
+                html.Br(),
+                html.Span(delta_text, className=delta_cls),
+            ],
+            className="num",
+        )
+
+    pivot_rows = list(pdf_pivot.iterrows())
+    yoy_rows = list(pdf_yoy.iterrows())
+
+    body_rows: list[Any] = []
+    for i, (_, pivot_row) in enumerate(pivot_rows):
+        year_val: Any = (
+            pivot_row["year"] if "year" in pivot_row.index else pivot_row.name
+        )
+        year_str = str(int(year_val)) if pd.notna(year_val) else "—"
+        yoy_row: Any = (
+            yoy_rows[i][1] if i < len(yoy_rows) else pd.Series(dtype="float64")
+        )
+
+        body_rows.append(
+            html.Tr(
+                [html.Td(year_str, className="")]
+                + [_cat_cell(cat, pivot_row, yoy_row) for cat in cat_cols]
+            )
+        )
+
+    body = html.Tbody(body_rows)
+
+    return html.Div(
+        [
+            make_card_title(title),
+            html.Table([header, body], className="simple-table category-spend-table"),
+        ],
         className=f"card card-graph col-{width}",
     )
 

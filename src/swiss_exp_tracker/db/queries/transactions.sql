@@ -404,3 +404,11 @@ SET balance_chf = (
     WHERE t.reference = transactions_use.reference
 )
 WHERE balance_chf IS NULL
+
+-- name: get_dash_balance_sheet
+-- Select all rows from dash_balance_sheet.
+SELECT * FROM dash_balance_sheet
+
+-- name: get_dash_balance_sheet_categories
+-- Select all rows from dash_balance_sheet_categories.
+SELECT * FROM dash_balance_sheet_categories

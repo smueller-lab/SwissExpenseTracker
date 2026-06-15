@@ -171,6 +171,18 @@ SET category_main = :category_main,
     city = :city
 WHERE id = :id
 
+-- name: update_merchant_metadata_rfn_merchant_by_id!
+-- Rename matched_merchant for the given merchant_metadata_rfn row id.
+UPDATE merchant_metadata_rfn
+SET matched_merchant = :matched_merchant
+WHERE id = :id
+
+-- name: update_transactions_use_merchant_only_by_reference!
+-- Rename merchant for the transactions_use row matching the given reference.
+UPDATE transactions_use
+SET merchant = :merchant
+WHERE reference = :reference
+
 -- name: update_merchant_metadata_rfn_full_by_reference!
 -- Update matched_merchant, category_main, category_second, and city by reference_id.
 UPDATE merchant_metadata_rfn

@@ -61,6 +61,7 @@ def _merge(user: UserConfig, detected: DetectedRules) -> MergedConfig:
         travel=user.travel,
         custom_rules=user.custom_rules,
         reference_id_corrections=user.reference_id_corrections,
+        merchant_renames=user.merchant_renames,
     )
 
 

@@ -10,6 +10,7 @@ import pandas as pd
 from swiss_exp_tracker.app.config import DB_PATH
 from swiss_exp_tracker.app.config import VIS
 from swiss_exp_tracker.db.sql import transactions
+from swiss_exp_tracker.pipeline_dash.config import BALANCE_SHEET_MAJOR_CATEGORIES
 from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANT_NORMALIZE
 from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANTS_TRACKED
 
@@ -234,6 +235,64 @@ class DataLoader:
                 float(self.pdf_GroceryHealth.iloc[-1]["score"])
                 if not self.pdf_GroceryHealth.empty
                 else 50.0
+            )
+
+            # Balance sheet — yearly aggregates and major-category spend
+            self.pdf_BalanceSheet = pd.read_sql(
+                transactions.get_dash_balance_sheet.sql, con
+            )
+            self.pdf_BalanceSheetCategories = pd.read_sql(
+                transactions.get_dash_balance_sheet_categories.sql, con
+            )
+
+        # Category labels in the canonical order defined in pipeline config
+        _cat_labels = [label for label, _, _ in BALANCE_SHEET_MAJOR_CATEGORIES]
+
+        if self.pdf_BalanceSheetCategories.empty:
+            self.pdf_CategorySpendPivot: pd.DataFrame = pd.DataFrame(
+                columns=_cat_labels
+            )
+            self.pdf_CategorySpendYoY: pd.DataFrame = pd.DataFrame(columns=_cat_labels)
+        else:
+            _pivot = self.pdf_BalanceSheetCategories.pivot_table(
+                index="year",
+                columns="category",
+                values="amount",
+                aggfunc="sum",
+                fill_value=0.0,
+            )
+            # Reindex to canonical category order; fill any missing category with 0
+            _pivot = _pivot.reindex(columns=_cat_labels, fill_value=0.0)
+            # Newest year at the top
+            _pivot = _pivot.sort_index(ascending=False)
+            self.pdf_CategorySpendPivot = _pivot
+
+            # YoY % change: (current - prior) / |prior| * 100; oldest row -> NaN
+            _pivot_asc = _pivot.sort_index(ascending=True)
+            _yoy_asc = (
+                (_pivot_asc - _pivot_asc.shift(1)) / _pivot_asc.shift(1).abs() * 100
+            )
+            self.pdf_CategorySpendYoY = _yoy_asc.sort_index(ascending=False)
+
+        if self.pdf_BalanceSheet.empty:
+            self.v_BS_LatestYear: int = 0
+            self.v_BS_LifetimeNetGain: float = 0.0
+            self.v_BS_TotalInvestedAllTime: float = 0.0
+            self.v_BS_SavingsRateAvg: float = 0.0
+            self.v_BS_AvgAnnualNetGain: float = 0.0
+        else:
+            _latest = self.pdf_BalanceSheet.iloc[0]  # newest row (sorted DESC)
+            self.v_BS_LatestYear = int(_latest["year"])
+            # cumulative_saved in the newest row == sum of all yearly Net Gain
+            self.v_BS_LifetimeNetGain = float(_latest["cumulative_saved"])
+            self.v_BS_TotalInvestedAllTime = float(
+                self.pdf_BalanceSheet["invested"].sum()
+            )
+            self.v_BS_SavingsRateAvg = float(
+                self.pdf_BalanceSheet["savings_rate_pct"].mean()
+            )
+            self.v_BS_AvgAnnualNetGain = float(
+                self.pdf_BalanceSheet["total_plus"].mean()
             )
 
     def get_TopExpenses_Category_Month(
