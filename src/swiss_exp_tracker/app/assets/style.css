@@ -36,6 +36,7 @@
     --font-size-kpi-subtext: 13px;
     --font-size-dropdown: 14px;
     --font-size-btn: 15px;
+    --font-size-table-sm: 12px;
 
     /* Font weight */
     --font-weight-page-title: 600;
@@ -420,6 +421,11 @@ a {
 }
 .simple-table tr:hover {
     background-color: var(--color-table-bg-hover);
+}
+
+/* Major Category Spend by Year — smaller YoY % delta only */
+.category-spend-table .cat-delta {
+    font-size: var(--font-size-table-sm);
 }
 
 /* Positive / negative */

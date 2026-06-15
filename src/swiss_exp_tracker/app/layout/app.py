@@ -17,6 +17,12 @@ def create_app_layout() -> Any:
                         "🏠 Home", href="/", id="link-home", className="menu-link"
                     ),
                     dcc.Link(
+                        "📊 Balance Sheet",
+                        href="/balance-sheet",
+                        id="link-balance-sheet",
+                        className="menu-link",
+                    ),
+                    dcc.Link(
                         "🛒 Groceries",
                         href="/groceries",
                         id="link-groceries",
