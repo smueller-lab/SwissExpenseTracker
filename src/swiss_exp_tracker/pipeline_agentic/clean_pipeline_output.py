@@ -131,6 +131,26 @@ REFERENCE_ID_CORRECTIONS: dict[str, tuple[str, str, str, str | None]] = (
 )
 
 
+def _build_exact_renames(cfg: MergedConfig) -> dict[str, str]:
+    """Return lowercase merchant → new display name for exact-match renames."""
+    return {r.match.lower(): r.rename_to for r in cfg.merchant_renames if r.exact_match}
+
+
+def _build_containment_renames(cfg: MergedConfig) -> list[tuple[str, str]]:
+    """Return (lowercase substring, new display name) pairs for containment renames."""
+    return [
+        (r.match.lower(), r.rename_to)
+        for r in cfg.merchant_renames
+        if not r.exact_match
+    ]
+
+
+# Merchant renames: rewrite matched_merchant without touching categories.
+# Exact renames key on the full lowercase merchant; containment renames match a substring.
+MERCHANT_RENAMES_EXACT: dict[str, str] = _build_exact_renames(_cfg)
+MERCHANT_RENAMES_CONTAINMENT: list[tuple[str, str]] = _build_containment_renames(_cfg)
+
+
 def run_post_clean() -> None:
     """Read merchant_metadata_raw, apply corrections, write merchant_metadata_rfn.
 
@@ -217,7 +237,8 @@ def run_post_clean() -> None:
 
     logger.debug("post_clean: %d rows written to merchant_metadata_rfn", rows_inserted)
 
-    _apply_corrections_to_existing_rfn()
+    # Rename first so category rules below can key on the new merchant name.
+    _apply_merchant_renames()
 
 
 def _apply_corrections_to_existing_rfn() -> None:
@@ -323,3 +344,56 @@ def _apply_reference_id_corrections() -> None:
         db.commit()
 
     logger.debug("post_clean: %d reference-id corrections applied", rows_updated)
+
+
+def _apply_merchant_renames() -> None:
+    """Rename matched_merchant in rfn and merchant in transactions_use per merchant_renames config.
+
+    Runs before the category passes so custom_rules can key on the new name;
+    categories are left untouched here — only the display name changes.
+    """
+    if not MERCHANT_RENAMES_EXACT and not MERCHANT_RENAMES_CONTAINMENT:
+        _apply_corrections_to_existing_rfn()
+        return
+
+    path_db = oj("./database", "transactions.db")
+
+    with sqlite3.connect(path_db) as db:
+        db.row_factory = None
+        table_exists = agentic.check_merchant_metadata_rfn_exists(db)
+        db.row_factory = sqlite3.Row
+        if not table_exists:
+            logger.warning(
+                "post_clean: merchant_metadata_rfn not found, skipping renames"
+            )
+            return
+
+        rows = agentic.get_all_merchant_metadata_rfn(db)
+
+        rows_renamed = 0
+        for row in rows:
+            merchant_key = (row["matched_merchant"] or "").lower()
+
+            new_name = MERCHANT_RENAMES_EXACT.get(merchant_key)
+            if new_name is None:
+                for pattern, rename_to in MERCHANT_RENAMES_CONTAINMENT:
+                    if pattern in merchant_key:
+                        new_name = rename_to
+                        break
+
+            if new_name is None or new_name == row["matched_merchant"]:
+                continue  # no rename rule or already renamed
+
+            agentic.update_merchant_metadata_rfn_merchant_by_id(
+                db, matched_merchant=new_name, id=row["id"]
+            )
+            agentic.update_transactions_use_merchant_only_by_reference(
+                db, merchant=new_name, reference=row["reference_id"]
+            )
+            rows_renamed += 1
+
+        db.commit()
+
+    logger.debug("post_clean: %d merchant renames applied", rows_renamed)
+
+    _apply_corrections_to_existing_rfn()

@@ -56,18 +56,19 @@ Ever reach the end of the month, open your banking app, and you are asking yours
 
 ### Pages
 
-| Page                          | What you see                                                                            |
-| ----------------------------- | --------------------------------------------------------------------------------------- |
-| 🏠**Home**              | Balance progression, net balance per month, top spending category, expense distribution |
-| 🛒**Groceries**         | Store breakdown (Migros, Coop, Lidl, Aldi, ...), spend distribution                     |
-| **M Cumulus Analytics** | Item-level grocery analysis: categories, health score, top articles                     |
-| 🍽️**Dining & Bars**   | Restaurant & grocery spend by frequency, per-visit box plots                            |
-| 🏖️**Vacation**        | Annual travel spend by type (flights, hotels, car rental)                               |
-| 🚄**Transport**         | Yearly transport costs by subcategory, monthly heatmap, car expenses                    |
-| ⛳**Sport**             | Sport spending by activity type over time                                               |
-| 🛍️**Retail**          | Retail breakdown by subcategory, spend donut, top purchases                             |
-| 🔍**Smart Table**       | Fully filterable transaction browser                                                    |
-| 📈**Investing**         | Portfolio value vs. invested, P&L, per-position progression                             |
+| Page                          | What you see                                                                                                                                                                           |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🏠**Home**              | Balance progression, net balance per month, top spending category, expense distribution                                                                                                |
+| 📊**Balance Sheet**     | Yearly income / spent / invested / net gain with gain & YoY rates, all-time KPIs (lifetime net gain, total invested, avg gain rate, avg annual net gain), major-category spend by year |
+| 🛒**Groceries**         | Store breakdown (Migros, Coop, Lidl, Aldi, ...), spend distribution                                                                                                                    |
+| **M Cumulus Analytics** | Item-level grocery analysis: categories, health score, top articles                                                                                                                    |
+| 🍽️**Dining & Bars**   | Restaurant & grocery spend by frequency, per-visit box plots                                                                                                                           |
+| 🏖️**Vacation**        | Annual travel spend by type (flights, hotels, car rental)                                                                                                                              |
+| 🚄**Transport**         | Yearly transport costs by subcategory, monthly heatmap, car expenses                                                                                                                   |
+| ⛳**Sport**             | Sport spending by activity type over time                                                                                                                                              |
+| 🛍️**Retail**          | Retail breakdown by subcategory, spend donut, top purchases                                                                                                                            |
+| 🔍**Smart Table**       | Fully filterable transaction browser                                                                                                                                                   |
+| 📈**Investing**         | Portfolio value vs. invested, P&L, per-position progression                                                                                                                            |
 
 ---
 
@@ -331,6 +332,14 @@ travel:
   all_inclusive:
     - merchant: "trip organiser name"
       dates: ["2025-07-31"]
+
+merchant_renames:
+  # Rename a merchant's display name without changing its category.
+  # match:       text compared (case-insensitive) against the enriched merchant name
+  # rename_to:   the clean name shown in the dashboard instead
+  # exact_match: false (default) — substring match; true — full merchant name must match exactly.
+  - match: "store_express"
+    rename_to: "store"
 
 custom_rules:
   # Catch-all overrides: any transaction whose merchant contains this substring
