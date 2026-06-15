@@ -72,3 +72,18 @@ TOP_EXPENSES_EXCLUDE_MAIN: list[str] = [
     "Insurance",
     "Payment Services",
 ]
+
+# Ordered major categories for the balance-sheet category-spend table.
+# Each entry: (display_label, category_main, category_second_or_None).
+# When category_second_or_None is not None the builder also filters by category_second.
+BALANCE_SHEET_MAJOR_CATEGORIES: list[tuple[str, str, str | None]] = [
+    ("Rent", "Housing", "Rent"),
+    ("Groceries", "Groceries", None),
+    ("Car", "Car", None),
+    ("Transport", "Transport", None),
+    ("Travel", "Travel", None),
+    ("Sport", "Sport", None),
+    ("Restaurant", "Restaurant", None),
+    ("Retail", "Retail", None),
+    ("Healthcare", "Healthcare", None),
+]

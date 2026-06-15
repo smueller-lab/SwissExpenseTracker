@@ -122,6 +122,12 @@ class ReferenceIdCorrection(BaseModel):
     city: str | None = None
 
 
+class MerchantRename(BaseModel):
+    match: str
+    rename_to: str
+    exact_match: bool = False
+
+
 class UserConfig(BaseModel):
     salary: SalaryUser = SalaryUser()
     housing: HousingUser = HousingUser()
@@ -129,6 +135,7 @@ class UserConfig(BaseModel):
     travel: TravelUser = TravelUser()
     custom_rules: list[CustomRule] = []
     reference_id_corrections: list[ReferenceIdCorrection] = []
+    merchant_renames: list[MerchantRename] = []
 
 
 # ── MergedConfig — produced by loader, consumed by the correction engine ─────
@@ -152,3 +159,4 @@ class MergedConfig(BaseModel):
     travel: TravelUser = TravelUser()
     custom_rules: list[CustomRule] = []
     reference_id_corrections: list[ReferenceIdCorrection] = []
+    merchant_renames: list[MerchantRename] = []
