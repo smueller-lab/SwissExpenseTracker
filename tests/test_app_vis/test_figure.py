@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import calendar
 
-from datetime import datetime
 from typing import Any
 from typing import Literal
 from typing import cast
@@ -61,11 +60,16 @@ def _make_donut_df() -> pd.DataFrame:
     )
 
 
-def _make_balance_df() -> pd.DataFrame:
-    """Return 12 monthly balance rows spanning 2024-01-01 to 2024-12-01."""
-    dates = pd.date_range("2024-01-01", periods=12, freq="MS")
-    values = [5000.0 + i * 1000.0 for i in range(12)]
-    return pd.DataFrame({"Date": dates, "Balance_CHF": values})
+def _make_net_balance_month_df(**overrides: object) -> pd.DataFrame:
+    """Return a 3-month income/expense DataFrame; each test states only what it varies."""
+    base: dict[str, object] = {
+        "Month": ["2026-04", "2026-05", "2026-06"],
+        "Expense": [3000.0, 3500.0, 4000.0],
+        "Income": [6000.0, 6500.0, 7000.0],
+        "NetBalance": [3000.0, 3000.0, 3000.0],
+    }
+    base.update(overrides)
+    return pd.DataFrame(base)
 
 
 def _make_freq_cat_row(
@@ -228,42 +232,95 @@ def test_fig_donut_by_category_empty_returns_figure() -> None:
     assert isinstance(fig, go.Figure)
 
 
-# ── fig_BalancePerDay ─────────────────────────────────────────────────────────
+# ── fig_IncomeExpenseMonthly ──────────────────────────────────────────────────
 
 
-def test_fig_balance_per_day_returns_figure() -> None:
-    df = _make_balance_df()
-    fig = F.fig_BalancePerDay(df)
+def test_fig_income_expense_monthly_returns_figure_with_two_traces() -> None:
+    df = _make_net_balance_month_df()
+    fig = F.fig_IncomeExpenseMonthly(df)
     assert isinstance(fig, go.Figure)
-    assert fig.data
+    assert len(tuple(fig.data)) == 2
 
 
-def test_fig_balance_per_day_tickvals_present() -> None:
-    df = _make_balance_df()
-    fig = F.fig_BalancePerDay(df)
+def test_fig_income_expense_monthly_traces_mode_lines_markers() -> None:
+    df = _make_net_balance_month_df()
+    fig = F.fig_IncomeExpenseMonthly(df)
+    for trace in fig.data:
+        assert cast("go.Scatter", trace).mode == "lines+markers"
+
+
+def test_fig_income_expense_monthly_trace_names() -> None:
+    df = _make_net_balance_month_df()
+    fig = F.fig_IncomeExpenseMonthly(df)
+    names = {cast("go.Scatter", t).name for t in fig.data}
+    assert names == {"Expenses", "Income"}
+
+
+def test_fig_income_expense_monthly_legend_shown_horizontal() -> None:
+    df = _make_net_balance_month_df()
+    fig = F.fig_IncomeExpenseMonthly(df)
     layout: Any = fig.layout
-    assert layout.xaxis.tickvals is not None
-    assert len(layout.xaxis.tickvals) > 0
+    assert layout.showlegend is True
+    assert layout.legend.orientation == "h"
 
 
-def test_fig_balance_per_day_ticktext_parseable() -> None:
-    df = _make_balance_df()
-    fig = F.fig_BalancePerDay(df)
+def test_fig_income_expense_monthly_xaxis_date_ticklabels() -> None:
+    df = _make_net_balance_month_df()
+    fig = F.fig_IncomeExpenseMonthly(df)
     layout: Any = fig.layout
-    for label in layout.xaxis.ticktext:
-        datetime.strptime(label, "%b %y")
+    assert layout.xaxis.type != "category"
+    assert layout.xaxis.tickformat == "%b %y"
+    assert list(layout.xaxis.ticktext)[:3] == ["Apr 26", "May 26", "Jun 26"]
 
 
-def test_fig_balance_per_day_height_positive() -> None:
-    df = _make_balance_df()
-    fig = F.fig_BalancePerDay(df)
+def test_fig_income_expense_monthly_xaxis_range_no_padding() -> None:
+    df = _make_net_balance_month_df()
+    fig = F.fig_IncomeExpenseMonthly(df)
+    layout: Any = fig.layout
+    assert pd.Timestamp(layout.xaxis.range[0]) == pd.Timestamp("2026-04-01")
+    assert pd.Timestamp(layout.xaxis.range[1]) == pd.Timestamp("2026-06-01")
+
+
+def test_fig_income_expense_monthly_traces_area_filled() -> None:
+    df = _make_net_balance_month_df()
+    fig = F.fig_IncomeExpenseMonthly(df)
+    for trace in fig.data:
+        assert cast("go.Scatter", trace).fill == "tozeroy"
+
+
+def test_fig_income_expense_monthly_yaxis_tick_alignment() -> None:
+    df = _make_net_balance_month_df()
+    fig = F.fig_IncomeExpenseMonthly(df)
+    layout: Any = fig.layout
+    d_tick = cfg.dTick_IncomeExpense
+    assert layout.yaxis.range[1] % d_tick == pytest.approx(0, abs=1e-6)
+
+
+def test_fig_income_expense_monthly_height_positive() -> None:
+    df = _make_net_balance_month_df()
+    fig = F.fig_IncomeExpenseMonthly(df)
     layout: Any = fig.layout
     assert layout.height > 0
 
 
-def test_fig_balance_per_day_empty_returns_figure() -> None:
-    df = pd.DataFrame(columns=["Date", "Balance_CHF"])
-    fig = F.fig_BalancePerDay(df)
+def test_fig_income_expense_monthly_single_month_two_traces() -> None:
+    df = _make_net_balance_month_df(
+        Month=["2026-06"],
+        Expense=[3000.0],
+        Income=[6000.0],
+        NetBalance=[3000.0],
+    )
+    fig = F.fig_IncomeExpenseMonthly(df)
+    assert isinstance(fig, go.Figure)
+    assert len(tuple(fig.data)) == 2
+    layout: Any = fig.layout
+    # single month → degenerate range is padded so the marker is visible
+    assert pd.Timestamp(layout.xaxis.range[0]) < pd.Timestamp(layout.xaxis.range[1])
+
+
+def test_fig_income_expense_monthly_empty_returns_figure() -> None:
+    df = pd.DataFrame(columns=["Month", "Expense", "Income", "NetBalance"])
+    fig = F.fig_IncomeExpenseMonthly(df)
     assert isinstance(fig, go.Figure)
 
 

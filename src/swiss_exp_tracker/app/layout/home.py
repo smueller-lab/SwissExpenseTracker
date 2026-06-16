@@ -56,7 +56,9 @@ def layout(data: Any, pos: Any) -> Any:
             ),
             ##
             make_figure_card(
-                "Balance Progression", F.fig_BalancePerDay(data.pdf_Balance), width=8
+                "Income vs Expenses",
+                F.fig_IncomeExpenseMonthly(data.get_IncomeExpenseMonthly()),
+                width=8,
             ),
             make_table_card(
                 title="NetBalance per Month",

@@ -21,6 +21,13 @@ cfg = config()
 pio.templates.default = "myTemp"
 
 
+def _hex_to_rgba(hex_color: str, alpha: float) -> str:
+    """Convert a #RRGGBB hex string to an rgba() string with the given alpha."""
+    h = hex_color.lstrip("#")
+    r, g, b = (int(h[i : i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r}, {g}, {b}, {alpha})"
+
+
 def _make_no_data_fig(label: str) -> go.Figure:
     """Return a styled placeholder figure when data is unavailable."""
     return go.Figure(
@@ -50,46 +57,81 @@ class Fig:
             "myTemp"
         ].layout.margin  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
 
-    def fig_BalancePerDay(self, pdf_Balance: pd.DataFrame) -> go.Figure:
-        """Return a scatter figure showing daily account balance over time."""
-        if pdf_Balance.empty:
-            return _make_no_data_fig("balance progression")
-        fig = go.Figure()
+    def fig_IncomeExpenseMonthly(self, pdf: pd.DataFrame) -> go.Figure:
+        """Return a dual line+area chart of monthly income vs expenses; plots only the rows given."""
+        if pdf.empty:
+            return _make_no_data_fig("income vs expenses")
 
+        pdf_sorted = pdf.sort_values("Month").reset_index(drop=True)
+        x_dates = pd.to_datetime(pdf_sorted["Month"])
+
+        expense_color = vis.vk_IncomeExpense_col["Expenses"]
+        income_color = vis.vk_IncomeExpense_col["Income"]
+
+        fig = go.Figure()
         fig.add_trace(
             go.Scatter(
-                x=pdf_Balance["Date"],
-                y=pdf_Balance["Balance_CHF"],
-                mode="markers",
-                name="Balance CHF",
+                x=x_dates,
+                y=pdf_sorted["Expense"],
+                mode="lines+markers",
+                name="Expenses",
+                line={"color": expense_color, "width": 2},
+                marker={"color": expense_color, "size": 8},
+                fill="tozeroy",
+                fillcolor=_hex_to_rgba(expense_color, 0.15),
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=x_dates,
+                y=pdf_sorted["Income"],
+                mode="lines+markers",
+                name="Income",
+                line={"color": income_color, "width": 2},
+                marker={"color": income_color, "size": 8},
+                fill="tozeroy",
+                fillcolor=_hex_to_rgba(income_color, 0.15),
             )
         )
 
-        ry_Axis = get_ryAxis(cfg.dTick_Balance, pdf_Balance["Balance_CHF"])
+        combined = pd.concat([pdf["Expense"], pdf["Income"]])
+        ry_Axis = get_ryAxis(cfg.dTick_IncomeExpense, combined, True)
         height_Figure = get_heightFigure(
-            ry_Axis, cfg.dTick_Balance, cfg.npixel_Balance, self.vk_Margin
+            ry_Axis, cfg.dTick_IncomeExpense, cfg.npixel_IncomeExpense, self.vk_Margin
         )
-        s_tick_val, s_tick_text, format_Date = get_rxAxis_Date(pdf_Balance["Date"])
+        s_tick_val, s_tick_text, format_Date = get_rxAxis_Date(x_dates)
+
+        x_min, x_max = x_dates.min(), x_dates.max()
+        if x_min == x_max:
+            pad = pd.Timedelta(days=15)
+            x_range = [x_min - pad, x_max + pad]
+        else:
+            x_range = [x_min, x_max]
 
         fig.update_layout(
+            xaxis={
+                "tickvals": s_tick_val,
+                "ticktext": s_tick_text,
+                "tickformat": format_Date,
+                "range": x_range,
+                "showline": True,
+                "linecolor": "white",
+            },
             yaxis={
-                "dtick": cfg.dTick_Balance,
+                "dtick": cfg.dTick_IncomeExpense,
                 "range": ry_Axis,
                 "showline": True,
                 "linecolor": "white",
             },
-            xaxis={
-                "tickvals": s_tick_val,
-                "ticktext": s_tick_text,
-                "range": [
-                    pdf_Balance["Date"].min() - pd.Timedelta(days=3),
-                    s_tick_val[-1],
-                ],
-                "tickformat": format_Date,
-                "showline": True,
-                "linecolor": "white",
-            },
             height=height_Figure,
+            showlegend=True,
+            legend={
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "left",
+                "x": 0,
+            },
         )
 
         return fig
