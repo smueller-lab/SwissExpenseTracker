@@ -295,6 +295,21 @@ class DataLoader:
                 self.pdf_BalanceSheet["total_plus"].mean()
             )
 
+    def get_IncomeExpenseMonthly(self) -> pd.DataFrame:
+        """Return income/expense rows from pdf_NetBalanceMonth restricted to salary months, last 15.
+        A salary month is any calendar month containing at least one Salary transaction in pdf_Master.
+        """
+        salary_months: set[str] = {
+            str(p)
+            for p in self.pdf_Master.loc[
+                self.pdf_Master["category_main"] == "Salary", "date"
+            ].dt.to_period("M")
+        }
+        pdf = self.pdf_NetBalanceMonth.copy()
+        pdf = pdf[pdf["Month"].isin(salary_months)]
+        pdf = pdf.sort_values("Month", ascending=True)
+        return pdf.tail(15).reset_index(drop=True)
+
     def get_TopExpenses_Category_Month(
         self, Category: str, Month: pd.Timestamp
     ) -> pd.DataFrame:

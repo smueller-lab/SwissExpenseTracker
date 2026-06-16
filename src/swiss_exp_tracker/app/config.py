@@ -15,6 +15,7 @@ class config:
     vk_dTick_GroceryCat = {"Monthly": 20, "Yearly": 100}
     vk_dTick_Food = {"Monthly": 100, "Yearly": 1000, "Visit": 20}
     dTick_Balance: int = 5000
+    dTick_IncomeExpense: int = 2000
     dTick_Pct: int = 20
     dTick_Vacation: int = 1000
     dTick_Transport: int = 1000
@@ -25,6 +26,7 @@ class config:
     vk_npixel_Grocery = {"Monthly": 50, "Yearly": 80, "Visit": 50}
     vk_npixel_GroceryCat = {"Monthly": 50, "Yearly": 80}
     npixel_Balance: int = 80
+    npixel_IncomeExpense: int = 60
     npixel_Pct: int = 80
     npixel_Vacation: int = 80
     npixel_Transport: int = 80
@@ -169,6 +171,11 @@ class VIS:
         "Skiing": "#5DADE2",
         "Events & Concerts": "#D4AC0D",
         "Sports": "#95A5A6",
+    }
+
+    vk_IncomeExpense_col = {
+        "Expenses": "#FA6363",
+        "Income": "#4580F6",
     }
 
     vk_GroceryCat_col = {
