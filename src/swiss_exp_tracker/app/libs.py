@@ -2,17 +2,24 @@ from __future__ import annotations
 
 import math
 
-from collections.abc import Sequence
 from typing import Any
 
 import pandas as pd
 
+# Fixed gridline count for every value-axis plot. Height is pinned to this many
+# steps so a plot never grows tall with the data; get_adaptive_dTick raises the
+# tick values instead. Data still fills the plot because the y-range maps onto
+# the full (fixed) pixel height.
+PLOT_TARGET_STEPS = 8
 
-def get_adaptive_dTick(max_value: float, target_steps: int = 8) -> float:
+
+def get_adaptive_dTick(
+    max_value: float, target_steps: int = PLOT_TARGET_STEPS
+) -> float:
     """Return a round dTick so max_value fits in ~target_steps steps.
 
-    Keeps the step count bounded regardless of data scale, which also keeps
-    get_heightFigure output stable (height ~ target_steps x npixel + margins).
+    Keeps the step count bounded regardless of data scale, so a fixed-height plot
+    shows readable, evenly spaced tick values at any spending level.
     """
     if max_value <= 0:
         return 1.0
@@ -51,12 +58,9 @@ def get_rxAxis_Date(z_Date: pd.Series) -> tuple[Any, list[str], str]:
 
 
 def get_heightFigure(
-    ry_Axis: Sequence[float],
-    dTick: float,
     npixel: float,
     vk_Margin: dict[str, Any],
 ) -> float:
-    ymin, ymax = ry_Axis
-    n_step = int((ymax - ymin) / dTick)
-    h_plot = n_step * npixel
+    """Return a fixed plot height (PLOT_TARGET_STEPS x npixel + margins) that does not grow with spending."""
+    h_plot = PLOT_TARGET_STEPS * npixel
     return float(h_plot + vk_Margin["t"] + vk_Margin["b"])

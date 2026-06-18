@@ -22,8 +22,8 @@ All figure code lives in `app/vis/figure.py`, `app/vis/figure_investing.py`. All
 
 - Always `barmode="stack"` for multi-category bars.
 - Stack order: sort categories by total descending so the dominant category sits at the bottom of the stack.
-- Y-axis: `dtick` from `config.py`, `range` via `get_ryAxis(dTick, series, zero_start=True)`, `showline=True`.
-- Height: computed via `get_heightFigure(ry_Axis, dTick, npixel, margin)` — never hardcoded.
+- Y-axis: `dtick` via `get_adaptive_dTick(series.max())` (never a fixed `config.py` dtick — that makes the plot grow tall with the data), `range` via `get_ryAxis(dTick, series, zero_start=True)`, `showline=True`.
+- Height: **fixed**, via `get_heightFigure(ry_Axis, dTick, npixel, margin)` — it returns `PLOT_TARGET_STEPS * npixel + margins` regardless of the data, so larger values raise the tick labels, not the figure height. Never hardcode a height and never let it scale with spend.
 - Color: map from `vis.vk_*_col`; fallback `"#95A5A6"` for unknown categories.
 
 ## Y-axis range alignment (all chart types)
@@ -96,5 +96,5 @@ FALLBACK = "#95A5A6"
 |----------|---------|---------|
 | `get_ryAxis(dTick, series, zero_start)` | `[y_min, y_max]` snapped to dTick | every y-axis range |
 | `get_rxAxis_Date(date_series)` | `(tick_vals, tick_texts, format)` | datetime x-axis |
-| `get_heightFigure(ry_axis, dTick, npixel, margin)` | height in px | every bar/scatter figure |
-| `get_adaptive_dTick(max_value, target_steps=8)` | dTick float | when dTick is not in config |
+| `get_heightFigure(ry_axis, dTick, npixel, margin)` | fixed height in px (`PLOT_TARGET_STEPS * npixel + margins`) | every bar/scatter figure — height never scales with the data |
+| `get_adaptive_dTick(max_value, target_steps=8)` | dTick float | the y-axis dtick for every value-axis chart, so ticks adapt to the data |
