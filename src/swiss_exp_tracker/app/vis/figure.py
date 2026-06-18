@@ -28,12 +28,27 @@ def _hex_to_rgba(hex_color: str, alpha: float) -> str:
     return f"rgba({r}, {g}, {b}, {alpha})"
 
 
+def _build_category_colors(
+    categories: list[str], col_map: dict[str, str]
+) -> dict[str, str]:
+    """Map each category to its named colour, else a distinct cycling-palette colour."""
+    used = set(col_map.values())
+    palette = [c for c in vis.vk_cycling_col if c not in used] or vis.vk_cycling_col
+    colors: dict[str, str] = {}
+    fallback_idx = 0
+    for category in categories:
+        if category in col_map:
+            colors[category] = col_map[category]
+        else:
+            colors[category] = palette[fallback_idx % len(palette)]
+            fallback_idx += 1
+    return colors
+
+
 def _make_no_data_fig(label: str) -> go.Figure:
     """Return a styled placeholder figure when data is unavailable."""
     return go.Figure(
         layout=go.Layout(
-            paper_bgcolor="#12263A",
-            plot_bgcolor="#12263A",
             annotations=[
                 go.layout.Annotation(
                     text=label,
@@ -42,7 +57,7 @@ def _make_no_data_fig(label: str) -> go.Figure:
                     x=0.5,
                     y=0.5,
                     showarrow=False,
-                    font={"color": "white", "size": 16},
+                    font=cfg.font_no_data,
                 )
             ],
             xaxis={"visible": False},
@@ -95,10 +110,9 @@ class Fig:
         )
 
         combined = pd.concat([pdf["Expense"], pdf["Income"]])
-        ry_Axis = get_ryAxis(cfg.dTick_IncomeExpense, combined, True)
-        height_Figure = get_heightFigure(
-            ry_Axis, cfg.dTick_IncomeExpense, cfg.npixel_IncomeExpense, self.vk_Margin
-        )
+        dTick = get_adaptive_dTick(float(combined.max()))
+        ry_Axis = get_ryAxis(dTick, combined, True)
+        height_Figure = get_heightFigure(cfg.npixel_IncomeExpense, self.vk_Margin)
         s_tick_val, s_tick_text, format_Date = get_rxAxis_Date(x_dates)
 
         x_min, x_max = x_dates.min(), x_dates.max()
@@ -118,7 +132,7 @@ class Fig:
                 "linecolor": "white",
             },
             yaxis={
-                "dtick": cfg.dTick_IncomeExpense,
+                "dtick": dTick,
                 "range": ry_Axis,
                 "showline": True,
                 "linecolor": "white",
@@ -160,13 +174,11 @@ class Fig:
                 )
             )
 
-        dTick_Grocery = cfg.vk_dTick_Grocery[Freq]
+        dTick_Grocery = get_adaptive_dTick(float(pdf_Grocery["totalPeriod_CHF"].max()))
         npixel_Grocery = cfg.vk_npixel_Grocery[Freq]
         ry_Axis = get_ryAxis(dTick_Grocery, pdf_Grocery["totalPeriod_CHF"], True)
 
-        height_Figure = get_heightFigure(
-            ry_Axis, dTick_Grocery, npixel_Grocery, self.vk_Margin
-        )
+        height_Figure = get_heightFigure(npixel_Grocery, self.vk_Margin)
 
         fig.update_layout(
             barmode="stack",
@@ -200,9 +212,7 @@ class Fig:
                 )
             )
 
-        height_Figure = get_heightFigure(
-            cfg.ry_Axis_Pct, cfg.dTick_Pct, cfg.npixel_Pct, self.vk_Margin
-        )
+        height_Figure = get_heightFigure(cfg.npixel_Pct, self.vk_Margin)
 
         fig.update_layout(
             barmode="stack",
@@ -238,27 +248,14 @@ class Fig:
         pdf_Merchant = pdf[pdf["Merchant"].isin(vis.s_Merchant_Grocery)].reset_index(
             drop=True
         )
-        dTick_Grocery = cfg.vk_dTick_Grocery["Visit"]
         npixel_Grocery = cfg.vk_npixel_Grocery["Visit"]
+        dTick_Grocery = get_adaptive_dTick(float(pdf_Merchant["amount_CHF"].max()))
         ry_Axis = get_ryAxis(dTick_Grocery, pdf_Merchant["amount_CHF"], True)
-        height_Figure = get_heightFigure(
-            ry_Axis, dTick_Grocery, npixel_Grocery, self.vk_Margin
-        )
-
-        max_height = cfg.max_height_BoxPlot
-        dTick_Grocery_eff: float = dTick_Grocery
-        if height_Figure > max_height:
-            available_px = max_height - self.vk_Margin["t"] - self.vk_Margin["b"]
-            target_steps = max(1, int(available_px // npixel_Grocery))
-            dTick_Grocery_eff = get_adaptive_dTick(
-                pdf_Merchant["amount_CHF"].max(), target_steps
-            )
-            ry_Axis = get_ryAxis(dTick_Grocery_eff, pdf_Merchant["amount_CHF"], True)
-            height_Figure = float(max_height)
+        height_Figure = get_heightFigure(npixel_Grocery, self.vk_Margin)
 
         fig.update_layout(
             xaxis={"tickmode": "array", "tickvals": stick_Val, "ticktext": stick_Text},
-            yaxis={"dtick": dTick_Grocery_eff, "range": ry_Axis, "showline": True},
+            yaxis={"dtick": dTick_Grocery, "range": ry_Axis, "showline": True},
             height=height_Figure,
         )
 
@@ -290,17 +287,17 @@ class Fig:
                     x=group["Period"],
                     y=group["total_CHF"],
                     name=Category,
-                    marker={"color": vis.vk_Food_col.get(Category, "#95A5A6")},
+                    marker={"color": vis.vk_Food_col.get(Category, vis.fallback_col)},
                 )
             )
 
-        dTick_Food = cfg.vk_dTick_Food[Freq]
+        dTick_Food = get_adaptive_dTick(float(pdf_Food["totalPeriod_CHF"].max()))
         ry_Axis = get_ryAxis(dTick_Food, pdf_Food["totalPeriod_CHF"], True)
 
         fig.update_layout(
             barmode="stack",
             yaxis={"dtick": dTick_Food, "range": ry_Axis, "showline": True},
-            height=600,
+            height=cfg.height_Food,
         )
 
         return fig
@@ -323,7 +320,7 @@ class Fig:
                 go.Box(
                     y=pdf_Category["amount_CHF"],
                     name=Category,
-                    marker={"color": vis.vk_Food_col.get(Category, "#95A5A6")},
+                    marker={"color": vis.vk_Food_col.get(Category, vis.fallback_col)},
                 )
             )
 
@@ -333,27 +330,14 @@ class Fig:
         pdf_Category = pdf[
             pdf["category_second"].isin(vis.s_Category_Food)
         ].reset_index(drop=True)
-        dTick_Food = cfg.vk_dTick_Food["Visit"]
         npixel_Food = cfg.vk_npixel_Food["Visit"]
+        dTick_Food = get_adaptive_dTick(float(pdf_Category["amount_CHF"].max()))
         ry_Axis = get_ryAxis(dTick_Food, pdf_Category["amount_CHF"], True)
-        height_Figure = get_heightFigure(
-            ry_Axis, dTick_Food, npixel_Food, self.vk_Margin
-        )
-
-        max_height = cfg.max_height_BoxPlot
-        dTick_Food_eff: float = dTick_Food
-        if height_Figure > max_height:
-            available_px = max_height - self.vk_Margin["t"] - self.vk_Margin["b"]
-            target_steps = max(1, int(available_px // npixel_Food))
-            dTick_Food_eff = get_adaptive_dTick(
-                pdf_Category["amount_CHF"].max(), target_steps
-            )
-            ry_Axis = get_ryAxis(dTick_Food_eff, pdf_Category["amount_CHF"], True)
-            height_Figure = float(max_height)
+        height_Figure = get_heightFigure(npixel_Food, self.vk_Margin)
 
         fig.update_layout(
             xaxis={"tickmode": "array", "tickvals": stick_Val, "ticktext": stick_Text},
-            yaxis={"dtick": dTick_Food_eff, "range": ry_Axis, "showline": True},
+            yaxis={"dtick": dTick_Food, "range": ry_Axis, "showline": True},
             height=height_Figure,
         )
 
@@ -367,11 +351,11 @@ class Fig:
             go.Pie(
                 labels=pdf_CatMain["category_main"],
                 values=pdf_CatMain["amount_CHF"],
-                hole=0.4,
+                hole=cfg.donut_hole,
                 textinfo="percent+label",
-                textfont={"size": 12},
-                pull=[0.02] * len(pdf_CatMain),
-                domain={"x": [0.0, 0.9], "y": [0.0, 1.0]},
+                textfont=cfg.textfont_label,
+                pull=[cfg.donut_pull] * len(pdf_CatMain),
+                domain=cfg.donut_domain,
             )
         )
 
@@ -384,7 +368,7 @@ class Fig:
         pdf: pd.DataFrame,
         col_category: str,
         col_amount: str,
-        min_pct: float = 1.0,
+        min_pct: float = cfg.donut_min_pct,
     ) -> go.Figure:
         """Return a donut chart for any category/amount column pair; suppresses labels below min_pct."""
         if pdf.empty:
@@ -401,13 +385,13 @@ class Fig:
             go.Pie(
                 labels=pdf[col_category],
                 values=pdf[col_amount],
-                hole=0.4,
+                hole=cfg.donut_hole,
                 text=text,
                 textinfo="text",
-                textfont={"size": 12},
-                pull=[0.02] * len(pdf),
-                domain={"x": [0.0, 0.9], "y": [0.0, 1.0]},
-                hovertemplate="%{label}<br>%{value:,.2f} CHF (%{percent})<extra></extra>",
+                textfont=cfg.textfont_label,
+                pull=[cfg.donut_pull] * len(pdf),
+                domain=cfg.donut_domain,
+                hovertemplate=cfg.donut_hovertemplate,
             )
         )
         fig.update_layout(showlegend=False)
@@ -437,14 +421,13 @@ class Fig:
                 )
             )
 
-        ry_Axis = get_ryAxis(cfg.dTick_Vacation, z_YearExpense, True)
-        height_Figure = get_heightFigure(
-            ry_Axis, cfg.dTick_Vacation, cfg.npixel_Vacation, self.vk_Margin
-        )
+        dTick_Vacation = get_adaptive_dTick(float(z_YearExpense.max()))
+        ry_Axis = get_ryAxis(dTick_Vacation, z_YearExpense, True)
+        height_Figure = get_heightFigure(cfg.npixel_Vacation, self.vk_Margin)
 
         fig.update_layout(
             barmode="stack",
-            yaxis={"dtick": cfg.dTick_Vacation, "range": ry_Axis, "showline": True},
+            yaxis={"dtick": dTick_Vacation, "range": ry_Axis, "showline": True},
             height=height_Figure,
         )
 
@@ -456,7 +439,11 @@ class Fig:
             return _make_no_data_fig("vacation transaction data")
 
         totals = pdf.groupby("category_second")["amount"].sum()
-        top4 = totals.nlargest(4).sort_values(ascending=False).index.tolist()
+        top4 = (
+            totals.nlargest(cfg.vacation_top_n)
+            .sort_values(ascending=False)
+            .index.tolist()
+        )
         pdf_top4 = pdf[pdf["category_second"].isin(top4)].copy()
 
         dTick = get_adaptive_dTick(float(pdf_top4["amount"].max()))
@@ -483,7 +470,6 @@ class Fig:
         pdf: pd.DataFrame,
         col_catgeory: str,
         col_amount: str,
-        dTick: float,
         npixel: float,
         col_map: dict[str, str] | None = None,
     ) -> go.Figure:
@@ -509,11 +495,14 @@ class Fig:
                 "name": Category,
             }
             if col_map is not None:
-                bar_kwargs["marker"] = {"color": col_map.get(Category, "#95A5A6")}
+                bar_kwargs["marker"] = {
+                    "color": col_map.get(Category, vis.fallback_col)
+                }
             fig.add_trace(go.Bar(**bar_kwargs))
 
+        dTick = get_adaptive_dTick(float(z_YearExpense.max()))
         ry_Axis = get_ryAxis(dTick, z_YearExpense, True)
-        height_Figure = get_heightFigure(ry_Axis, dTick, npixel, self.vk_Margin)
+        height_Figure = get_heightFigure(npixel, self.vk_Margin)
 
         fig.update_layout(
             barmode="stack",
@@ -529,7 +518,6 @@ class Fig:
         col_catgeory: str,
         col_amount: str,
         Freq: Literal["Monthly", "Yearly"],
-        dTick: float,
         npixel: float,
         col_map: dict[str, str] | None = None,
     ) -> go.Figure:
@@ -559,6 +547,7 @@ class Fig:
             .sort_values(ascending=False)
         )
         s_category_orderstack_order = z_category_totals.index.tolist()
+        color_map = _build_category_colors(s_category_orderstack_order, col_map)
 
         for Category in s_category_orderstack_order:
             group = pdf_Freq[pdf_Freq[col_catgeory] == Category]
@@ -567,12 +556,13 @@ class Fig:
                     x=group["Period"],
                     y=group[col_amount],
                     name=Category,
-                    marker={"color": col_map.get(Category, "#95A5A6")},
+                    marker={"color": color_map[Category]},
                 )
             )
 
+        dTick = get_adaptive_dTick(float(z_FreqExpense.max()))
         ry_Axis = get_ryAxis(dTick, z_FreqExpense, True)
-        height_Figure = get_heightFigure(ry_Axis, dTick, npixel, self.vk_Margin)
+        height_Figure = get_heightFigure(npixel, self.vk_Margin)
 
         fig.update_layout(
             barmode="stack",
@@ -597,7 +587,7 @@ class Fig:
                 z=pdf_pivot.values,
                 x=pdf_pivot.columns,
                 y=pdf_pivot.index,
-                colorscale="RdYlGn_r",
+                colorscale=vis.vk_heatmap_colorscale["financial"],
                 colorbar={"title": "CHF"},
                 showscale=True,
                 hovertemplate="Year: %{y}<br>Month: %{x}<br>Cost: %{z} CHF<extra></extra>",
@@ -657,15 +647,15 @@ class Fig:
                     x=group["Period"],
                     y=group["total_CHF"],
                     name=cat,
-                    marker={"color": vis.vk_GroceryCat_col.get(cat, "#95A5A6")},
+                    marker={"color": vis.vk_GroceryCat_col.get(cat, vis.fallback_col)},
                 )
             )
 
-        dTick = cfg.vk_dTick_GroceryCat[Freq]
         npixel = cfg.vk_npixel_GroceryCat[Freq]
         total_per_period = pdf_freq.groupby("Period")["total_CHF"].sum()
+        dTick = get_adaptive_dTick(float(total_per_period.max()))
         ry_Axis = get_ryAxis(dTick, total_per_period, True)
-        height_Figure = get_heightFigure(ry_Axis, dTick, npixel, self.vk_Margin)
+        height_Figure = get_heightFigure(npixel, self.vk_Margin)
 
         fig.update_layout(
             barmode="stack",
@@ -713,7 +703,7 @@ class Fig:
             )
             labels = grouped["category_main"].tolist()
             values = grouped["price_chf"].tolist()
-            colors = [vis.vk_GroceryCat_col.get(c, "#95A5A6") for c in labels]
+            colors = [vis.vk_GroceryCat_col.get(c, vis.fallback_col) for c in labels]
         elif category_detail is None:
             grouped = (
                 pdf_items[
@@ -727,7 +717,7 @@ class Fig:
             )
             labels = grouped["category_detail"].tolist()
             values = grouped["price_chf"].tolist()
-            base = vis.vk_GroceryCat_col.get(category_main, "#95A5A6")
+            base = vis.vk_GroceryCat_col.get(category_main, vis.fallback_col)
             colors = self._color_shades(base, len(labels))
         else:
             grouped = (
@@ -743,7 +733,7 @@ class Fig:
             )
             labels = grouped["article"].tolist()
             values = grouped["price_chf"].tolist()
-            base = vis.vk_GroceryCat_col.get(category_main, "#95A5A6")
+            base = vis.vk_GroceryCat_col.get(category_main, vis.fallback_col)
             colors = self._color_shades(base, len(labels))
 
         total = sum(values) if values else 1.0
@@ -756,14 +746,14 @@ class Fig:
             go.Pie(
                 labels=labels,
                 values=values,
-                hole=0.4,
+                hole=cfg.donut_hole,
                 text=text,
                 textinfo="text",
-                textfont={"size": 11},
-                pull=[0.02] * len(labels),
-                domain={"x": [0.0, 0.9], "y": [0.0, 1.0]},
+                textfont=cfg.textfont_label_dense,
+                pull=[cfg.donut_pull] * len(labels),
+                domain=cfg.donut_domain,
                 marker={"colors": colors},
-                hovertemplate="%{label}<br>%{value:,.2f} CHF (%{percent})<extra></extra>",
+                hovertemplate=cfg.donut_hovertemplate,
             )
         )
         fig.update_layout(showlegend=False)
@@ -777,9 +767,27 @@ class Fig:
             )
         fig = go.Figure()
 
-        fig.add_hrect(y0=70, y1=100, fillcolor="#4caf50", opacity=0.12, line_width=0)
-        fig.add_hrect(y0=40, y1=70, fillcolor="#ff9800", opacity=0.12, line_width=0)
-        fig.add_hrect(y0=0, y1=40, fillcolor="#ef5350", opacity=0.12, line_width=0)
+        fig.add_hrect(
+            y0=cfg.health_score_good,
+            y1=cfg.health_score_max,
+            fillcolor=vis.vk_HealthBand_col["good"],
+            opacity=cfg.health_band_opacity,
+            line_width=0,
+        )
+        fig.add_hrect(
+            y0=cfg.health_score_ok,
+            y1=cfg.health_score_good,
+            fillcolor=vis.vk_HealthBand_col["ok"],
+            opacity=cfg.health_band_opacity,
+            line_width=0,
+        )
+        fig.add_hrect(
+            y0=0,
+            y1=cfg.health_score_ok,
+            fillcolor=vis.vk_HealthBand_col["bad"],
+            opacity=cfg.health_band_opacity,
+            line_width=0,
+        )
 
         pdf = pdf.sort_values("Period").reset_index(drop=True)
         sorted_raw = pdf["Period"].tolist()
@@ -787,7 +795,15 @@ class Fig:
 
         scores = [float(s) for s in pdf["score"]]
         marker_colors = [
-            "#4caf50" if s >= 70 else ("#ff9800" if s >= 40 else "#ef5350")
+            (
+                vis.vk_HealthBand_col["good"]
+                if s >= cfg.health_score_good
+                else (
+                    vis.vk_HealthBand_col["ok"]
+                    if s >= cfg.health_score_ok
+                    else vis.vk_HealthBand_col["bad"]
+                )
+            )
             for s in scores
         ]
 
@@ -798,9 +814,9 @@ class Fig:
                 mode="lines+markers+text",
                 text=[f"{s:.0f}" for s in scores],
                 textposition="top center",
-                textfont={"size": 12},
+                textfont=cfg.textfont_label,
                 marker={"size": 10, "color": marker_colors},
-                line={"color": "#4fc3f7", "width": 2},
+                line={"color": vis.health_line_col, "width": 2},
             )
         )
 
@@ -809,9 +825,13 @@ class Fig:
                 "categoryorder": "array",
                 "categoryarray": x_labels,
             },
-            yaxis={"range": [0, 100], "dtick": 20, "showline": True},
+            yaxis={
+                "range": [0, cfg.health_score_max],
+                "dtick": 20,
+                "showline": True,
+            },
             showlegend=False,
-            height=300,
+            height=cfg.height_HealthIndex,
         )
         return fig
 
@@ -856,16 +876,19 @@ class Fig:
                 z=pivot.values,
                 x=pivot.columns.tolist(),
                 y=pivot.index.tolist(),
-                colorscale="Greens",
+                colorscale=vis.vk_heatmap_colorscale["category_spend"],
                 colorbar={"title": "CHF"},
                 hovertemplate="Category: %{y}<br>Month: %{x}<br>CHF: %{z:.2f}<extra></extra>",
                 text=text,
                 texttemplate="%{text}",
-                textfont={"size": 10},
+                textfont=cfg.textfont_heatmap,
             )
         )
 
-        height = max(220, len(cat_order) * 35 + 80)
+        height = max(
+            cfg.heatmap_min_height,
+            len(cat_order) * cfg.heatmap_row_px + cfg.heatmap_height_pad,
+        )
         fig.update_layout(
             height=height,
             xaxis={"domain": [0.15, 1.0]},
@@ -911,7 +934,7 @@ class Fig:
                     x=year_strs,
                     y=y_vals,
                     name=sport,
-                    marker={"color": vis.vk_Sport_col.get(sport, "#95A5A6")},
+                    marker={"color": vis.vk_Sport_col.get(sport, vis.fallback_col)},
                 )
             )
 
@@ -963,10 +986,9 @@ class Fig:
         corr = df_pivot.corr()
         np.fill_diagonal(corr.values, 0)
 
-        # add text in cells with correlation values where corr is > 0.5 or < -0.5
-        threshold_text = 0.5
+        # add text in cells where |corr| meets the labelling threshold
         text = corr.copy().values.astype(str)
-        text_mask = np.abs(corr.values) < threshold_text
+        text_mask = np.abs(corr.values) < cfg.corr_text_threshold
         text[text_mask] = ""
         text = np.where(text != "", np.round(corr.values, 2).astype(str), "")
 
@@ -975,25 +997,28 @@ class Fig:
                 z=corr.values,
                 x=corr.columns,
                 y=corr.index,
-                colorscale=[[0.0, "#b2182b"], [0.5, "#f7f7f7"], [1.0, "#2166ac"]],
+                colorscale=vis.vk_heatmap_colorscale["correlation"],
                 showscale=False,
-                zmin=-1,
-                zmax=1,
+                zmin=cfg.corr_zmin,
+                zmax=cfg.corr_zmax,
                 text=text,
                 texttemplate="%{text}",
-                textfont={"color": "white", "size": 14},
+                textfont=cfg.textfont_heatmap_corr,
             )
         )
 
         # set height based on n_categories
         n_categories = len(corr.index)
-        npixel_row = 35
-        npixel_min = 300
-        npixel_max = 1200
-        height_figure = min(max(n_categories * npixel_row, npixel_min), npixel_max)
+        height_figure = min(
+            max(n_categories * cfg.heatmap_row_px, cfg.corr_min_height),
+            cfg.corr_max_height,
+        )
 
         fig.update_layout(
-            margin={"l": self.vk_Margin["l"] + 80, "b": self.vk_Margin["b"] + 70},
+            margin={
+                "l": self.vk_Margin["l"] + cfg.corr_label_margin["l"],
+                "b": self.vk_Margin["b"] + cfg.corr_label_margin["b"],
+            },
             height=height_figure,
         )
 

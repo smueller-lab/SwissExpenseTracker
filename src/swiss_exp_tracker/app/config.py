@@ -21,16 +21,19 @@ class config:
     dTick_Transport: int = 1000
     vk_dTick_Sport = {"Monthly": 500, "Yearly": 1000}
 
-    # npixel
-    vk_npixel_Food = {"Monthly": 50, "Yearly": 40, "Visit": 50}
-    vk_npixel_Grocery = {"Monthly": 50, "Yearly": 80, "Visit": 50}
-    vk_npixel_GroceryCat = {"Monthly": 50, "Yearly": 80}
-    npixel_Balance: int = 80
-    npixel_IncomeExpense: int = 60
-    npixel_Pct: int = 80
-    npixel_Vacation: int = 80
-    npixel_Transport: int = 80
-    vk_npixel_Sport = {"Monthly": 100, "Yearly": 80}
+    # npixel — pixels per gridline step. With the fixed-height formula
+    # (PLOT_TARGET_STEPS x npixel + margins) this pins every value-axis plot to a
+    # uniform ~460 px, matching height_Sport. Keep these aligned; do not raise
+    # above ~50 or the plot grows tall again.
+    vk_npixel_Food = {"Monthly": 50, "Yearly": 50, "Visit": 50}
+    vk_npixel_Grocery = {"Monthly": 50, "Yearly": 50, "Visit": 50}
+    vk_npixel_GroceryCat = {"Monthly": 50, "Yearly": 50}
+    npixel_Balance: int = 50
+    npixel_IncomeExpense: int = 50
+    npixel_Pct: int = 50
+    npixel_Vacation: int = 50
+    npixel_Transport: int = 50
+    vk_npixel_Sport = {"Monthly": 50, "Yearly": 50}
 
     # default ry_Axis
     ry_Axis_Pct = [0, 100]
@@ -40,6 +43,46 @@ class config:
 
     # max figure height for box plots — prevents outliers from stretching the plot
     max_height_BoxPlot: int = 700
+
+    # fixed heights for charts that do not use the adaptive-height formula
+    height_Food: int = 600
+    height_HealthIndex: int = 300
+
+    # donut chart constants (see .claude/rules/plots.md)
+    donut_hole: float = 0.4
+    donut_pull: float = 0.02
+    donut_min_pct: float = 1.0
+    donut_domain = {"x": [0.0, 0.9], "y": [0.0, 1.0]}
+    donut_hovertemplate: str = (
+        "%{label}<br>%{value:,.2f} CHF (%{percent})<extra></extra>"
+    )
+
+    # heatmap layout (see .claude/rules/plots.md)
+    heatmap_row_px: int = 35
+    heatmap_height_pad: int = 80
+    heatmap_min_height: int = 220
+    corr_min_height: int = 300
+    corr_max_height: int = 1200
+    corr_text_threshold: float = 0.5
+    corr_zmin: int = -1
+    corr_zmax: int = 1
+    corr_label_margin = {"l": 80, "b": 70}  # offsets added to base template margins
+
+    # grocery health index - score thresholds (0-100) and band opacity
+    health_score_max: int = 100
+    health_score_good: int = 70
+    health_score_ok: int = 40
+    health_band_opacity: float = 0.12
+
+    # number of top categories shown in the vacation boxplot
+    vacation_top_n: int = 4
+
+    # in-chart text-label fonts
+    font_no_data = {"color": "white", "size": 16}
+    textfont_label = {"size": 12}  # donut + line-chart labels
+    textfont_label_dense = {"size": 11}  # drill-down donut with many slices
+    textfont_heatmap = {"size": 10}  # heatmap cell annotations
+    textfont_heatmap_corr = {"color": "white", "size": 14}  # correlation cells
 
 
 @dataclass
@@ -99,13 +142,11 @@ class VIS:
         "Clothing": "#E74C3C",
         "Specialty Food": "#F1C40F",
         "Book Store": "#1ABC9C",
-        "Vending Machine": "#BDC3C7",
         "Drug Store": "#3498DB",
         "Bike": "#27AE60",
         "Furniture": "#D35400",
         "Shoes": "#C0392B",
         "Photography": "#8E44AD",
-        "Second-Hand Goods": "#7F8C8D",
         "Garden": "#229954",
         "Music Sheets & Scores": "#F8C471",
         "Art Supplies": "#A569BD",
@@ -192,6 +233,45 @@ class VIS:
         "Baking": "#795548",
         "Personal & Household": "#9e9e9e",
         "Other": "#546e7a",
+    }
+
+    # generic fallback colour for categories with no entry in a colour map
+    fallback_col = "#95A5A6"
+
+    # Distinct cycling palette for categories with no named colour map entry, so a
+    # multi-category chart never collapses several categories onto the grey fallback.
+    vk_cycling_col = [
+        "#19D3F3",
+        "#F368E0",
+        "#FFD93D",
+        "#6C5CE7",
+        "#00CEC9",
+        "#FF7675",
+        "#55EFC4",
+        "#FAB1A0",
+        "#74B9FF",
+        "#E17055",
+        "#A29BFE",
+        "#FD79A8",
+        "#81ECEC",
+        "#FFEAA7",
+        "#00B894",
+        "#E84393",
+    ]
+
+    # grocery health-index band colours (score thresholds live in `config`)
+    vk_HealthBand_col = {
+        "good": "#4caf50",
+        "ok": "#ff9800",
+        "bad": "#ef5350",
+    }
+    health_line_col = "#4fc3f7"
+
+    # Heatmap colorscales — one per heatmap type (see .claude/rules/plots.md)
+    vk_heatmap_colorscale = {
+        "financial": "RdYlGn_r",
+        "category_spend": "Greens",
+        "correlation": [[0.0, "#b2182b"], [0.5, "#f7f7f7"], [1.0, "#2166ac"]],
     }
 
     s_Merchant_Grocery = [

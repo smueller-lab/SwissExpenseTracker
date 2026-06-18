@@ -28,7 +28,6 @@ def layout(data: Any) -> Any:
                             pdf=data.pdf_Transport,
                             col_catgeory="category_transport",
                             col_amount="amount_CHF",
-                            dTick=cfg.dTick_Transport,
                             npixel=cfg.npixel_Transport,
                             col_map=vis.vk_Transport_col,
                         ),
