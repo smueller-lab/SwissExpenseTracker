@@ -52,7 +52,35 @@ Ever reach the end of the month, open your banking app, and you are asking yours
 
 ## 📊 Dashboard
 
-> 📸 Screenshots coming soon.
+A dark-themed, fully interactive Plotly Dash app. A few highlights:
+
+#### 🏠 Home
+
+Your financial cockpit at a glance — current balance, monthly income vs. expenses, net balance per month, top spending category, and an expense-distribution donut.
+
+![Home dashboard](assets/home.png)
+
+#### 📊 Balance Sheet
+
+Year-by-year income, spending, investing and net gain with savings & YoY rates, all-time KPIs, and major-category spend per year. Gives you the big picture about your financial situation with high level expenses and incomes.
+
+![Balance Sheet](assets/balance-sheet.png)
+
+#### 🛍️ Retail
+
+Typical category based page with expenses by category and you can change the view by month or year.
+
+Retail spending broken down by subcategory, an annual spend donut, and your largest individual purchases.
+
+![Retail analytics](assets/retail.png)
+
+#### 🔍 Smart Table
+
+Detected any suspicious transaction or exceptional big spike in the data? The fully filterable transaction browser helps you to find any transaction and you can slice it by date range, category, subcategory, merchant and amount. Sort the table to see the biggest transactions at the top.
+
+![Smart Table](assets/smarttable.png)
+
+> _Screenshots use synthetic demo data, so no real data or figures are shown._
 
 ### Pages
 
