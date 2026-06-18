@@ -62,8 +62,8 @@ def layout(data: Any, pos: Any) -> Any:
             ),
             make_table_card(
                 title="NetBalance per Month",
-                s_col=data.get_scol_DashTable(data.pdf_NetBalanceMonth),
-                data=data.pdf_NetBalanceMonth.to_dict("records"),
+                s_col=data.get_scol_DashTable(data.get_NetBalanceMonthTable()),
+                data=data.get_NetBalanceMonthTable().to_dict("records"),
                 width=4,
             ),
             ##

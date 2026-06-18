@@ -130,7 +130,7 @@ def test_fig_bar_grocery_tick_alignment(freq: Literal["Monthly", "Yearly"]) -> N
     df = _make_grocery_df(Freq=freq, totalPeriod_CHF=total)
     fig = F.fig_BarGrocery(df, Freq=freq)
     layout: Any = fig.layout
-    d_tick = cfg.vk_dTick_Grocery[freq]
+    d_tick = layout.yaxis.dtick
     assert layout.yaxis.range[1] % d_tick == pytest.approx(0, abs=1e-6)
 
 
@@ -252,7 +252,7 @@ def test_fig_income_expense_monthly_traces_mode_lines_markers() -> None:
 def test_fig_income_expense_monthly_trace_names() -> None:
     df = _make_net_balance_month_df()
     fig = F.fig_IncomeExpenseMonthly(df)
-    names = {cast("go.Scatter", t).name for t in fig.data}
+    names = {str(cast("go.Scatter", t).name) for t in fig.data}
     assert names == {"Expenses", "Income"}
 
 
@@ -292,7 +292,7 @@ def test_fig_income_expense_monthly_yaxis_tick_alignment() -> None:
     df = _make_net_balance_month_df()
     fig = F.fig_IncomeExpenseMonthly(df)
     layout: Any = fig.layout
-    d_tick = cfg.dTick_IncomeExpense
+    d_tick = layout.yaxis.dtick
     assert layout.yaxis.range[1] % d_tick == pytest.approx(0, abs=1e-6)
 
 
@@ -337,7 +337,6 @@ def test_fig_bar_freq_by_category_returns_figure(
         col_catgeory="category",
         col_amount="amount",
         Freq=freq,
-        dTick=100,
         npixel=60,
     )
     assert isinstance(fig, go.Figure)
@@ -354,11 +353,10 @@ def test_fig_bar_freq_by_category_tick_alignment(
         col_catgeory="category",
         col_amount="amount",
         Freq=freq,
-        dTick=100,
         npixel=60,
     )
     layout: Any = fig.layout
-    assert layout.yaxis.range[1] % 100 == pytest.approx(0, abs=1e-6)
+    assert layout.yaxis.range[1] % layout.yaxis.dtick == pytest.approx(0, abs=1e-6)
 
 
 @pytest.mark.parametrize("freq", ["Monthly", "Yearly"])
@@ -371,7 +369,6 @@ def test_fig_bar_freq_by_category_height_positive(
         col_catgeory="category",
         col_amount="amount",
         Freq=freq,
-        dTick=100,
         npixel=60,
     )
     layout: Any = fig.layout
@@ -385,7 +382,6 @@ def test_fig_bar_freq_by_category_empty_returns_figure() -> None:
         col_catgeory="category",
         col_amount="amount",
         Freq="Monthly",
-        dTick=100,
         npixel=60,
     )
     assert isinstance(fig, go.Figure)

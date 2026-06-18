@@ -9,7 +9,6 @@ from dash import Output
 from dash import ctx
 
 from swiss_exp_tracker.app.config import VIS
-from swiss_exp_tracker.app.libs import get_adaptive_dTick
 from swiss_exp_tracker.app.vis.figure import Fig
 
 F = Fig()
@@ -40,20 +39,11 @@ def register_callbacks(app: Any, data: Any) -> None:
             monthly_class = "btn-toggle btn-toggle-active"
             yearly_class = "btn-toggle"
 
-        max_val = float(
-            data.pdf_Car[data.pdf_Car["Freq"] == freq]
-            .groupby("Period")["Total"]
-            .sum()
-            .max()
-        )
-        dTick = get_adaptive_dTick(max_val)
-
         fig = F.fig_BarFreqByCategory(
             pdf=data.pdf_Car,
             col_catgeory="category_car",
             col_amount="Total",
             Freq=freq,
-            dTick=dTick,
             npixel=_NPIXEL_CAR,
             col_map=vis.vk_Car_col,
         )

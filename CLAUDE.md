@@ -23,6 +23,22 @@ def get_ryAxis(d_Tick: float, z: pd.Series, q_ZeroStart: bool = False) -> list[f
 
 Don't pad to 3 lines — a single line is fine when the signature is self-explanatory. Extra lines are for non-obvious constraints, workarounds, or invariants only.
 
+## Function parameters
+
+Every parameter a function declares must be used in its body. Do not keep a parameter solely for "call-site compatibility," symmetry with a sibling function, or a future use that doesn't exist yet. An unused parameter misleads callers about what the function depends on and hides dead code from the type checker.
+
+When a parameter becomes unused, remove it and update every call site. If a callback signature is dictated by an external framework (e.g. Dash), prefix the genuinely-unused argument with `_` to mark it intentional.
+
+```python
+# Wrong — ry_Axis and dTick are accepted but never read
+def get_heightFigure(ry_Axis, dTick, npixel, vk_Margin) -> float:
+    return float(PLOT_TARGET_STEPS * npixel + vk_Margin["t"] + vk_Margin["b"])
+
+# Right — only the parameters the body actually uses
+def get_heightFigure(npixel, vk_Margin) -> float:
+    return float(PLOT_TARGET_STEPS * npixel + vk_Margin["t"] + vk_Margin["b"])
+```
+
 ## Typing — attribute access
 
 Do not reach into objects with `getattr(obj, "attr", default)` or `hasattr(obj, "attr")` to handle "it might be one of several types." Both defeat static checking: the type checker cannot verify the attribute exists or infer its type, so real bugs slip through and `object`-typed values never narrow.
