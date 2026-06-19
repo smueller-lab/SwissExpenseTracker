@@ -10,8 +10,9 @@
     /* Text colors */
     --color-text-primary: #e6ecf5;
     --color-text-accent: #66b2ff;
-    --color-text-page-title: #66b2ff;
-    --color-text-card-title: #7bb3e4;
+    --color-text-kpi-value: #7cc4ff;
+    --color-text-page-title: #2ee0bf;
+    --color-text-card-title: #aebfd6;
     --color-text-card-muted: #a8b8d8;
     --color-text-kpi-headline: #e4d30f;
     --color-text-kpi-subtext: #a8b8d8;
@@ -262,7 +263,7 @@ a {
 .card-kpi .kpi-value {
     font-size: var(--font-size-kpi-value);
     font-weight: 700;
-    color: var(--color-text-accent);
+    color: var(--color-text-kpi-value);
     margin-bottom: 8px;
     margin-top: 8px;
 }
