@@ -1,16 +1,16 @@
 /* ===== Design Tokens ===== */
 :root {
     /* Base colors */
-    --color-bg-main: #0f1e33;
-    --color-bg-sidebar: #1b2a41;
-    --color-bg-card: #1a3857;
+    --color-bg-main: #0b1827;
+    --color-bg-sidebar: #16273e;
+    --color-bg-card: #16314d;
     --color-bg-dropdown: #295886;
     --color-white: #ffffff;
 
     /* Text colors */
-    --color-text-primary: #ffffff;
+    --color-text-primary: #e6ecf5;
     --color-text-accent: #66b2ff;
-    --color-text-page-title: #24d1af;
+    --color-text-page-title: #66b2ff;
     --color-text-card-title: #7bb3e4;
     --color-text-card-muted: #a8b8d8;
     --color-text-kpi-headline: #e4d30f;
@@ -51,9 +51,9 @@
     --color-accent-hover: rgba(102, 178, 255, 0.1);
     --color-accent-selected: rgba(102, 178, 255, 0.25);
     --color-accent-border: rgba(102, 178, 255, 0.25);
-    --color-positive: #4caf50;
+    --color-positive: #66d97a;
     --color-warning: #ff9800;
-    --color-negative: #dc3545;
+    --color-negative: #ff6b6b;
     --color-table-border: rgba(255, 255, 255, 0.2);
     --color-table-row-border: rgba(255, 255, 255, 0.05);
     --color-table-bg-hover: rgba(255, 255, 255, 0.05);
@@ -67,8 +67,8 @@
     --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 
     /* Scrollbar */
-    --color-scrollbar-track: #0f1e33;
-    --color-scrollbar-thumb: #1a3857;
+    --color-scrollbar-track: #0b1827;
+    --color-scrollbar-thumb: #16314d;
 
     /* Layout */
     --sidebar-width: 250px;
@@ -126,7 +126,8 @@ a {
     left: 0;
     height: 100%;
     padding: 20px;
-    
+    border-right: 1px solid var(--color-accent-border);
+
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -228,6 +229,7 @@ a {
 .card {
     background-color: var(--color-bg-card);
     border-radius: var(--card-radius);
+    border: 1px solid var(--color-accent-border);
     padding: var(--card-padding);
     box-shadow: var(--card-shadow);
 
