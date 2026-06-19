@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from user_config import DIR_DATA
+from swiss_exp_tracker.user_config import DIR_DATA
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
