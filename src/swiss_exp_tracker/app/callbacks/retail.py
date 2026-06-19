@@ -55,4 +55,6 @@ def register_callbacks(app: Any, data: Any) -> None:
     )
     def update_RetailDonut(year: str) -> Any:  # pyright: ignore[reportUnusedFunction]
         pdf = data.pdf_RetailDonut[data.pdf_RetailDonut["Year"] == year].copy()
-        return F.fig_DonutByCategory(pdf, "category_retail", "amount_CHF")
+        return F.fig_DonutByCategory(
+            pdf, "category_retail", "amount_CHF", col_map=vis.vk_Retail_col
+        )

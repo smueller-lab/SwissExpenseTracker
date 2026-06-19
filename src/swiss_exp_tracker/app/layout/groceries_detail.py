@@ -9,6 +9,7 @@ from swiss_exp_tracker.app.components.cards import make_figure_card
 from swiss_exp_tracker.app.components.cards import make_figure_card_MonthYear
 from swiss_exp_tracker.app.components.cards import make_number_card
 from swiss_exp_tracker.app.components.cards import make_table_card
+from swiss_exp_tracker.app.dash_components import GRAPH_CONFIG
 from swiss_exp_tracker.app.dash_components import make_card_title
 from swiss_exp_tracker.app.vis.figure import Fig
 
@@ -48,7 +49,7 @@ def layout(data: Any) -> Any:
                         className="page-title-center",
                     )
                 ],
-                style={"width": "100%"},
+                className="page-title-wrap",
             ),
             dcc.Store(id="gd-store-donut", data=None),
             html.Div(
@@ -106,8 +107,7 @@ def layout(data: Any) -> Any:
                                         "← Back",
                                         id="gd-btn-back",
                                         n_clicks=0,
-                                        className="btn-toggle",
-                                        style={"display": "none"},
+                                        className="btn-toggle is-hidden",
                                     ),
                                 ],
                                 className="card-header-with-buttons",
@@ -117,6 +117,7 @@ def layout(data: Any) -> Any:
                                 figure=F.fig_DonutGroceryCat(
                                     data.pdf_GroceryItems, None
                                 ),
+                                config=GRAPH_CONFIG,
                             ),
                         ],
                         className="card card-graph col-6",

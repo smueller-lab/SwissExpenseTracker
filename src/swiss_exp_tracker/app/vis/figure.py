@@ -45,6 +45,53 @@ def _build_category_colors(
     return colors
 
 
+def _collapse_top_n(
+    pdf: pd.DataFrame,
+    col_category: str,
+    col_amount: str,
+    n: int = cfg.category_top_n,
+) -> pd.DataFrame:
+    """Relabel rows whose category is outside the top-n (by total amount) as 'Other'."""
+    totals = pdf.groupby(col_category)[col_amount].sum().sort_values(ascending=False)
+    if len(totals) <= n:
+        return pdf
+    keep = set(totals.head(n).index)
+    out = pdf.copy()
+    out[col_category] = out[col_category].where(
+        out[col_category].isin(keep), cfg.category_other_label
+    )
+    return out
+
+
+def _order_with_other_last(categories: list[str]) -> list[str]:
+    """Return categories with the 'Other' bucket moved to the end, order otherwise kept."""
+    other = cfg.category_other_label
+    if other in categories:
+        return [c for c in categories if c != other] + [other]
+    return categories
+
+
+def _aggregate_top_n(
+    pdf: pd.DataFrame,
+    col_category: str,
+    col_amount: str,
+    n: int = cfg.category_top_n,
+) -> pd.DataFrame:
+    """Aggregate to one row per top-n category plus a trailing 'Other' bucket, sorted desc."""
+    grouped = (
+        _collapse_top_n(pdf, col_category, col_amount, n)
+        .groupby(col_category, as_index=False)[col_amount]
+        .sum()
+        .sort_values(col_amount, ascending=False)
+        .reset_index(drop=True)
+    )
+    other = cfg.category_other_label
+    if other in grouped[col_category].values:
+        is_other = grouped[col_category] == other
+        grouped = pd.concat([grouped[~is_other], grouped[is_other]], ignore_index=True)
+    return grouped
+
+
 def _make_no_data_fig(label: str) -> go.Figure:
     """Return a styled placeholder figure when data is unavailable."""
     return go.Figure(
@@ -273,7 +320,10 @@ class Fig:
         fig = go.Figure()
 
         pdf_Food = pdf_Food[pdf_Food["Freq"] == Freq].reset_index(drop=True)
-        s_Category_sort = (
+        pdf_Food = _collapse_top_n(
+            pdf_Food, "category_second", "total_CHF", n=cfg.category_top_n_bar
+        )
+        s_Category_sort = _order_with_other_last(
             pdf_Food.groupby("category_second")["total_CHF"]
             .sum()
             .sort_values(ascending=False)
@@ -347,6 +397,7 @@ class Fig:
         """Return a donut chart of total spend broken down by main expense category."""
         if pdf_CatMain.empty:
             return _make_no_data_fig("expense categories")
+        pdf_CatMain = _aggregate_top_n(pdf_CatMain, "category_main", "amount_CHF")
         fig = go.Figure(
             go.Pie(
                 labels=pdf_CatMain["category_main"],
@@ -369,29 +420,40 @@ class Fig:
         col_category: str,
         col_amount: str,
         min_pct: float = cfg.donut_min_pct,
+        col_map: dict[str, str] | None = None,
     ) -> go.Figure:
-        """Return a donut chart for any category/amount column pair; suppresses labels below min_pct."""
+        """Return a donut for a category/amount pair; folds the tail into 'Other', hides labels below min_pct."""
         if pdf.empty:
             return _make_no_data_fig("category breakdown")
-        total = pdf[col_amount].sum()
-        pct = pdf[col_amount] / total * 100 if total > 0 else pdf[col_amount] * 0
+        pdf = _aggregate_top_n(pdf, col_category, col_amount)
+        labels = pdf[col_category].tolist()
+        values = pdf[col_amount]
+        total = values.sum()
+        pct = values / total * 100 if total > 0 else values * 0
 
         text = [
             f"{label}<br>{p:.1f}%" if p >= min_pct else ""
-            for label, p in zip(pdf[col_category], pct, strict=True)
+            for label, p in zip(labels, pct, strict=True)
         ]
+
+        marker = None
+        if col_map is not None:
+            colors = _build_category_colors(labels, col_map)
+            colors[cfg.category_other_label] = vis.fallback_col
+            marker = {"colors": [colors[label] for label in labels]}
 
         fig = go.Figure(
             go.Pie(
-                labels=pdf[col_category],
-                values=pdf[col_amount],
+                labels=labels,
+                values=values,
                 hole=cfg.donut_hole,
                 text=text,
                 textinfo="text",
                 textfont=cfg.textfont_label,
-                pull=[cfg.donut_pull] * len(pdf),
+                pull=[cfg.donut_pull] * len(labels),
                 domain=cfg.donut_domain,
                 hovertemplate=cfg.donut_hovertemplate,
+                marker=marker,
             )
         )
         fig.update_layout(showlegend=False)
@@ -403,8 +465,11 @@ class Fig:
             return _make_no_data_fig("vacation spending")
         fig = go.Figure()
 
+        pdf_Vacation = _collapse_top_n(
+            pdf_Vacation, "category_second", "Total", n=cfg.category_top_n_bar
+        )
         z_YearExpense = pdf_Vacation.groupby("Year")["Total"].sum()
-        category_order = (
+        category_order = _order_with_other_last(
             pdf_Vacation.groupby("category_second")["Total"]
             .sum()
             .sort_values(ascending=False)
@@ -413,13 +478,14 @@ class Fig:
 
         for Category in category_order:
             group = pdf_Vacation[pdf_Vacation["category_second"] == Category]
-            fig.add_trace(
-                go.Bar(
-                    x=group["Year"],
-                    y=group["Total"],
-                    name=Category,
-                )
-            )
+            bar_kwargs: dict[str, object] = {
+                "x": group["Year"],
+                "y": group["Total"],
+                "name": Category,
+            }
+            if Category == cfg.category_other_label:
+                bar_kwargs["marker"] = {"color": vis.fallback_col}
+            fig.add_trace(go.Bar(**bar_kwargs))
 
         dTick_Vacation = get_adaptive_dTick(float(z_YearExpense.max()))
         ry_Axis = get_ryAxis(dTick_Vacation, z_YearExpense, True)
@@ -478,9 +544,10 @@ class Fig:
             return _make_no_data_fig("yearly category spending")
         fig = go.Figure()
 
+        pdf = _collapse_top_n(pdf, col_catgeory, col_amount, n=cfg.category_top_n_bar)
         z_YearExpense = pdf.groupby("Year")[col_amount].sum()
 
-        category_order = (
+        category_order = _order_with_other_last(
             pdf.groupby(col_catgeory)[col_amount]
             .sum()
             .sort_values(ascending=False)
@@ -494,7 +561,9 @@ class Fig:
                 "y": group[col_amount],
                 "name": Category,
             }
-            if col_map is not None:
+            if Category == cfg.category_other_label:
+                bar_kwargs["marker"] = {"color": vis.fallback_col}
+            elif col_map is not None:
                 bar_kwargs["marker"] = {
                     "color": col_map.get(Category, vis.fallback_col)
                 }
@@ -530,6 +599,9 @@ class Fig:
             col_map = vis.vk_Sport_col
 
         pdf_Freq = pdf[pdf["Freq"] == Freq].reset_index(drop=True)
+        pdf_Freq = _collapse_top_n(
+            pdf_Freq, col_catgeory, col_amount, n=cfg.category_top_n_bar
+        )
 
         # sum per period
         z_FreqExpense = pdf_Freq.groupby(["Period"])[col_amount].sum()
@@ -546,8 +618,12 @@ class Fig:
             .sum()
             .sort_values(ascending=False)
         )
-        s_category_orderstack_order = z_category_totals.index.tolist()
+        # keep "Other" at the top of the stack (drawn last) and always grey
+        s_category_orderstack_order = _order_with_other_last(
+            z_category_totals.index.tolist()
+        )
         color_map = _build_category_colors(s_category_orderstack_order, col_map)
+        color_map[cfg.category_other_label] = vis.fallback_col
 
         for Category in s_category_orderstack_order:
             group = pdf_Freq[pdf_Freq[col_catgeory] == Category]
@@ -611,6 +687,9 @@ class Fig:
 
         fig = go.Figure()
         pdf_freq = pdf[pdf["Freq"] == Freq].reset_index(drop=True)
+        pdf_freq = _collapse_top_n(
+            pdf_freq, "category_main", "total_CHF", n=cfg.category_top_n_bar
+        )
 
         xaxis: dict[str, object] = {}
         if Freq == "Monthly":
@@ -633,7 +712,7 @@ class Fig:
                 "categoryarray": sorted_years,
             }
 
-        cat_order = (
+        cat_order = _order_with_other_last(
             pdf_freq.groupby("category_main")["total_CHF"]
             .sum()
             .sort_values(ascending=False)
