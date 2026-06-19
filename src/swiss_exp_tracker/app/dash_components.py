@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from typing import Any
 
+from dash import dcc
 from dash import html
+
+# Shared dcc.Graph config: hide the Plotly modebar (camera/zoom/pan toolbar) on
+# every chart for a cleaner dashboard look.
+GRAPH_CONFIG: dcc.Graph.Config = {"displayModeBar": False}
 
 
 def make_page_title(title: str) -> Any:
     return html.Div(
-        [html.H2(title, className="page-title-center")], style={"width": "100%"}
+        [html.H2(title, className="page-title-center")], className="page-title-wrap"
     )
 
 
