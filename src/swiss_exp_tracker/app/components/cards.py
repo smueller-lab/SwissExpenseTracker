@@ -11,6 +11,7 @@ from dash import dcc
 from dash import html
 
 from swiss_exp_tracker.app.config import VIS
+from swiss_exp_tracker.app.dash_components import GRAPH_CONFIG
 from swiss_exp_tracker.app.dash_components import format_diff
 from swiss_exp_tracker.app.dash_components import get_balance_class
 from swiss_exp_tracker.app.dash_components import make_card_title
@@ -39,7 +40,7 @@ def make_number_card(
 
 def make_figure_card(title: str, fig: go.Figure, width: int = 6) -> Any:
     return html.Div(
-        [make_card_title(title), dcc.Graph(figure=fig)],
+        [make_card_title(title), dcc.Graph(figure=fig, config=GRAPH_CONFIG)],
         className=f"card card-graph col-{width}",
     )
 
@@ -71,7 +72,7 @@ def make_figure_card_MonthYear(title: str, fig_id: str, width: int = 6) -> Any:
                 className="card-header-with-buttons",
             ),
             # Graph
-            dcc.Graph(id=fig_id),
+            dcc.Graph(id=fig_id, config=GRAPH_CONFIG),
         ],
         className=f"card card-graph col-{width}",
     )
@@ -106,9 +107,9 @@ def make_double_figure_card_MonthYear(
                 className="card-header-with-buttons",
             ),
             # Plots
-            dcc.Graph(id=fig_id_abs, className="subplot-spacing"),
+            dcc.Graph(id=fig_id_abs, className="subplot-spacing", config=GRAPH_CONFIG),
             make_card_title(title_pct),
-            dcc.Graph(id=fig_id_pct),
+            dcc.Graph(id=fig_id_pct, config=GRAPH_CONFIG),
         ],
         className=f"card card-graph col-{width}",
     )
@@ -142,7 +143,7 @@ def make_CategoryDonut_card(
                     ),
                 ],
             ),
-            dcc.Graph(id="fig-Donut", style={"flex": "1"}),
+            dcc.Graph(id="fig-Donut", className="graph-flex", config=GRAPH_CONFIG),
         ],
         className=f"card card-graph col-{width}",
     )

@@ -48,6 +48,13 @@ class config:
     height_Food: int = 600
     height_HealthIndex: int = 300
 
+    # category grouping — categories outside the top-N (by total spend) are folded
+    # into a single "Other" bucket to keep legends and donuts readable. Stacked bar
+    # charts keep more series (wider legends fit) than donuts.
+    category_top_n: int = 10  # donuts
+    category_top_n_bar: int = 15  # stacked bar charts
+    category_other_label: str = "Other"
+
     # donut chart constants (see .claude/rules/plots.md)
     donut_hole: float = 0.4
     donut_pull: float = 0.02

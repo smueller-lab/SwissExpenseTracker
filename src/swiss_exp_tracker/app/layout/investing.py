@@ -7,6 +7,7 @@ from dash import html
 
 from swiss_exp_tracker.app.components.cards import make_figure_card
 from swiss_exp_tracker.app.components.cards import make_number_card
+from swiss_exp_tracker.app.dash_components import GRAPH_CONFIG
 from swiss_exp_tracker.app.dash_components import make_card_title
 from swiss_exp_tracker.app.dash_components import make_page_title
 from swiss_exp_tracker.app.vis.figure_investing import fig_allocation_donut
@@ -79,17 +80,19 @@ def layout(data: Any, pos: Any) -> Any:
                                 value=pos.all_symbols,
                                 multi=True,
                                 clearable=False,
-                                style={"marginBottom": "0.75rem"},
+                                className="dropdown-spaced",
                             ),
                             make_card_title("Value (CHF)"),
                             dcc.Graph(
                                 id="investing-pos-value",
-                                style={"height": "300px"},
+                                className="pos-graph",
+                                config=GRAPH_CONFIG,
                             ),
                             make_card_title("P&L (%)"),
                             dcc.Graph(
                                 id="investing-pos-pct",
-                                style={"height": "300px"},
+                                className="pos-graph",
+                                config=GRAPH_CONFIG,
                             ),
                         ],
                         className="card card-graph col-12",

@@ -5,10 +5,14 @@ import plotly.io as pio  # pyright: ignore[reportMissingTypeStubs]
 myTemp = {
     "layout": {
         "template": "plotly_dark",
-        "paper_bgcolor": "#12263A",
-        "plot_bgcolor": "#12263A",
-        "font": {"color": "white", "family": "Arial", "size": 14},
-        "title": {"font": {"size": 20, "color": "white"}},
+        "paper_bgcolor": "#16314d",
+        "plot_bgcolor": "#16314d",
+        "font": {
+            "color": "#e6ecf5",
+            "family": "Segoe UI, Arial, sans-serif",
+            "size": 14,
+        },
+        "title": {"font": {"size": 20, "color": "#e6ecf5"}},
         "margin": {"l": 40, "r": 40, "t": 20, "b": 40},
         "xaxis": {
             "showgrid": False,

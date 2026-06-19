@@ -1,17 +1,18 @@
 /* ===== Design Tokens ===== */
 :root {
     /* Base colors */
-    --color-bg-main: #0f1e33;
-    --color-bg-sidebar: #1b2a41;
-    --color-bg-card: #1a3857;
+    --color-bg-main: #0b1827;
+    --color-bg-sidebar: #16273e;
+    --color-bg-card: #16314d;
     --color-bg-dropdown: #295886;
     --color-white: #ffffff;
 
     /* Text colors */
-    --color-text-primary: #ffffff;
+    --color-text-primary: #e6ecf5;
     --color-text-accent: #66b2ff;
-    --color-text-page-title: #24d1af;
-    --color-text-card-title: #7bb3e4;
+    --color-text-kpi-value: #7cc4ff;
+    --color-text-page-title: #2ee0bf;
+    --color-text-card-title: #8fc4f0;
     --color-text-card-muted: #a8b8d8;
     --color-text-kpi-headline: #e4d30f;
     --color-text-kpi-subtext: #a8b8d8;
@@ -51,12 +52,13 @@
     --color-accent-hover: rgba(102, 178, 255, 0.1);
     --color-accent-selected: rgba(102, 178, 255, 0.25);
     --color-accent-border: rgba(102, 178, 255, 0.25);
-    --color-positive: #4caf50;
+    --color-positive: #66d97a;
     --color-warning: #ff9800;
-    --color-negative: #dc3545;
+    --color-negative: #ff6b6b;
     --color-table-border: rgba(255, 255, 255, 0.2);
     --color-table-row-border: rgba(255, 255, 255, 0.05);
     --color-table-bg-hover: rgba(255, 255, 255, 0.05);
+    --color-divider: rgba(255, 255, 255, 0.15);
 
     /* Card spacing */
     --card-padding: 20px;
@@ -67,8 +69,8 @@
     --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 
     /* Scrollbar */
-    --color-scrollbar-track: #0f1e33;
-    --color-scrollbar-thumb: #1a3857;
+    --color-scrollbar-track: #0b1827;
+    --color-scrollbar-thumb: #16314d;
 
     /* Layout */
     --sidebar-width: 250px;
@@ -126,7 +128,8 @@ a {
     left: 0;
     height: 100%;
     padding: 20px;
-    
+    border-right: 1px solid var(--color-accent-border);
+
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -164,6 +167,44 @@ a {
     border-radius: 8px;                      
     width: calc(100% - 4px);                
     box-sizing: border-box;                 
+}
+
+/* ===== Sidebar footer (project name, version, data freshness) ===== */
+.sidebar-footer {
+    margin-top: auto;
+    width: 100%;
+    padding-top: 16px;
+    border-top: 1px solid var(--color-accent-border);
+    text-align: center;
+}
+
+.sidebar-footer-divider {
+    border-top: 1px solid var(--color-accent-border);
+    margin: 12px 0;
+}
+
+.sidebar-footer-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text-accent);
+}
+
+.sidebar-footer-version {
+    font-size: 12px;
+    color: var(--color-text-card-muted);
+    margin-top: 2px;
+}
+
+.sidebar-footer-line {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-card-title);
+}
+
+.sidebar-footer-sub {
+    font-size: 12px;
+    color: var(--color-text-card-muted);
+    margin-top: 2px;
 }
 
 .sidebar .logo {
@@ -228,6 +269,7 @@ a {
 .card {
     background-color: var(--color-bg-card);
     border-radius: var(--card-radius);
+    border: 1px solid var(--color-accent-border);
     padding: var(--card-padding);
     box-shadow: var(--card-shadow);
 
@@ -260,7 +302,7 @@ a {
 .card-kpi .kpi-value {
     font-size: var(--font-size-kpi-value);
     font-weight: 700;
-    color: var(--color-text-accent);
+    color: var(--color-text-kpi-value);
     margin-bottom: 8px;
     margin-top: 8px;
 }
@@ -281,6 +323,35 @@ a {
 .card-graph .graph-container {
     flex: 1;
     min-height: 0; /* IMPORTANT for Dash/Plotly */
+}
+
+.graph-flex {
+    flex: 1;
+}
+
+.pos-graph {
+    height: 300px;
+}
+
+.page-title-wrap {
+    width: 100%;
+}
+
+.dropdown-spaced {
+    margin-bottom: 0.75rem;
+}
+
+.kpi-block {
+    margin-bottom: 1rem;
+}
+
+.kpi-divider {
+    border-color: var(--color-divider);
+    margin: 0.5rem 0;
+}
+
+.is-hidden {
+    display: none;
 }
 
 /* ===== KPI Top Category Headline ===== */

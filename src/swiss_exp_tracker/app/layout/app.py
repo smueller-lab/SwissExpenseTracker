@@ -6,7 +6,20 @@ from dash import dcc
 from dash import html
 
 
-def create_app_layout() -> Any:
+def create_app_layout(
+    data_through: str, n_transactions: int, app_version: str = ""
+) -> Any:
+    footer_children = [
+        html.Div(f"Data through {data_through}", className="sidebar-footer-line"),
+        html.Div(f"{n_transactions:,} transactions", className="sidebar-footer-sub"),
+        html.Div(className="sidebar-footer-divider"),
+        html.Div("Swiss Expense Tracker", className="sidebar-footer-name"),
+    ]
+    if app_version:
+        footer_children.append(
+            html.Div(f"v{app_version}", className="sidebar-footer-version")
+        )
+
     return html.Div(
         [
             # ---------------- Sidebar ----------------
@@ -79,6 +92,7 @@ def create_app_layout() -> Any:
                         id="link-investing",
                         className="menu-link",
                     ),
+                    html.Div(footer_children, className="sidebar-footer"),
                 ],
                 className="sidebar",
             ),

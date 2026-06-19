@@ -56,14 +56,12 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
                         className=f"kpi-subtext {get_balance_class(pnl_chf_val)}",
                     ),
                 ],
-                style={"marginBottom": "1rem"},
+                className="kpi-block",
             )
 
         return [
             _block(best_row, "Best"),
-            html.Hr(
-                style={"borderColor": "rgba(255,255,255,0.15)", "margin": "0.5rem 0"}
-            ),
+            html.Hr(className="kpi-divider"),
             _block(worst_row, "Worst"),
             html.P(latest.strftime("%Y-%m-%d"), className="kpi-subtext"),
         ]

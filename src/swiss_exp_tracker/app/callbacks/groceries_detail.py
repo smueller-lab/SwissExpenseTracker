@@ -45,7 +45,7 @@ def register_callbacks(app: Any, data: Any) -> None:
     @app.callback(  # type: ignore[untyped-decorator]
         Output("gd-store-donut", "data"),
         Output("gd-fig-donut", "figure"),
-        Output("gd-btn-back", "style"),
+        Output("gd-btn-back", "className"),
         Input("gd-fig-donut", "clickData"),
         Input("gd-btn-back", "n_clicks"),
         State("gd-store-donut", "data"),
@@ -54,7 +54,7 @@ def register_callbacks(app: Any, data: Any) -> None:
         click_data: dict[str, Any] | None,
         _n_back: int | None,
         store_data: dict[str, str] | None,
-    ) -> tuple[dict[str, str] | None, Any, dict[str, str]]:
+    ) -> tuple[dict[str, str] | None, Any, str]:
         trigger: str | None = cast("str | None", ctx.triggered_id)
 
         new_store: dict[str, str] | None
@@ -84,5 +84,5 @@ def register_callbacks(app: Any, data: Any) -> None:
                 data.pdf_GroceryItems, new_store["main"], new_store["detail"]
             )
 
-        btn_style = {"display": "inline-block"} if new_store else {"display": "none"}
-        return new_store, fig, btn_style
+        btn_class = "btn-toggle" if new_store else "btn-toggle is-hidden"
+        return new_store, fig, btn_class

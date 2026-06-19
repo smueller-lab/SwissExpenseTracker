@@ -13,8 +13,8 @@ All figure code lives in `app/vis/figure.py`, `app/vis/figure_investing.py`. All
 
 - Template name: `"myTemp"` — set `pio.templates.default = "myTemp"` at module level in every figure module.
 - Import side-effect: `import swiss_exp_tracker.app.vis.ploty_template` registers the template; include it.
-- Background: `paper_bgcolor` and `plot_bgcolor` = `"#12263A"` (dark navy) — defined in template, do not override.
-- Font: Arial, white, size 14; title size 20 — defined in template.
+- Background: `paper_bgcolor` and `plot_bgcolor` = `"#16314d"` (must match `--color-bg-card` so charts sit seamlessly inside their cards) — defined in template, do not override.
+- Font: `Segoe UI, Arial, sans-serif` (matches the CSS UI font), off-white `#e6ecf5`, size 14; title size 20 — defined in template.
 - Margin defaults: `l=40, r=40, t=20, b=40` — from template via `self.vk_Margin`.
 - Both axes: `showline=True`, `linecolor="white"`, `mirror=True`, `ticks="inside"`, `ticklen=5` — defined in template; set `showline=True` explicitly in `update_layout` to activate the axis border.
 
@@ -59,6 +59,15 @@ All figure code lives in `app/vis/figure.py`, `app/vis/figure_investing.py`. All
 - `textfont.size`: 11–12.
 - `showlegend=False`.
 - Hover: `"%{label}<br>%{value:,.2f} CHF (%{percent})<extra></extra>"`.
+
+## Category grouping (Top-N + Other)
+
+Charts that can show many categories (multi-category stacked bars, donuts) must fold the long tail into a single **"Other"** bucket so legends don't clip and donuts stay readable.
+
+- Use `_collapse_top_n` (row-level relabel, for bars) or `_aggregate_top_n` (one row per category, for donuts) from `figure.py`. Both keep the top-N categories by total spend and relabel the rest to `config.category_other_label` (`"Other"`).
+- Cutoffs differ by chart type: stacked bars keep `config.category_top_n_bar` (15, wider legends fit); donuts keep `config.category_top_n` (10). Pass `n=cfg.category_top_n_bar` in bar functions.
+- "Other" is always the fallback grey (`vis.fallback_col`) and is ordered last via `_order_with_other_last` (top of a stack / last donut slice), regardless of its total.
+- Never hand-roll the tail-grouping inline — reuse the helpers so every chart groups identically.
 
 ## Scatter / line charts
 
