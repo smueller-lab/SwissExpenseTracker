@@ -13,8 +13,8 @@ All figure code lives in `app/vis/figure.py`, `app/vis/figure_investing.py`. All
 
 - Template name: `"myTemp"` — set `pio.templates.default = "myTemp"` at module level in every figure module.
 - Import side-effect: `import swiss_exp_tracker.app.vis.ploty_template` registers the template; include it.
-- Background: `paper_bgcolor` and `plot_bgcolor` = `"#12263A"` (dark navy) — defined in template, do not override.
-- Font: Arial, white, size 14; title size 20 — defined in template.
+- Background: `paper_bgcolor` and `plot_bgcolor` = `"#16314d"` (must match `--color-bg-card` so charts sit seamlessly inside their cards) — defined in template, do not override.
+- Font: Arial, off-white `#e6ecf5`, size 14; title size 20 — defined in template.
 - Margin defaults: `l=40, r=40, t=20, b=40` — from template via `self.vk_Margin`.
 - Both axes: `showline=True`, `linecolor="white"`, `mirror=True`, `ticks="inside"`, `ticklen=5` — defined in template; set `showline=True` explicitly in `update_layout` to activate the axis border.
 
