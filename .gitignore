@@ -47,9 +47,6 @@ merchant_vector_store/
 grocery_vector_store/
 database/
 
-# user config: user specific pathes and information are stored here, do not commit
-user_config.py
-
 # user specific overrides for pipeline config
 src/swiss_exp_tracker/config.py
 src/swiss_exp_tracker/pipeline_agentic/config
