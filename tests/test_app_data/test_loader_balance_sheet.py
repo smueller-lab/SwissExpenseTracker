@@ -1,15 +1,16 @@
 """Tests for DataLoader balance-sheet attributes (pdf_BalanceSheet, scalars, pivot, YoY).
 
-Uses a copy of the real DB in tmp_path — never touches database/transactions.db.
-The dashboard pipeline is run on the copy to ensure balance-sheet tables exist.
+Uses a fixture DB built from deterministic seed data in tmp_path — never touches
+database/transactions.db.  The dashboard pipeline is run once per module (via the
+conftest populated_db fixture) to ensure the balance-sheet tables exist.
 """
 
 from __future__ import annotations
 
 import math
-import shutil
 
 from pathlib import Path
+from typing import cast
 
 import pandas as pd
 import pytest
@@ -17,21 +18,8 @@ import pytest
 from swiss_exp_tracker.pipeline_dash.config import BALANCE_SHEET_MAJOR_CATEGORIES
 
 # ---------------------------------------------------------------------------
-# Helpers
+# Constants
 # ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
-# Constants and fixtures
-# ---------------------------------------------------------------------------
-
-
-def _real_db() -> Path:
-    """Return the path to the real transactions DB from the pipeline ingestion config."""
-    from swiss_exp_tracker.pipeline_ingestion.config import INGESTION_DB_PATH
-
-    return Path(INGESTION_DB_PATH)
-
 
 _EXPECTED_BS_COLUMNS = {
     "year",
@@ -53,19 +41,9 @@ _EXPECTED_CAT_COLUMNS = {"year", "category", "amount"}
 _MAJOR_CATEGORY_LABELS = [label for label, _, _ in BALANCE_SHEET_MAJOR_CATEGORIES]
 
 
-@pytest.fixture(scope="module")
-def populated_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Copy the real DB to a temp directory and run the dashboard pipeline on it."""
-    if not _real_db().exists():
-        pytest.skip("real transactions DB not available")
-    tmp_path = tmp_path_factory.mktemp("loader_bs")
-    dest = tmp_path / "transactions.db"
-    shutil.copy(_real_db(), dest)
-
-    from swiss_exp_tracker.pipeline_dash.pipeline import run_dashboard_pipeline
-
-    run_dashboard_pipeline(db_path=dest)
-    return dest
+# ---------------------------------------------------------------------------
+# Fixtures
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture(scope="module")
@@ -366,10 +344,10 @@ def test_category_spend_yoy_spot_check_one_cell_delta(loader: object) -> None:
     curr_year = years_asc[1]
     prev_year = years_asc[0]
 
-    # Pick "Groceries" as the test category (likely present in real data)
+    # Pick "Groceries" as the test category (present in seed data)
     category = "Groceries"
-    curr_val = float(pivot.loc[curr_year, category])
-    prev_val = float(pivot.loc[prev_year, category])
+    curr_val = float(cast("float", pivot.loc[curr_year, category]))
+    prev_val = float(cast("float", pivot.loc[prev_year, category]))
 
     if prev_val == 0:
         pytest.skip(
@@ -377,7 +355,7 @@ def test_category_spend_yoy_spot_check_one_cell_delta(loader: object) -> None:
         )
 
     expected_yoy = (curr_val - prev_val) / abs(prev_val) * 100
-    actual_yoy = float(yoy.loc[curr_year, category])
+    actual_yoy = float(cast("float", yoy.loc[curr_year, category]))
     assert actual_yoy == pytest.approx(expected_yoy, rel=1e-6)
 
 

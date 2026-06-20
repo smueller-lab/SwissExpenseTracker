@@ -1,47 +1,19 @@
 """Tests for DataLoader.get_IncomeExpenseMonthly().
 
-Uses a copy of the real DB in tmp_path — never touches database/transactions.db.
-The dashboard pipeline is run on the copy to ensure the net-balance-month table exists.
+Uses a fixture DB built from deterministic seed data in tmp_path — never touches
+database/transactions.db.  The dashboard pipeline is run once per module (via the
+conftest populated_db fixture) to ensure the net-balance-month table exists.
 """
 
 from __future__ import annotations
-
-import shutil
 
 from pathlib import Path
 
 import pytest
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-
-def _real_db() -> Path:
-    """Return the path to the real transactions DB from the pipeline ingestion config."""
-    from swiss_exp_tracker.pipeline_ingestion.config import INGESTION_DB_PATH
-
-    return Path(INGESTION_DB_PATH)
-
-
-# ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
-
-
-@pytest.fixture(scope="module")
-def populated_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    """Copy the real DB to a temp directory and run the dashboard pipeline on it."""
-    if not _real_db().exists():
-        pytest.skip("real transactions DB not available")
-    tmp_path = tmp_path_factory.mktemp("loader_ie")
-    dest = tmp_path / "transactions.db"
-    shutil.copy(_real_db(), dest)
-
-    from swiss_exp_tracker.pipeline_dash.pipeline import run_dashboard_pipeline
-
-    run_dashboard_pipeline(db_path=dest)
-    return dest
 
 
 @pytest.fixture(scope="module")

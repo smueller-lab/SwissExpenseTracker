@@ -101,7 +101,13 @@ required-imports = ["from __future__ import annotations"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
-addopts = ["-ra", "-q", "--strict-markers", "--strict-config"]
+# Integration tests (browser/Chrome-driven Dash tests) are excluded by default
+# so the normal suite and CI stay fast and hermetic. Run them manually with:
+#   poetry run pytest tests/test_claude_chrome -m integration
+addopts = ["-ra", "-q", "--strict-markers", "--strict-config", "-m", "not integration"]
+markers = [
+    "integration: browser/Chrome-driven Dash integration tests; excluded from the default run and CI, run manually only",
+]
 
 [tool.coverage.run]
 source = ["src"]

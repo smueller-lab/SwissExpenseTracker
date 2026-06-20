@@ -1,0 +1,83 @@
+interactions:
+- request:
+    body: '{"query": "Migros", "search_depth": "basic", "max_results": 5}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '135'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.5
+    method: POST
+    uri: https://api.tavily.com/search
+  response:
+    body:
+      string: "{\"query\":\"Migros\",\"follow_up_questions\":null,\"answer\":null,\"images\":[],\"results\":[{\"url\":\"https://en.wikipedia.org/wiki/Migros\",\"title\":\"Migros
+        - Wikipedia\",\"content\":\"Migros is Switzerland's largest retail company,
+        its largest supermarket chain and largest employer. It is also one of the
+        forty largest retailers in the\",\"score\":0.90692574,\"raw_content\":null},{\"url\":\"https://play.google.com/store/apps/details?id=com.inomera.sm&hl=en_US\",\"title\":\"Migros
+        - Grocery & Food - Apps on Google Play\",\"content\":\"From groceries to food,
+        from organic products to electronics, from cosmetics to care, everything you
+        and your home need is now at your fingertips with the Migros app! With Migros
+        Sanal Market, you can easily shop for groceries online and have them delivered
+        to the address of your choice on the day and time of your choice. With Migros
+        quality, campaigns, discounts and opportunities, thousands of products from
+        the freshest fruits and vegetables to the best quality meats and delicatessens,
+        from detergents to diapers, are at your doorstep on the day and time of your
+        choice with Sanal Market and within minutes with Migros Hemen. You can use
+        the Sanal Market, Hemen and all other applications without changing the phone
+        number and account that you logged in to the Migros app or became a member.
+        You can pay for all your shopping and food orders quickly, securely and easily
+        on the Migros app.\",\"score\":0.7163977,\"raw_content\":null},{\"url\":\"https://www.linkedin.com/company/migros-online\",\"title\":\"Migros
+        Online - We are the supermarket at your fingertips\",\"content\":\"Overview:\\nMigros
+        Online, formerly known as LeShop, is the #1 Swiss online supermarket. We offer
+        a unique assortment containing Migros products as well as branded goods. Groceries
+        including frozen foods and other essentials for home and hobby are delivered
+        directly to the customers\u2019 door.\\n\\nWebsite: https://jobs.migros.ch/de/unsere-unternehmen/migros-online\\nCrunchbase
+        Url: N/A\\nLinkedin Url: N/A\\n\\nIndustry:\\nRetail\\n\\nCompany size:\\n501-1,000
+        employees\\n391 associated members (LinkedIn members who\u2019ve listed Migros
+        Online as their current workplace on their profile)\\n\\nFounded:\\n1997\\n\\nFunding:\\nLast
+        Round Date: N/A\\nLast Round Type: N/A\\nTotal Rounds: N/A\\nLast Round Raised:
+        N/A\\n\\nInvestors:\\nN/A\",\"score\":0.6246834,\"raw_content\":null},{\"url\":\"https://www.migros.ch/en\",\"title\":\"Migros
+        supermarket \u2013 Order online and get it delivered to your home ...\",\"content\":\"Order
+        fresh and frozen food and everything for your household online. 12500 Migros
+        products and brand products at Migros prices.\",\"score\":0.5634506,\"raw_content\":null},{\"url\":\"https://apps.apple.com/tr/app/migros-food-groceries/id397585390\",\"title\":\"\u200EMigros:
+        Food & Groceries App - App Store\",\"content\":\"Migros is now at your fingertips
+        with a single application, offering comprehensive services to meet all your
+        home needs. With Migros' new application, you can have all your household
+        essentials delivered to your doorstep at your preferred day and time via Migros
+        Sanal Market. Experience the convenience of online grocery shopping and food
+        ordering, all with Migros' renowned quality. Whether using Migros Sanal Market
+        or Migros Hemen, you can place orders for yourself or your loved ones and
+        receive them promptly. With Migros quality and benefits, your grocery shopping
+        arrives at your doorstep at a time of your choosing with Sanal Market, or
+        within minutes with Migros Hemen. Ger\xE7ekten g\xF6rd\xFC\u011F\xFCm en k\xF6t\xFC
+        hizmet firmas\u0131 sipari\u015Fi stok yok diye 2 g\xFCn sonra iptal ediyorlar
+        ve 26 g\xFCn ge\xE7mesine ra\u011Fmen \xFCcret iadesi yap\u0131lmad\u0131
+        m\xFC\u015Fteri hizmetleri de \xE7\xF6zm\xFCyor s\xFCrekli ba\u015F\u0131ndan
+        savar gibi kay\u0131t olu\u015Fturuldu diyor asla al\u0131\u015Fveri\u015F
+        yapmam bi daha \xE7ok pi\u015Fman oldum.Ald\u0131\u011F\u0131m \xFCr\xFCn
+        muzdu bu kadar zamanda gidip anamurdan al\u0131p gelirdim ger\xE7ekten rezillik!!!\",\"score\":0.56258565,\"raw_content\":null}],\"response_time\":0.81,\"request_id\":\"53ae5023-89c9-4e18-9f75-e91b401f1e40\"}"
+    headers:
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '3959'
+      Content-Type:
+      - application/json
+      Date:
+      - Sat, 06 Jun 2026 12:49:55 GMT
+      content-security-policy:
+      - default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self';
+        style-src 'self';base-uri 'self';form-action 'self'; require-trusted-types-for
+        'script'; upgrade-insecure-requests;
+    status:
+      code: 200
+      message: OK
+version: 1

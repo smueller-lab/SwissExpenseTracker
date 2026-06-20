@@ -7,6 +7,9 @@ from typing import Any
 
 import pytest
 
+# Browser-driven; excluded from the default run/CI, run manually via -m integration.
+pytestmark = pytest.mark.integration
+
 # ---------------------------------------------------------------------------
 # Skip guard — integration tests require Chrome + dash[testing] extras
 # ---------------------------------------------------------------------------

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import shutil
 import sqlite3
 
 from pathlib import Path
@@ -62,13 +61,13 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
 
 @pytest.fixture
 def tmp_db(tmp_path: Path) -> Path:
-    from swiss_exp_tracker.pipeline_ingestion.config import INGESTION_DB_PATH
+    """Create a fixture DB using deterministic seed data; no real DB required."""
+    from tests.fixtures.db_builder import build_fixture_db
+    from tests.fixtures.seed_data import make_seed_groceries
+    from tests.fixtures.seed_data import make_seed_transactions
 
-    if not Path(INGESTION_DB_PATH).exists():
-        pytest.skip("real transactions DB not available")
-    dest = tmp_path / "transactions.db"
-    shutil.copy(INGESTION_DB_PATH, dest)
-    return dest
+    db_path = tmp_path / "transactions.db"
+    return build_fixture_db(db_path, make_seed_transactions(), make_seed_groceries())
 
 
 def test_run_dashboard_pipeline_produces_all_tables(tmp_db: Path) -> None:

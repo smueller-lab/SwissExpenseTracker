@@ -1,0 +1,131 @@
+interactions:
+- request:
+    body: '{"query": "Migros", "type": "auto", "numResults": 5, "contents": {"summary":
+      {"query": "Migros"}}}'
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      Content-Length:
+      - '98'
+      Content-Type:
+      - application/json
+      User-Agent:
+      - python-requests/2.32.5
+    method: POST
+    uri: https://api.exa.ai/search
+  response:
+    body:
+      string: "{\"requestId\":\"674bbf7b4e7f7d87d4098bfa33647f52\",\"resolvedSearchType\":\"\",\"results\":[{\"id\":\"https://www.migros.ch/de\",\"title\":\"Migros\",\"url\":\"https://www.migros.ch/de\",\"summary\":\"Summary:\\nMigros
+        is a major Swiss retailer and cooperative, offering a wide range of products
+        and services including groceries, household goods, and consumer services.
+        The site serves as the main portal for shopping, store locations, promotions,
+        and information about Migros\u2019 cooperative structure, sustainability efforts,
+        and customer programs. For precise details, browse the site sections on products,
+        services, and Migros\u2019 corporate information.\",\"image\":\"https://www.migros.ch/assets/mgb-favicons/icon-512x512.png\",\"favicon\":\"https://www.migros.ch/assets/mgb-favicons/apple-touch-icon-precomposed.png?v=2\"},{\"id\":\"https://www.migros.ch/en\",\"title\":\"Migros
+        supermarket \u2013 Order online and get it delivered to your home ...\",\"url\":\"https://www.migros.ch/en\",\"summary\":\"Migros
+        is a Swiss supermarket chain offering online ordering and home delivery. The
+        site provides product ranges, store information, and options to shop online
+        for groceries and other items.\",\"image\":\"https://www.migros.ch/assets/mgb-favicons/icon-512x512.png\",\"favicon\":\"https://www.migros.ch/assets/mgb-favicons/apple-touch-icon-precomposed.png?v=2\"},{\"id\":\"https://corporate.migros.ch/de/ueber-uns\",\"title\":\"\xDCber
+        uns | Migros\",\"url\":\"https://corporate.migros.ch/de/ueber-uns\",\"summary\":\"Migros
+        ist eine genossenschaftlich organisierte Schweizer Einzelhandelsgruppe, die
+        mit ihren vielf\xE4ltigen Unternehmen wie Galaxus, Denner, Activ Fitness und
+        Medbase eng am Alltag der Menschen in der Schweiz ist. Sie ist im Besitz ihrer
+        Kundinnen und Kunden, wobei die regionalen Genossenschaften und der Hauptsitz
+        in Z\xFCrich eine zentrale Rolle spielen. Migros legt Wert auf wirtschaftlichen
+        Erfolg, der an die Gemeinschaft zur\xFCckflie\xDFt, und bietet Einblicke in
+        ihre Geschichte, Strategien und Menschen hinter der Marke.\",\"image\":\"https://images.ctfassets.net/ra41rfif8mpw/1ZiDKTHTt6SruO4F1kOmB1/bfa7d76f7c56cde1d240d8b021b3cdd0/migros-ueber-uns-header2.jpg\",\"favicon\":\"https://corporate.migros.ch/favicon.ico\"},{\"id\":\"https://corporate.migros.ch/de/ueber-uns/die-migros-gruppe\",\"title\":\"Die
+        Migros-Gruppe | Migros\",\"url\":\"https://corporate.migros.ch/de/ueber-uns/die-migros-gruppe\",\"summary\":\"Die
+        Migros-Gruppe ist ein schweizerischer Genossenschaftskonzern mit mehreren
+        Gesch\xE4ftsbereichen:\\n- Food Retail: Migros Superm\xE4rkte, Migros Online,
+        VOI, M-Partner; Tochter MSM (Migros Supermarkt AG) seit 2024, geplant 140
+        neue Filialen bzw. 350 Modernisierungen bis 2030; Denner, Migrol, migrolino
+        geh\xF6ren dazu; Migros-Restaurants.\\n- Migros Industrie: integrierte Produzentin
+        mit \xFCber 16.000 hergestellten Produkten in rund 50 Standorten; Fokus auf
+        Qualit\xE4t zu guten Preisen; bekannte Produkte wie Ice Tea und Seehund-Glace;
+        ca. 11.000 Mitarbeitende.\\n- Denner: Schweizer Discounter mit \xFCber 800
+        Filialen; gro\xDFes Aktionsangebot, Fokus auf Qualit\xE4t und Nachhaltigkeit.\\n-
+        Migros Online: f\xFChrender Schweizer Online-H\xE4ndler f\xFCr Lebensmittel
+        (migros.ch, Migros App) mit tausenden Produkten, inkl. Markenartikel.\\n-
+        Migrol und migrolino: Convenience-L\xE4den (Migrolino) und Mobilit\xE4ts-/Energie-/W\xE4rmel\xF6sungen
+        (Migrol); Tankstellen, E-Ladestationen, Car-Wash-Netz, Heiz\xF6l/Holzpellets.\\n-
+        Migros Bank: nicht b\xF6rsenkotiert, 1.900 Mitarbeitende, 70 Filialen; kundenorientiert
+        mit starkem Digital-/Beratungsangebot; mehrfach als Top-Kunde ausgezeichnet;
+        2025 gute Platzierungen.\\n\\nZiel der Gruppe: Nah am Kunden mit breitem Angebot
+        von Shopping \xFCber Online, Gastronomie, Tank-/Energie-Dienstleistungen bis
+        hin zu Finanzdienstleistungen; umfangreiche Expansions- und Modernisierungspl\xE4ne
+        im Detailhandel bis 2030.\",\"image\":\"https://images.ctfassets.net/ra41rfif8mpw/3Bas2dUNvot9CkDTLXBd0z/a3f782277e0554130804d408b0b63b62/migros-gruppe-header.png\",\"favicon\":\"https://corporate.migros.ch/favicon.ico\"},{\"id\":\"https://en.wikipedia.org/wiki/Migros\",\"title\":\"Migros
+        - Wikipedia\",\"url\":\"https://en.wikipedia.org/wiki/Migros\",\"summary\":\"Migros
+        is Switzerland\u2019s largest retail company, the biggest supermarket chain,
+        and a major employer with around 97,541 staff (2021) and 32.0 billion CHF
+        in revenue (2024). It operates as a cooperative federation, the Migros Genossenschafts-Bund,
+        owned by about 2 million members. Founded in Zurich in 1925 by Gottlieb Duttweiler,
+        Migros started by selling six low-priced basic goods and expanding into its
+        own line of products. The cooperative structure distributes control to its
+        members, contrasting with a traditional corporation. Migros has significant
+        international history, including founding Migros T\xFCrk in Turkey (1964;
+        sold majority to Ko\xE7 Holding in 1975) and expanding more recently to locations
+        such as Thoiry near Geneva (1993). It produces the majority of its assortment
+        internally (over 90% via its 90 subsidiaries) and remains a major force in
+        Swiss retail alongside Coop. The brand is nicknamed \u201Cthe orange giant\u201D
+        and uses a large orange \u201CM\u201D logo.\",\"image\":\"https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/Museum_of_Transport_Luzern_-_Ford_TT_Migros_%281926%29.jpg/250px-Museum_of_Transport_Luzern_-_Ford_TT_Migros_%281926%29.jpg\"}],\"searchTime\":6570.8,\"costDollars\":{\"total\":0.012,\"search\":{\"neural\":0.007},\"summary\":0.005}}"
+    headers:
+      CF-RAY:
+      - a0778a35ea09cd00-ZRH
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json; charset=utf-8
+      Date:
+      - Sat, 06 Jun 2026 12:50:02 GMT
+      Server:
+      - cloudflare
+      Transfer-Encoding:
+      - chunked
+      access-control-allow-credentials:
+      - 'true'
+      access-control-expose-headers:
+      - PAYMENT-REQUIRED,PAYMENT-RESPONSE,payment-required,payment-response
+      cf-cache-status:
+      - DYNAMIC
+      content-length:
+      - '5346'
+      content-security-policy:
+      - frame-ancestors 'self'
+      cross-origin-opener-policy:
+      - same-origin
+      cross-origin-resource-policy:
+      - same-origin
+      etag:
+      - W/"14e2-7zYKF6uEOdNFdmzrVyhK5aF2Ai0"
+      origin-agent-cluster:
+      - ?1
+      referrer-policy:
+      - no-referrer
+      strict-transport-security:
+      - max-age=31536000; includeSubDomains; preload
+      vary:
+      - Origin
+      x-content-type-options:
+      - nosniff
+      x-dns-prefetch-control:
+      - 'off'
+      x-download-options:
+      - noopen
+      x-exa-queue-ms:
+      - '0'
+      x-exa-queued:
+      - 'false'
+      x-frame-options:
+      - DENY
+      x-permitted-cross-domain-policies:
+      - none
+      x-xss-protection:
+      - '0'
+    status:
+      code: 200
+      message: OK
+version: 1
