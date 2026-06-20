@@ -56,6 +56,8 @@ _MAJOR_CATEGORY_LABELS = [label for label, _, _ in BALANCE_SHEET_MAJOR_CATEGORIE
 @pytest.fixture(scope="module")
 def populated_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
     """Copy the real DB to a temp directory and run the dashboard pipeline on it."""
+    if not _real_db().exists():
+        pytest.skip("real transactions DB not available")
     tmp_path = tmp_path_factory.mktemp("loader_bs")
     dest = tmp_path / "transactions.db"
     shutil.copy(_real_db(), dest)
