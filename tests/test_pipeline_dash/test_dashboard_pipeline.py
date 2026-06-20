@@ -64,6 +64,8 @@ EXPECTED_COLUMNS: dict[str, set[str]] = {
 def tmp_db(tmp_path: Path) -> Path:
     from swiss_exp_tracker.pipeline_ingestion.config import INGESTION_DB_PATH
 
+    if not Path(INGESTION_DB_PATH).exists():
+        pytest.skip("real transactions DB not available")
     dest = tmp_path / "transactions.db"
     shutil.copy(INGESTION_DB_PATH, dest)
     return dest

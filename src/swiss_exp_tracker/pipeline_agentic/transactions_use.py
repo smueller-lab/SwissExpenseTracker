@@ -315,6 +315,9 @@ def _apply_shared_housing_roommate_offset() -> None:
     repeated runs always produce the same result even if income rows were
     re-inserted by a previous run_transactions_use() call.
     """
+    if not HOUSING_RENT_2:
+        return
+
     # dynamic LIKE clause from config list: cannot be expressed as static aiosql SQL
     like_clauses = " OR ".join(
         f"lower(tu.merchant) LIKE '%{p.lower()}%'" for p in HOUSING_RENT_2
