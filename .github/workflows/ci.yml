@@ -47,4 +47,13 @@ jobs:
         run: poetry run mypy --config-file pyproject.toml src
 
       - name: pytest
+        # Dummy keys satisfy the skipif guards so the web-search tests run and
+        # replay their committed VCR cassettes (real keys are scrubbed from the
+        # cassettes; VCR matches on method+URI, so any non-empty value works).
+        env:
+          OPENAI_API_KEY: dummy
+          TAVILY_API_KEY: dummy
+          EXA_API_KEY: dummy
+          BRAVE_SEARCH_API_KEY: dummy
+          SCRAPE_DO_API_KEY: dummy
         run: poetry run pytest tests --ignore=tests/test_claude_chrome --tb=short
