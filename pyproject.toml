@@ -99,6 +99,9 @@ required-imports = ["from __future__ import annotations"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Put the repo root on sys.path so absolute `tests.*` imports resolve in CI,
+# independent of whether the editable install's .pth adds the root.
+pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 # Integration tests (browser/Chrome-driven Dash tests) are excluded by default
