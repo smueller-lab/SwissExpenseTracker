@@ -1,0 +1,470 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - '*/*'
+      Accept-Encoding:
+      - gzip, deflate
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.32.5
+    method: GET
+    uri: https://api.scrape.do/?url=https%3A%2F%2Fhtml.duckduckgo.com%2Fhtml%2F%3Fq%3DMigros%26kl%3Dch-en
+  response:
+    body:
+      string: "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n\n<!--[if
+        IE 6]><html class=\"ie6\" xmlns=\"http://www.w3.org/1999/xhtml\"><![endif]-->\n<!--[if
+        IE 7]><html class=\"lt-ie8 lt-ie9\" xmlns=\"http://www.w3.org/1999/xhtml\"><![endif]-->\n<!--[if
+        IE 8]><html class=\"lt-ie9\" xmlns=\"http://www.w3.org/1999/xhtml\"><![endif]-->\n<!--[if
+        gt IE 8]><!--><html xmlns=\"http://www.w3.org/1999/xhtml\"><!--<![endif]-->\n<head>\n
+        \ <meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\" />\n
+        \ <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0,
+        maximum-scale=3.0, user-scalable=1\" />\n  <meta name=\"referrer\" content=\"origin\"
+        />\n  <meta name=\"HandheldFriendly\" content=\"true\" />\n  <meta name=\"robots\"
+        content=\"noindex, nofollow\" />\n  <title>Migros at DuckDuckGo</title>\n
+        \ <link title=\"DuckDuckGo (HTML)\" type=\"application/opensearchdescription+xml\"
+        rel=\"search\" href=\"//duckduckgo.com/opensearch_html_v2.xml\" />\n  <link
+        href=\"//duckduckgo.com/favicon.ico\" rel=\"shortcut icon\" />\n  <link rel=\"icon\"
+        href=\"//duckduckgo.com/favicon.ico\" type=\"image/x-icon\" />\n  <link id=\"icon60\"
+        rel=\"apple-touch-icon\" href=\"//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_60x60.png?v=2\"/>\n
+        \ <link id=\"icon76\" rel=\"apple-touch-icon\" sizes=\"76x76\" href=\"//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_76x76.png?v=2\"/>\n
+        \ <link id=\"icon120\" rel=\"apple-touch-icon\" sizes=\"120x120\" href=\"//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_120x120.png?v=2\"/>\n
+        \ <link id=\"icon152\" rel=\"apple-touch-icon\" sizes=\"152x152\" href=\"//duckduckgo.com/assets/icons/meta/DDG-iOS-icon_152x152.png?v=2\"/>\n
+        \ <link rel=\"image_src\" href=\"//duckduckgo.com/assets/icons/meta/DDG-icon_256x256.png\">\n
+        \ <link rel=\"stylesheet\" media=\"handheld, all\" href=\"//duckduckgo.com/dist/h.238c80a7d9b754cfcdd5.css\"
+        type=\"text/css\"/>\n</head>\n\n<body class=\"body--html\">\n  <a name=\"top\"
+        id=\"top\"></a>\n\n  <form action=\"/html/\" method=\"post\">\n    <input
+        type=\"text\" name=\"state_hidden\" id=\"state_hidden\" />\n  </form>\n\n
+        \ <div>\n    <div class=\"site-wrapper-border\"></div>\n\n    <div id=\"header\"
+        class=\"header cw header--html\">\n      <a title=\"DuckDuckGo\" href=\"/html/\"
+        class=\"header__logo-wrap\"></a>\n\n      <form name=\"x\" class=\"header__form\"
+        action=\"/html/\" method=\"post\">\n        <div class=\"search search--header\">\n
+        \         <input name=\"q\" autocomplete=\"off\" class=\"search__input\" id=\"search_form_input_homepage\"
+        type=\"text\" value=\"Migros\" />\n          <input name=\"b\" id=\"search_button_homepage\"
+        class=\"search__button search__button--html\" value=\"\" title=\"Search\"
+        alt=\"Search\" type=\"submit\" />\n        </div>\n\n        \n        \n
+        \       \n        \n\n        <div class=\"frm__select\">\n          <select
+        name=\"kl\">\n            \n              <option value=\"\" >All Regions</option>\n
+        \           \n              <option value=\"ar-es\" >Argentina</option>\n
+        \           \n              <option value=\"au-en\" >Australia</option>\n
+        \           \n              <option value=\"at-de\" >Austria</option>\n            \n
+        \             <option value=\"be-fr\" >Belgium (fr)</option>\n            \n
+        \             <option value=\"be-nl\" >Belgium (nl)</option>\n            \n
+        \             <option value=\"br-pt\" >Brazil</option>\n            \n              <option
+        value=\"bg-bg\" >Bulgaria</option>\n            \n              <option value=\"ca-en\"
+        >Canada (en)</option>\n            \n              <option value=\"ca-fr\"
+        >Canada (fr)</option>\n            \n              <option value=\"ct-ca\"
+        >Catalonia</option>\n            \n              <option value=\"cl-es\" >Chile</option>\n
+        \           \n              <option value=\"cn-zh\" >China</option>\n            \n
+        \             <option value=\"co-es\" >Colombia</option>\n            \n              <option
+        value=\"hr-hr\" >Croatia</option>\n            \n              <option value=\"cz-cs\"
+        >Czech Republic</option>\n            \n              <option value=\"dk-da\"
+        >Denmark</option>\n            \n              <option value=\"ee-et\" >Estonia</option>\n
+        \           \n              <option value=\"fi-fi\" >Finland</option>\n            \n
+        \             <option value=\"fr-fr\" >France</option>\n            \n              <option
+        value=\"de-de\" >Germany</option>\n            \n              <option value=\"gr-el\"
+        >Greece</option>\n            \n              <option value=\"hk-tzh\" >Hong
+        Kong</option>\n            \n              <option value=\"hu-hu\" >Hungary</option>\n
+        \           \n              <option value=\"is-is\" >Iceland</option>\n            \n
+        \             <option value=\"in-en\" >India (en)</option>\n            \n
+        \             <option value=\"id-en\" >Indonesia (en)</option>\n            \n
+        \             <option value=\"ie-en\" >Ireland</option>\n            \n              <option
+        value=\"il-en\" >Israel (en)</option>\n            \n              <option
+        value=\"it-it\" >Italy</option>\n            \n              <option value=\"jp-jp\"
+        >Japan</option>\n            \n              <option value=\"kr-kr\" >Korea</option>\n
+        \           \n              <option value=\"lv-lv\" >Latvia</option>\n            \n
+        \             <option value=\"lt-lt\" >Lithuania</option>\n            \n
+        \             <option value=\"my-en\" >Malaysia (en)</option>\n            \n
+        \             <option value=\"mx-es\" >Mexico</option>\n            \n              <option
+        value=\"nl-nl\" >Netherlands</option>\n            \n              <option
+        value=\"nz-en\" >New Zealand</option>\n            \n              <option
+        value=\"no-no\" >Norway</option>\n            \n              <option value=\"pk-en\"
+        >Pakistan (en)</option>\n            \n              <option value=\"pe-es\"
+        >Peru</option>\n            \n              <option value=\"ph-en\" >Philippines
+        (en)</option>\n            \n              <option value=\"pl-pl\" >Poland</option>\n
+        \           \n              <option value=\"pt-pt\" >Portugal</option>\n            \n
+        \             <option value=\"ro-ro\" >Romania</option>\n            \n              <option
+        value=\"ru-ru\" >Russia</option>\n            \n              <option value=\"xa-ar\"
+        >Saudi Arabia</option>\n            \n              <option value=\"sg-en\"
+        >Singapore</option>\n            \n              <option value=\"sk-sk\" >Slovakia</option>\n
+        \           \n              <option value=\"sl-sl\" >Slovenia</option>\n            \n
+        \             <option value=\"za-en\" >South Africa</option>\n            \n
+        \             <option value=\"es-ca\" >Spain (ca)</option>\n            \n
+        \             <option value=\"es-es\" >Spain (es)</option>\n            \n
+        \             <option value=\"se-sv\" >Sweden</option>\n            \n              <option
+        value=\"ch-de\" >Switzerland (de)</option>\n            \n              <option
+        value=\"ch-fr\" >Switzerland (fr)</option>\n            \n              <option
+        value=\"tw-tzh\" >Taiwan</option>\n            \n              <option value=\"th-en\"
+        >Thailand (en)</option>\n            \n              <option value=\"tr-tr\"
+        >Turkey</option>\n            \n              <option value=\"us-en\" >US
+        (English)</option>\n            \n              <option value=\"us-es\" >US
+        (Spanish)</option>\n            \n              <option value=\"ua-uk\" >Ukraine</option>\n
+        \           \n              <option value=\"uk-en\" >United Kingdom</option>\n
+        \           \n              <option value=\"vn-en\" >Vietnam (en)</option>\n
+        \           \n          </select>\n        </div>\n\n        <div class=\"frm__select
+        frm__select--last\">\n          <select class=\"\" name=\"df\">\n            \n
+        \             <option value=\"\" selected>Any Time</option>\n            \n
+        \             <option value=\"d\" >Past Day</option>\n            \n              <option
+        value=\"w\" >Past Week</option>\n            \n              <option value=\"m\"
+        >Past Month</option>\n            \n              <option value=\"y\" >Past
+        Year</option>\n            \n          </select>\n        </div>\n      </form>\n
+        \   </div>\n\n    \n      <!-- If zero click results are present -->\n      <div
+        class=\"zci-wrapper\">\n        <div class=\"zci\">\n          <h1 class=\"zci__heading\">\n
+        \           <a rel=\"nofollow\" href=\"https://en.wikipedia.org/wiki/Migros\">Migros</a>\n
+        \         </h1>\n\n          \n            <div class=\"zci__result\" id=\"zero_click_abstract\">\n
+        \             \n                <a rel=\"nofollow\" href=\"https://en.wikipedia.org/wiki/Migros\">\n
+        \                 <img alt=\"\" title=\"\" id=\"i0\" class=\"zci__image\"
+        src=\"https://i.duckduckgo.com/i/82ef84e377455534.png\" name=\"i0\" />\n                </a>\n
+        \             \n\n              Migros is Switzerland's largest retail company,
+        its largest supermarket chain and largest employer. It is also one of the
+        forty largest retailers in the world. It is structured in the form of a cooperative
+        federation, with more than two million members. It co-founded Turkey's largest
+        retailer, also named Migros, which became independent of Migros Switzerland
+        in 1975. The name comes from the French \"mi\" for half or mid-way and \"gros\",
+        which means wholesale.\n              \n                <a rel=\"nofollow\"
+        href=\"https://en.wikipedia.org/wiki/Migros\" >More at <q>Wikipedia</q></a>\n
+        \             \n            </div>\n          \n        </div>\n      </div>\n
+        \   \n\n    \n      <!-- Web results are present -->\n      <div>\n        <div
+        class=\"serp__results\">\n          <div id=\"links\" class=\"results\">\n
+        \           \n\n            \n              \n                <div class=\"result
+        results_links results_links_deep web-result \">\n                  <div class=\"links_main
+        links_deep result__body\"> <!-- This is the visible part -->\n                    \n
+        \                     <h2 class=\"result__title\">\n                        <a
+        rel=\"nofollow\" class=\"result__a\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.ch%2Fen&amp;rut=3078a5980760056d5e1b7f8e5a812b9c602529885c5e5569a5f002e3c77c448d\">Official
+        site</a>\n                      </h2>\n\n                    \n\n                    \n
+        \                     <div class=\"result__extras\">\n                        <div
+        class=\"result__extras__url\">\n                          <span class=\"result__icon\">\n
+        \                           <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.ch%2Fen&amp;rut=3078a5980760056d5e1b7f8e5a812b9c602529885c5e5569a5f002e3c77c448d\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/www.migros.ch.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.ch%2Fen&amp;rut=3078a5980760056d5e1b7f8e5a812b9c602529885c5e5569a5f002e3c77c448d\">\n
+        \                           www.migros.ch\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.ch%2Fen&amp;rut=3078a5980760056d5e1b7f8e5a812b9c602529885c5e5569a5f002e3c77c448d\">Migros</a>\n
+        \                     \n                    \n\n                    <div class=\"clear\"></div>\n
+        \                 </div>\n                </div>\n              \n            \n
+        \             \n                <div class=\"result results_links results_links_deep
+        web-result \">\n                  <div class=\"links_main links_deep result__body\">
+        <!-- This is the visible part -->\n                    \n                      <h2
+        class=\"result__title\">\n                        <a rel=\"nofollow\" class=\"result__a\"
+        href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.ch%2Fen&amp;rut=3078a5980760056d5e1b7f8e5a812b9c602529885c5e5569a5f002e3c77c448d\">Migros
+        supermarket - Order online and get it delivered to your home ...</a>\n                      </h2>\n\n
+        \                   \n\n                    \n                      <div class=\"result__extras\">\n
+        \                       <div class=\"result__extras__url\">\n                          <span
+        class=\"result__icon\">\n                            <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.ch%2Fen&amp;rut=3078a5980760056d5e1b7f8e5a812b9c602529885c5e5569a5f002e3c77c448d\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/www.migros.ch.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.ch%2Fen&amp;rut=3078a5980760056d5e1b7f8e5a812b9c602529885c5e5569a5f002e3c77c448d\">\n
+        \                           www.migros.ch/en\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.ch%2Fen&amp;rut=3078a5980760056d5e1b7f8e5a812b9c602529885c5e5569a5f002e3c77c448d\">Order
+        fresh and frozen food and everything for your household online. 12,500 <b>Migros</b>
+        products and brand products at <b>Migros</b> prices.</a>\n                      \n
+        \                   \n\n                    <div class=\"clear\"></div>\n
+        \                 </div>\n                </div>\n              \n            \n
+        \             \n                <div class=\"result results_links results_links_deep
+        web-result \">\n                  <div class=\"links_main links_deep result__body\">
+        <!-- This is the visible part -->\n                    \n                      <h2
+        class=\"result__title\">\n                        <a rel=\"nofollow\" class=\"result__a\"
+        href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.com.tr%2F&amp;rut=ee5a74afa33541d3df9992f83580a48abae47b4ece66c71e2319e4b4345c03a6\">Migros
+        Sanal Market | Online Market Al\u0131\u015Fveri\u015Fi</a>\n                      </h2>\n\n
+        \                   \n\n                    \n                      <div class=\"result__extras\">\n
+        \                       <div class=\"result__extras__url\">\n                          <span
+        class=\"result__icon\">\n                            <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.com.tr%2F&amp;rut=ee5a74afa33541d3df9992f83580a48abae47b4ece66c71e2319e4b4345c03a6\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/www.migros.com.tr.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.com.tr%2F&amp;rut=ee5a74afa33541d3df9992f83580a48abae47b4ece66c71e2319e4b4345c03a6\">\n
+        \                           www.migros.com.tr\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migros.com.tr%2F&amp;rut=ee5a74afa33541d3df9992f83580a48abae47b4ece66c71e2319e4b4345c03a6\">Taze
+        meyve, sebze, g\u0131da ve temel ihtiya\xE7lar\u0131n\u0131z <b>Migros</b>
+        Sanal Market&#x27;te! Hemen sipari\u015F verin, kap\u0131n\u0131za gelsin.</a>\n
+        \                     \n                    \n\n                    <div class=\"clear\"></div>\n
+        \                 </div>\n                </div>\n              \n            \n
+        \             \n                <div class=\"result results_links results_links_deep
+        web-result \">\n                  <div class=\"links_main links_deep result__body\">
+        <!-- This is the visible part -->\n                    \n                      <h2
+        class=\"result__title\">\n                        <a rel=\"nofollow\" class=\"result__a\"
+        href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FMigros&amp;rut=31d83c11c7cea126dc4c379e554260121c5915b0c8b36dd0047f47bebda3b64c\">Migros
+        - Wikipedia</a>\n                      </h2>\n\n                    \n\n                    \n
+        \                     <div class=\"result__extras\">\n                        <div
+        class=\"result__extras__url\">\n                          <span class=\"result__icon\">\n
+        \                           <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FMigros&amp;rut=31d83c11c7cea126dc4c379e554260121c5915b0c8b36dd0047f47bebda3b64c\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/en.wikipedia.org.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FMigros&amp;rut=31d83c11c7cea126dc4c379e554260121c5915b0c8b36dd0047f47bebda3b64c\">\n
+        \                           en.wikipedia.org/wiki/Migros\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FMigros&amp;rut=31d83c11c7cea126dc4c379e554260121c5915b0c8b36dd0047f47bebda3b64c\"><b>Migros</b>
+        had tested the measure in the Canton of Vaud since 2013: the measure had reduced
+        the number of plastic bags distributed by ninety percent (and saved 100,000
+        francs per year). [8][9] <b>Migros</b> was the first to introduce the measure
+        across the country, on 1 November 2016. [8][9] The company also announced
+        that profits from the remaining sale ...</a>\n                      \n                    \n\n
+        \                   <div class=\"clear\"></div>\n                  </div>\n
+        \               </div>\n              \n            \n              \n                <div
+        class=\"result results_links results_links_deep web-result \">\n                  <div
+        class=\"links_main links_deep result__body\"> <!-- This is the visible part
+        -->\n                    \n                      <h2 class=\"result__title\">\n
+        \                       <a rel=\"nofollow\" class=\"result__a\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migroskurumsal.com%2Fen%2F&amp;rut=9962703d23c1493c9c5515cf77f20d93b6081ba375b22fe8a14c0904242c9500\">Migros
+        Ticaret A.\u015E.</a>\n                      </h2>\n\n                    \n\n
+        \                   \n                      <div class=\"result__extras\">\n
+        \                       <div class=\"result__extras__url\">\n                          <span
+        class=\"result__icon\">\n                            <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migroskurumsal.com%2Fen%2F&amp;rut=9962703d23c1493c9c5515cf77f20d93b6081ba375b22fe8a14c0904242c9500\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/www.migroskurumsal.com.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migroskurumsal.com%2Fen%2F&amp;rut=9962703d23c1493c9c5515cf77f20d93b6081ba375b22fe8a14c0904242c9500\">\n
+        \                           www.migroskurumsal.com/en/\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migroskurumsal.com%2Fen%2F&amp;rut=9962703d23c1493c9c5515cf77f20d93b6081ba375b22fe8a14c0904242c9500\"><b>Migros</b>
+        offers innovative solutions and value-oriented service to its customers in
+        every aspect of their daily lives. Learn more about <b>Migros&#x27;</b> history,
+        sustainability, financial results, and career opportunities.</a>\n                      \n
+        \                   \n\n                    <div class=\"clear\"></div>\n
+        \                 </div>\n                </div>\n              \n            \n
+        \             \n                <div class=\"result results_links results_links_deep
+        web-result \">\n                  <div class=\"links_main links_deep result__body\">
+        <!-- This is the visible part -->\n                    \n                      <h2
+        class=\"result__title\">\n                        <a rel=\"nofollow\" class=\"result__a\"
+        href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.kataloglar.com.tr%2Fmigros%2F&amp;rut=d553bcd7b7cdede4efbe8c3bc3a46aaa39bd5cb186de0d0d2fa3a5f2344efca7\">Migros
+        Katalog yeni 04 Haziran 2026 &gt; Migroskop &gt; Bro\u015F\xFCr, Indirim</a>\n
+        \                     </h2>\n\n                    \n\n                    \n
+        \                     <div class=\"result__extras\">\n                        <div
+        class=\"result__extras__url\">\n                          <span class=\"result__icon\">\n
+        \                           <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.kataloglar.com.tr%2Fmigros%2F&amp;rut=d553bcd7b7cdede4efbe8c3bc3a46aaa39bd5cb186de0d0d2fa3a5f2344efca7\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/www.kataloglar.com.tr.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.kataloglar.com.tr%2Fmigros%2F&amp;rut=d553bcd7b7cdede4efbe8c3bc3a46aaa39bd5cb186de0d0d2fa3a5f2344efca7\">\n
+        \                           www.kataloglar.com.tr/migros/\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.kataloglar.com.tr%2Fmigros%2F&amp;rut=d553bcd7b7cdede4efbe8c3bc3a46aaa39bd5cb186de0d0d2fa3a5f2344efca7\">Migros&#x27;ta
+        DEV indirim! 04 Haziran 2026 tarihli s\u0131n\u0131rl\u0131 \xFCr\xFCnler
+        \u23F3 <b>Migros</b> katalog yeni haftaya indirimle ba\u015Flad\u0131 \U0001F6CD\uFE0F
+        <b>Migros</b> bro\u015F\xFCr ve kataloglar burada!</a>\n                      \n
+        \                   \n\n                    <div class=\"clear\"></div>\n
+        \                 </div>\n                </div>\n              \n            \n
+        \             \n                <div class=\"result results_links results_links_deep
+        web-result \">\n                  <div class=\"links_main links_deep result__body\">
+        <!-- This is the visible part -->\n                    \n                      <h2
+        class=\"result__title\">\n                        <a rel=\"nofollow\" class=\"result__a\"
+        href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosasia.com%2Fabout%2Dmigros%2Dgroup%2F&amp;rut=d2d74dff2665725877442ffabb727be0dc502b43763e037c5772a37d31a4004a\">About
+        Migros Group - Migros Asia</a>\n                      </h2>\n\n                    \n\n
+        \                   \n                      <div class=\"result__extras\">\n
+        \                       <div class=\"result__extras__url\">\n                          <span
+        class=\"result__icon\">\n                            <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosasia.com%2Fabout%2Dmigros%2Dgroup%2F&amp;rut=d2d74dff2665725877442ffabb727be0dc502b43763e037c5772a37d31a4004a\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/www.migrosasia.com.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosasia.com%2Fabout%2Dmigros%2Dgroup%2F&amp;rut=d2d74dff2665725877442ffabb727be0dc502b43763e037c5772a37d31a4004a\">\n
+        \                           www.migrosasia.com/about-migros-group/\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosasia.com%2Fabout%2Dmigros%2Dgroup%2F&amp;rut=d2d74dff2665725877442ffabb727be0dc502b43763e037c5772a37d31a4004a\"><b>Migros</b>
+        Group is a network of 10 cooperatives with over 2500 stores and locations
+        in Switzerland. It offers affordable products, services and solutions for
+        its 2 million cooperative members and society, with a vision of sustainability
+        and social responsibility.</a>\n                      \n                    \n\n
+        \                   <div class=\"clear\"></div>\n                  </div>\n
+        \               </div>\n              \n            \n              \n                <div
+        class=\"result results_links results_links_deep web-result \">\n                  <div
+        class=\"links_main links_deep result__body\"> <!-- This is the visible part
+        -->\n                    \n                      <h2 class=\"result__title\">\n
+        \                       <a rel=\"nofollow\" class=\"result__a\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosindustrie.ch%2Fen%2F&amp;rut=d861993185ca1b0fb370c234a78c2bc4bdfe74d0ef536a9d735428ae65597e4b\">Migros
+        Industrie - part and parcel of Migros</a>\n                      </h2>\n\n
+        \                   \n\n                    \n                      <div class=\"result__extras\">\n
+        \                       <div class=\"result__extras__url\">\n                          <span
+        class=\"result__icon\">\n                            <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosindustrie.ch%2Fen%2F&amp;rut=d861993185ca1b0fb370c234a78c2bc4bdfe74d0ef536a9d735428ae65597e4b\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/www.migrosindustrie.ch.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosindustrie.ch%2Fen%2F&amp;rut=d861993185ca1b0fb370c234a78c2bc4bdfe74d0ef536a9d735428ae65597e4b\">\n
+        \                           www.migrosindustrie.ch/en/\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosindustrie.ch%2Fen%2F&amp;rut=d861993185ca1b0fb370c234a78c2bc4bdfe74d0ef536a9d735428ae65597e4b\"><b>Migros</b>
+        Industrie produces a wide variety of foods responsibly and sustainably - and
+        with best value for money. It is the integrated producer of the <b>Migros</b>
+        Group and one of the largest private label producers in the world.</a>\n                      \n
+        \                   \n\n                    <div class=\"clear\"></div>\n
+        \                 </div>\n                </div>\n              \n            \n
+        \             \n                <div class=\"result results_links results_links_deep
+        web-result \">\n                  <div class=\"links_main links_deep result__body\">
+        <!-- This is the visible part -->\n                    \n                      <h2
+        class=\"result__title\">\n                        <a rel=\"nofollow\" class=\"result__a\"
+        href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.facebook.com%2Fmigros%2F&amp;rut=918ca1df6e8d37976255aef6588af75b80c0f8c3c7045b1d0a794cc59aca2eb6\">Migros
+        - Facebook</a>\n                      </h2>\n\n                    \n\n                    \n
+        \                     <div class=\"result__extras\">\n                        <div
+        class=\"result__extras__url\">\n                          <span class=\"result__icon\">\n
+        \                           <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.facebook.com%2Fmigros%2F&amp;rut=918ca1df6e8d37976255aef6588af75b80c0f8c3c7045b1d0a794cc59aca2eb6\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/www.facebook.com.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.facebook.com%2Fmigros%2F&amp;rut=918ca1df6e8d37976255aef6588af75b80c0f8c3c7045b1d0a794cc59aca2eb6\">\n
+        \                           www.facebook.com/migros/\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.facebook.com%2Fmigros%2F&amp;rut=918ca1df6e8d37976255aef6588af75b80c0f8c3c7045b1d0a794cc59aca2eb6\"><b>Migros</b>.
+        506,731 likes \xB7 3,284 talking about this. Willkommen bei der <b>Migros</b>!</a>\n
+        \                     \n                    \n\n                    <div class=\"clear\"></div>\n
+        \                 </div>\n                </div>\n              \n            \n
+        \             \n                <div class=\"result results_links results_links_deep
+        web-result \">\n                  <div class=\"links_main links_deep result__body\">
+        <!-- This is the visible part -->\n                    \n                      <h2
+        class=\"result__title\">\n                        <a rel=\"nofollow\" class=\"result__a\"
+        href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosbank.ch%2F&amp;rut=a3a48c792123570b1f5d75c269dd65e2b8971e436d0080f5ea73f7af62f13751\">Migros
+        Bank: Digitale Services &amp; pers\xF6nliche Beratung</a>\n                      </h2>\n\n
+        \                   \n\n                    \n                      <div class=\"result__extras\">\n
+        \                       <div class=\"result__extras__url\">\n                          <span
+        class=\"result__icon\">\n                            <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosbank.ch%2F&amp;rut=a3a48c792123570b1f5d75c269dd65e2b8971e436d0080f5ea73f7af62f13751\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/www.migrosbank.ch.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosbank.ch%2F&amp;rut=a3a48c792123570b1f5d75c269dd65e2b8971e436d0080f5ea73f7af62f13751\">\n
+        \                           www.migrosbank.ch\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.migrosbank.ch%2F&amp;rut=a3a48c792123570b1f5d75c269dd65e2b8971e436d0080f5ea73f7af62f13751\">Umfassendes
+        Angebot f\xFCr Privatpersonen &amp; Unternehmen - Kombination aus digitalen
+        Services &amp; pers\xF6nlicher Beratung - 70+ Filialen - 4&#x27;000+ Geldbezugspunkte</a>\n
+        \                     \n                    \n\n                    <div class=\"clear\"></div>\n
+        \                 </div>\n                </div>\n              \n            \n
+        \             \n                <div class=\"result results_links results_links_deep
+        web-result \">\n                  <div class=\"links_main links_deep result__body\">
+        <!-- This is the visible part -->\n                    \n                      <h2
+        class=\"result__title\">\n                        <a rel=\"nofollow\" class=\"result__a\"
+        href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Frabatt%2Dkompass.ch%2Fmigros%2Daktionen&amp;rut=6e73a2f6a91660bfd84d795b21ff44f3264a8e88856ac790b6e17bf95db5632b\">MIGROS
+        Prospekt \u2022 Vom 4.6. bis 10.6.2026 - Rabatt Kompass</a>\n                      </h2>\n\n
+        \                   \n\n                    \n                      <div class=\"result__extras\">\n
+        \                       <div class=\"result__extras__url\">\n                          <span
+        class=\"result__icon\">\n                            <a rel=\"nofollow\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Frabatt%2Dkompass.ch%2Fmigros%2Daktionen&amp;rut=6e73a2f6a91660bfd84d795b21ff44f3264a8e88856ac790b6e17bf95db5632b\">\n
+        \                             <img class=\"result__icon__img\" width=\"16\"
+        height=\"16\" alt=\"\" src=\"//external-content.duckduckgo.com/ip3/rabatt-kompass.ch.ico\"
+        name=\"i15\" />\n                            </a>\n                          </span>\n
+        \                         <a class=\"result__url\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Frabatt%2Dkompass.ch%2Fmigros%2Daktionen&amp;rut=6e73a2f6a91660bfd84d795b21ff44f3264a8e88856ac790b6e17bf95db5632b\">\n
+        \                           rabatt-kompass.ch/migros-aktionen\n                          </a>\n
+        \                         \n                        </div>\n                      </div>\n
+        \                   \n\n                    \n                      \n                        <a
+        class=\"result__snippet\" href=\"//duckduckgo.com/l/?uddg=https%3A%2F%2Frabatt%2Dkompass.ch%2Fmigros%2Daktionen&amp;rut=6e73a2f6a91660bfd84d795b21ff44f3264a8e88856ac790b6e17bf95db5632b\">Finde
+        jede <b>Migros</b> Werbung an einem Ort. \u2B50 Erhalte hier die neuesten
+        Angebote von <b>Migros</b>, damit du nie die aktuellen Rabatte verpasst. Auch
+        alle aktuellen Prospekte findest du hier.</a>\n                      \n                    \n\n
+        \                   <div class=\"clear\"></div>\n                  </div>\n
+        \               </div>\n              \n            \n\n            \n              \n
+        \             \n                <div class=\"nav-link\">\n                  <form
+        action=\"/html/\" method=\"post\">\n                    <input type=\"submit\"
+        class='btn btn--alt' value=\"Next\" />\n                    <input type=\"hidden\"
+        name=\"q\" value=\"Migros\" />\n                    <input type=\"hidden\"
+        name=\"s\" value=\"10\" />\n                    <input type=\"hidden\" name=\"nextParams\"
+        value=\"\" />\n                    <input type=\"hidden\" name=\"v\" value=\"l\"
+        />\n                    <input type=\"hidden\" name=\"o\" value=\"json\" />\n
+        \                   <input type=\"hidden\" name=\"dc\" value=\"12\" />\n                    <input
+        type=\"hidden\" name=\"api\" value=\"d.js\" />\n                    <input
+        type=\"hidden\" name=\"vqd\" value=\"4-102412396302450608641732414184174262382\"
+        />\n\n                    \n                    \n                    \n                      <input
+        name=\"kl\" value=\"ch-en\" type=\"hidden\" />\n                    \n                    \n
+        \                   \n                    \n                  </form>\n                </div>\n
+        \             \n            \n\n            <div class=\"feedback-btn\">\n
+        \             <a rel=\"nofollow\" href=\"//duckduckgo.com/feedback.html\"
+        target=\"_new\">Feedback</a>\n            </div>\n            <div class=\"clear\"></div>\n
+        \         </div>\n        </div>\n      </div> <!-- links wrapper //-->\n
+        \   \n  </div>\n\n  <div id=\"bottom_spacing2\"></div>\n\n  \n    <img src=\"//duckduckgo.com/t/sl_h\"/>\n
+        \ \n</body>\n</html>"
+    headers:
+      cache-control:
+      - max-age=1
+      content-length:
+      - '34561'
+      content-security-policy:
+      - default-src 'none'; frame-ancestors 'none'
+      - 'default-src ''none'' ; connect-src  https://duck.ai https://*.duck.ai https://duckduckgo.com
+        https://*.duckduckgo.com https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/
+        https://spreadprivacy.com ; manifest-src  https://duck.ai https://*.duck.ai
+        https://duckduckgo.com https://*.duckduckgo.com https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/
+        https://spreadprivacy.com ; media-src  https://duck.ai https://*.duck.ai https://duckduckgo.com
+        https://*.duckduckgo.com https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/
+        https://spreadprivacy.com ; script-src blob:  https://duck.ai https://*.duck.ai
+        https://duckduckgo.com https://*.duckduckgo.com https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/
+        https://spreadprivacy.com ; font-src data:  https://duck.ai https://*.duck.ai
+        https://duckduckgo.com https://*.duckduckgo.com https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/
+        https://spreadprivacy.com ; img-src data:  https://duck.ai https://*.duck.ai
+        https://duckduckgo.com https://*.duckduckgo.com https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/
+        https://spreadprivacy.com ; style-src  https://duck.ai https://*.duck.ai https://duckduckgo.com
+        https://*.duckduckgo.com https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/
+        https://spreadprivacy.com ; object-src ''none'' ; worker-src blob: ; child-src
+        blob:  https://duck.ai https://*.duck.ai https://duckduckgo.com https://*.duckduckgo.com
+        https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/ https://spreadprivacy.com
+        ; frame-src blob:  https://duck.ai https://*.duck.ai https://duckduckgo.com
+        https://*.duckduckgo.com https://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/
+        https://spreadprivacy.com ; frame-ancestors ''self'' ; base-uri ''self'' ;
+        block-all-mixed-content ;'
+      content-type:
+      - text/html; charset=UTF-8
+      date:
+      - Sat, 06 Jun 2026 12:50:06 GMT
+      expect-ct:
+      - max-age=0
+      expires:
+      - Sat, 06 Jun 2026 12:50:07 GMT
+      permissions-policy:
+      - interest-cohort=()
+      referrer-policy:
+      - no-referrer
+      - origin
+      scrape.do-auth:
+      - '0'
+      scrape.do-cookies:
+      - kl=ch-en
+      scrape.do-initial-status-code:
+      - '200'
+      scrape.do-rate:
+      - 0:0
+      scrape.do-remaining-credits:
+      - '999'
+      scrape.do-request-cost:
+      - '1'
+      scrape.do-request-id:
+      - 4e5638a1-1219-4734-bf4e-620e901c099f
+      scrape.do-resolved-url:
+      - https://html.duckduckgo.com/html/?q=Migros&kl=ch-en
+      scrape.do-rid:
+      - 038d25-1000-0-
+      scrape.do-target-url:
+      - https://html.duckduckgo.com/html/?q=Migros&kl=ch-en
+      server-timing:
+      - total;dur=590;desc="Backend Total [n]"
+      strict-transport-security:
+      - max-age=31536000
+      transfer-encoding:
+      - chunked
+      vary:
+      - Accept-Encoding,Origin
+      x-content-type-options:
+      - nosniff
+      - nosniff
+      x-duckduckgo-locale:
+      - en_US
+      x-frame-options:
+      - DENY
+      - SAMEORIGIN
+      x-robots-tag:
+      - noindex
+      x-xss-protection:
+      - 1;mode=block
+    status:
+      code: 200
+      message: OK
+version: 1

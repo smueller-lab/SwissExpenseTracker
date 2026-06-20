@@ -1,0 +1,171 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept:
+      - application/json
+      Accept-Encoding:
+      - gzip
+      Connection:
+      - keep-alive
+      User-Agent:
+      - python-requests/2.32.5
+    method: GET
+    uri: https://api.search.brave.com/res/v1/web/search?count=5&q=Migros
+  response:
+    body:
+      string: "{\"type\":\"search\",\"query\":{\"original\":\"Migros\",\"show_strict_warning\":false,\"is_navigational\":true,\"is_news_breaking\":false,\"spellcheck_off\":false,\"country\":\"us\",\"bad_results\":false,\"should_fallback\":false,\"postal_code\":\"\",\"city\":\"\",\"header_country\":\"\",\"more_results_available\":true,\"state\":\"\"},\"infobox\":{\"type\":\"graph\",\"results\":[{\"title\":\"Migros\",\"url\":\"https://en.wikipedia.org/wiki/Migros\",\"is_source_local\":false,\"is_source_both\":false,\"description\":\"Swiss
+        retail conglomerate\",\"family_friendly\":true,\"type\":\"infobox\",\"position\":1,\"category\":\"company\",\"long_desc\":\"Migros
+        (German pronunciation: [\u02C8mi\u0261ro]) is Switzerland's largest retail
+        company, its largest supermarket chain and largest employer. It is also one
+        of the forty largest retailers in the world. It is structured in the form
+        of a cooperative federation (the Federation of Migros Cooperatives), ...\",\"attributes\":[[\"Native
+        name\",\"(in German) Migros-Genossenschafts-Bund<br>(in French) F\xE9d\xE9ration
+        des coop\xE9ratives Migros<br>(in Italian) Federazione delle cooperative Migros\"],[\"Company
+        type\",\"<a href='https://en.wikipedia.org/wiki/Cooperative'>Cooperative</a>\"],[\"Industry\",\"<a
+        href='https://en.wikipedia.org/wiki/Retail'>Retail</a>\"],[\"Founded\",\"August
+        1925 (100 years ago) (1925-08)\"],[\"Founder\",\"<a href='https://en.wikipedia.org/wiki/Gottlieb_Duttweiler'>Gottlieb
+        Duttweiler</a>\"],[\"Headquarters\",\"<a href='https://en.wikipedia.org/wiki/Zurich'>Zurich</a>,
+        <a href='https://en.wikipedia.org/wiki/Switzerland'>Switzerland</a>\"],[\"Products\",\"Supermarkets,
+        food industry, petrol, electronics, books, home-wares, etc.\"],[\"Revenue\",\"32.00
+        billion <a href='https://en.wikipedia.org/wiki/Swiss_franc'>CHF</a> (2024)\"],[\"Operating
+        income\",\"668 million CHF (2021)\"],[\"Number of employees\",\"97,541 (2021)\"]],\"profiles\":[{\"name\":\"Wikipedia\",\"url\":\"https://en.wikipedia.org/wiki/Migros\",\"long_name\":\"en.wikipedia.org\",\"img\":\"https://imgs.search.brave.com/m6XxME4ek8DGIUcEPCqjRoDjf2e54EwL9pQzyzogLYk/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwNGZhZWY0/ZTQ1YWUzYzQ3MDUw/MmMzMGY3NTQ0ZjNj/NDUwMDk5ZTI3MWRk/NWYyNTM4N2UwOTE0/NTI3ZDQzNy9lbi53/aWtpcGVkaWEub3Jn/Lw\"},{\"name\":\"Facebook\",\"url\":\"https://www.facebook.com/migros\",\"long_name\":\"facebook.com\",\"img\":\"https://imgs.search.brave.com/UPSLokJBKWPdNzHbqH5o3CgD13zMvR3pUTn8bk7hmPM/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOWM3NjZkMmE4/MTU1MTk4ZDU5YzU3/NjUxY2ExZTdjNWQx/NjJlNTY1Y2VlODM4/MmRmMDgzZDBiMmI3/YzU4NmU4ZS93d3cu/ZmFjZWJvb2suY29t/Lw\"},{\"name\":\"Pinterest\",\"url\":\"https://www.pinterest.com/migros/\",\"long_name\":\"pinterest.com\",\"img\":\"https://imgs.search.brave.com/-h42ysf4Z1TVzWXJ_OIFNE0ITzUbcR1EHzme8pM24s0/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvY2Y1ZmYzYzAx/ZTdjNDk1MTMwODVj/OWRlNTBlZTBmZWU5/Y2U1YzA2MGMwZmVj/ZWE5NmJjZjk2OGZi/MWZhNTY0Mi93d3cu/cGludGVyZXN0LmNv/bS8\"},{\"name\":\"Instagram\",\"url\":\"https://www.instagram.com/migros/\",\"long_name\":\"instagram.com\",\"img\":\"https://imgs.search.brave.com/kgdtgqUZQdNYzMKhbVXC5vthlFLPMJ0IOJAdFjEIRuk/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2RiYmJiZDA4/NTBkNWQ0ZmQ3NDE5/OGUxOGI4NzE5ZDI0/Zjk0M2ExMDkzZmJm/ODA0MmJiMzkwZjMy/ZDM4YWVkOS93d3cu/aW5zdGFncmFtLmNv/bS8\"},{\"name\":\"Quora\",\"url\":\"https://www.quora.com/topic/Migros\",\"long_name\":\"quora.com\",\"img\":\"https://imgs.search.brave.com/jGre8FRmkjFxQij3rGpjeFOF-u1NLnEoE4FiyrJhNLI/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYjg3ZTk4MDVm/ZTE3YzUxZTc4Yjc3/YTE2MGI3MGVhNmQ2/MGE0Yjc4NzRhMmM1/ODMxYTIwNzI1ZjI0/NDkyZDI2Yy93d3cu/cXVvcmEuY29tLw\"},{\"name\":\"Crunchbase\",\"url\":\"https://www.crunchbase.com/organization/migros-genossenschafts-bund\",\"long_name\":\"crunchbase.com\",\"img\":\"https://imgs.search.brave.com/XeBQZ7s3vc5JqDU6Po7ADNs0E1W-Cw07jYI9SaF_k9c/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYzczZDk0MDEy/NDYwMzBjYTE2MWYx/NzhhOGRkZGE4YmQz/NTJlNmMwNDY4N2Ew/MjcwNGU0Mzc4NDA3/YTBlMGIxMy93d3cu/Y3J1bmNoYmFzZS5j/b20v\"},{\"name\":\"LOC\",\"url\":\"https://id.loc.gov/authorities/n82120683\",\"long_name\":\"Library
+        of Congress\",\"img\":\"https://imgs.search.brave.com/YM9op4taK9JJ_Lnp7FWFudCXaEYJnrio_LJ9L6EdAnY/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYzMyOGFmMGY2/NDAyODg4ZjFhZjNm/Zjc2MWM4Njg4Mzk2/M2Q0YzJiNDhmMmM0/ZDg5NGFlM2ZmNzc1/ZGEyZjA0Yy9pZC5s/b2MuZ292Lw\"},{\"name\":\"Wikidata\",\"url\":\"http://www.wikidata.org/entity/Q680727\",\"long_name\":\"wikidata.org\",\"img\":\"https://imgs.search.brave.com/8vIq-V97PH8S0N-pyaeHgq_gFHOA8hXjBunynHio-Uw/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYzdkMGIyYTky/OTJjN2RjNDEyNWYx/MGQxNjAzNmZlNDk4/ZTRmNDczNjk0ZTZl/N2IxZjI0NTVkMGE3/YTBiYjEzYi93d3cu/d2lraWRhdGEub3Jn/Lw\"},{\"name\":\"X\",\"url\":\"https://x.com/migros\",\"long_name\":\"x.com\",\"img\":\"https://imgs.search.brave.com/VpOsyUaQQGp5MT_drqEzgpxdO8o12jax0jeq0Vojuto/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMmQzM2JiZDhi/OWVhNGYxZmRkNDli/NzAxODUzMzFhYTNm/ODcxNmE4ZGQ5OTE3/MWU4OGZjNDQyZDdh/NzQ4MWE4YS94LmNv/bS8\"},{\"name\":\"Ror\",\"url\":\"https://ror.org/049sbnt53\",\"long_name\":\"ror.org\",\"img\":\"https://imgs.search.brave.com/zwGu8lFjVZQN5HryKim7NSgke6LU5E04-uzoEfYhqHc/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvM2NhNzQ1NWM5/NTg1ZDI1YmY5Y2Jm/NmRmNmZhZmU0NzNm/ZWY2MjUyYzViZDBk/M2Y4Zjc0YmRmZWI3/OWE3ZWQ4MS9yb3Iu/b3JnLw\"}],\"website_url\":\"https://www.migros.ch/en\",\"ratings\":[],\"providers\":[{\"type\":\"external\",\"name\":\"Wikipedia\",\"url\":\"https://en.wikipedia.org/wiki/Migros\",\"img\":\"https://imgs.search.brave.com/m6XxME4ek8DGIUcEPCqjRoDjf2e54EwL9pQzyzogLYk/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwNGZhZWY0/ZTQ1YWUzYzQ3MDUw/MmMzMGY3NTQ0ZjNj/NDUwMDk5ZTI3MWRk/NWYyNTM4N2UwOTE0/NTI3ZDQzNy9lbi53/aWtpcGVkaWEub3Jn/Lw\"}],\"images\":[{\"src\":\"https://imgs.search.brave.com/eHufaGJdE22wYCQnVUeu6q1E9KEg7WdWMeDrM1jgg-k/rs:fit:500:0:0:0/g:ce/aHR0cHM6Ly91cGxv/YWQud2lraW1lZGlh/Lm9yZy93aWtpcGVk/aWEvY29tbW9ucy90/aHVtYi9lL2U4L01p/Z3Jvcy5zdmcvMjUw/cHgtTWlncm9zLnN2/Zy5wbmc_dXRtX3Nv/dXJjZT13d3cud2lr/aWRhdGEub3JnJmFt/cDt1dG1fY2FtcGFp/Z249aW5kZXgmYW1w/O3V0bV9jb250ZW50/PXRodW1ibmFpbA\",\"alt\":\"Migros\",\"original\":\"https://upload.wikimedia.org/wikipedia/commons/thumb/e/e8/Migros.svg/250px-Migros.svg.png?utm_source=www.wikidata.org&amp;utm_campaign=index&amp;utm_content=thumbnail\",\"logo\":true}],\"subtype\":\"generic\",\"found_in_urls\":[\"https://www.migros.ch/en\",\"https://en.wikipedia.org/wiki/Migros\"]}]},\"mixed\":{\"type\":\"mixed\",\"main\":[{\"type\":\"web\",\"index\":0,\"all\":false},{\"type\":\"infobox\",\"index\":0,\"all\":false},{\"type\":\"web\",\"index\":1,\"all\":false},{\"type\":\"videos\",\"all\":true},{\"type\":\"web\",\"index\":2,\"all\":false},{\"type\":\"web\",\"index\":3,\"all\":false},{\"type\":\"web\",\"index\":4,\"all\":false},{\"type\":\"web\",\"index\":5,\"all\":false},{\"type\":\"web\",\"index\":6,\"all\":false},{\"type\":\"web\",\"index\":7,\"all\":false},{\"type\":\"web\",\"index\":8,\"all\":false},{\"type\":\"web\",\"index\":9,\"all\":false},{\"type\":\"web\",\"index\":10,\"all\":false},{\"type\":\"web\",\"index\":11,\"all\":false},{\"type\":\"web\",\"index\":12,\"all\":false},{\"type\":\"web\",\"index\":13,\"all\":false}],\"top\":[],\"side\":[]},\"videos\":{\"type\":\"videos\",\"results\":[{\"type\":\"video_result\",\"url\":\"https://www.youtube.com/watch?v=RK1TfyjtJDI\",\"title\":\"Food
+        Prices in Migros\U0001F1E8\U0001F1EDSwiss Supermarket || Shopping || Travel
+        ...\",\"description\":\"\U0001F6D2 Swiss supermarket tour \u2014 exploring
+        prices, local products, and what makes shopping in Switzerland unique!\U0001F6D2
+        Supermarket tour \u2014 checking prices, products, ...\",\"age\":\"November
+        13, 2025\",\"page_age\":\"2025-11-13T12:51:13\",\"fetched_content_timestamp\":1763463463,\"video\":{\"duration\":\"48:29\",\"creator\":\"A-TravelVideo\",\"publisher\":\"YouTube\"},\"meta_url\":{\"scheme\":\"https\",\"netloc\":\"youtube.com\",\"hostname\":\"www.youtube.com\",\"favicon\":\"https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v\",\"path\":\"\u203A
+        watch\"},\"thumbnail\":{\"src\":\"https://imgs.search.brave.com/pVAfay-eeDz997cNl8uXIcWXEn7_wjE7s4WKljZpDyc/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS9S/SzFUZnlqdEpESS9t/YXhyZXNkZWZhdWx0/LmpwZw\",\"original\":\"https://i.ytimg.com/vi/RK1TfyjtJDI/maxresdefault.jpg\"}},{\"type\":\"video_result\",\"url\":\"https://www.youtube.com/watch?v=cczTy8yU51c\",\"title\":\"Swiss
+        Migros // Food Prices in Switzerland || Travel Guide\",\"description\":\"To
+        learn more, please visit the YouTube Help Center: https://www.youtube.com/help\",\"fetched_content_timestamp\":1780594247,\"video\":{},\"meta_url\":{\"scheme\":\"https\",\"netloc\":\"youtube.com\",\"hostname\":\"www.youtube.com\",\"favicon\":\"https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v\",\"path\":\"\u203A
+        watch\"},\"thumbnail\":{\"src\":\"https://imgs.search.brave.com/KgiSity1W7w-Ae5byEJzlVdBeoDr5Xn35-mcvSR8JYw/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS85/eHAxWFdtSl9Xby9t/YXhyZXNkZWZhdWx0/LmpwZz9zcXA9LW9h/eW13RW1DSUFLRU5B/RjhxdUtxUU1hOEFF/Qi1BSC1DWUFDMEFX/S0Fnd0lBQkFCR0dV/Z1pTaGxNQTg9JmFt/cDtycz1BT240Q0xB/czlZdW5obUNadk5D/VVhZX2x4U293TFZm/dlZB\",\"original\":\"https://i.ytimg.com/vi/9xp1XWmJ_Wo/maxresdefault.jpg?sqp=-oaymwEmCIAKENAF8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGGUgZShlMA8=&amp;rs=AOn4CLAs9YunhmCZvNCUXY_lxSowLVfvVA\"}},{\"type\":\"video_result\",\"url\":\"https://vimeo.com/1106512317\",\"title\":\"Migros
+        - There's enough freshness for everyone (DC) | Videos ...\",\"description\":\"\",\"video\":{},\"meta_url\":{\"scheme\":\"https\",\"netloc\":\"vimeo.com\",\"hostname\":\"vimeo.com\",\"favicon\":\"https://imgs.search.brave.com/lHaLYxRmvzLJxenGwZ4fTn5fR5HY38bvsHbRJojP_WI/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMmNmYWQ3MzA4/ZTljMTk0YWYzN2Vl/NGM1Y2E3YTEzMWIz/NGRiYjdlMjEwZGRk/ODAxM2VjOWU0ZmRh/ZDg3YjAzZC92aW1l/by5jb20v\",\"path\":\"\u203A
+        1106512317\"}},{\"type\":\"video_result\",\"url\":\"https://www.youtube.com/watch?v=3o3GkPiEzwI\",\"title\":\"MIGROS\U0001F1E8\U0001F1EDFood
+        Prices in Switzerland || Shopping || Travel ...\",\"description\":\"Swiss
+        Supermarket Migros. Food Prices Thank you so much for supporting my channel,
+        I appreciate every single like, comment and subscribe. Thank you! :)\",\"age\":\"February
+        7, 2025\",\"page_age\":\"2025-02-07T15:00:07\",\"fetched_content_timestamp\":1753991961,\"video\":{\"duration\":\"32:36\",\"creator\":\"A-TravelVideo\",\"publisher\":\"YouTube\"},\"meta_url\":{\"scheme\":\"https\",\"netloc\":\"youtube.com\",\"hostname\":\"www.youtube.com\",\"favicon\":\"https://imgs.search.brave.com/Wg4wjE5SHAargkzePU3eSLmWgVz84BEZk1SjSglJK_U/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvOTkyZTZiMWU3/YzU3Nzc5YjExYzUy/N2VhZTIxOWNlYjM5/ZGVjN2MyZDY4Nzdh/ZDYzMTYxNmI5N2Rk/Y2Q3N2FkNy93d3cu/eW91dHViZS5jb20v\",\"path\":\"\u203A
+        watch\"},\"thumbnail\":{\"src\":\"https://imgs.search.brave.com/UHrHGktE07TLOcSxV7dCxHV6Ik2PoolM4zCt6RCpz9k/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pLnl0/aW1nLmNvbS92aS8z/bzNHa1BpRXp3SS9t/YXhyZXNkZWZhdWx0/LmpwZw\",\"original\":\"https://i.ytimg.com/vi/3o3GkPiEzwI/maxresdefault.jpg\"}}],\"mutated_by_goggles\":false},\"web\":{\"type\":\"search\",\"results\":[{\"title\":\"Migros\",\"url\":\"https://www.migros.ch/en\",\"is_source_local\":false,\"is_source_both\":false,\"description\":\"Commandez
+        en ligne et gagnez du temps - nous vous livrons vos courses \xE0 votre porte.
+        12&#x27;500 produits <strong>Migros</strong> \xE0 prix <strong>Migros</strong>
+        et articles de marque\",\"profile\":{\"name\":\"Migros\",\"url\":\"https://www.migros.ch/en\",\"long_name\":\"migros.ch\",\"img\":\"https://imgs.search.brave.com/boAk2Dyp0P0RGOaotN59W4nmA96EaBF2nXG9IqBw78c/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTdiYTBjYzYw/ODQ3ZjVjN2RmMzAz/NDg4MTE4MGE2MmI2/YzY4MjU4YjA2Nzhi/OThiZmFkNjE3NzMw/YTliMmE2Yi93d3cu/bWlncm9zLmNoLw\"},\"language\":\"en\",\"family_friendly\":true,\"type\":\"search_result\",\"subtype\":\"generic\",\"is_live\":false,\"meta_url\":{\"scheme\":\"https\",\"netloc\":\"migros.ch\",\"hostname\":\"www.migros.ch\",\"favicon\":\"https://imgs.search.brave.com/boAk2Dyp0P0RGOaotN59W4nmA96EaBF2nXG9IqBw78c/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvYTdiYTBjYzYw/ODQ3ZjVjN2RmMzAz/NDg4MTE4MGE2MmI2/YzY4MjU4YjA2Nzhi/OThiZmFkNjE3NzMw/YTliMmE2Yi93d3cu/bWlncm9zLmNoLw\",\"path\":\"\u203A
+        en\"},\"thumbnail\":{\"src\":\"https://imgs.search.brave.com/CQt9zOqhVZ46kV6dlxTQEFfj5aHpSdyRL557tX2hmHw/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly93d3cu/bWlncm9zLmNoL2Fz/c2V0cy9tZ2ItZmF2/aWNvbnMvaWNvbi01/MTJ4NTEyLnBuZw\",\"original\":\"https://www.migros.ch/assets/mgb-favicons/icon-512x512.png\",\"logo\":true}},{\"title\":\"Migros
+        - Wikipedia\",\"url\":\"https://en.wikipedia.org/wiki/Migros\",\"is_source_local\":false,\"is_source_both\":false,\"description\":\"Migros
+        (German pronunciation: [\u02C8mi\u0261ro]) is <strong>Switzerland&#x27;s largest
+        retail company</strong>, its largest supermarket chain and largest employer.
+        It is also one of the forty largest retailers in the world. It is structured
+        in the form of a cooperative federation (the Federation of Migros Cooperatives),
+        ...\",\"page_age\":\"2026-05-25T08:53:36\",\"profile\":{\"name\":\"Wikipedia\",\"url\":\"https://en.wikipedia.org/wiki/Migros\",\"long_name\":\"en.wikipedia.org\",\"img\":\"https://imgs.search.brave.com/m6XxME4ek8DGIUcEPCqjRoDjf2e54EwL9pQzyzogLYk/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwNGZhZWY0/ZTQ1YWUzYzQ3MDUw/MmMzMGY3NTQ0ZjNj/NDUwMDk5ZTI3MWRk/NWYyNTM4N2UwOTE0/NTI3ZDQzNy9lbi53/aWtpcGVkaWEub3Jn/Lw\"},\"language\":\"en\",\"family_friendly\":true,\"type\":\"search_result\",\"subtype\":\"generic\",\"is_live\":false,\"deep_results\":{\"buttons\":[{\"type\":\"button_result\",\"title\":\"History\",\"url\":\"https://en.wikipedia.org/wiki/Migros#History\"},{\"type\":\"button_result\",\"title\":\"Migros
+        today\",\"url\":\"https://en.wikipedia.org/wiki/Migros#Migros_today\"},{\"type\":\"button_result\",\"title\":\"Companies\",\"url\":\"https://en.wikipedia.org/wiki/Migros#Companies\"},{\"type\":\"button_result\",\"title\":\"Competitors\",\"url\":\"https://en.wikipedia.org/wiki/Migros#Competitors\"},{\"type\":\"button_result\",\"title\":\"Notes
+        and references\",\"url\":\"https://en.wikipedia.org/wiki/Migros#Notes_and_references\"}]},\"meta_url\":{\"scheme\":\"https\",\"netloc\":\"en.wikipedia.org\",\"hostname\":\"en.wikipedia.org\",\"favicon\":\"https://imgs.search.brave.com/m6XxME4ek8DGIUcEPCqjRoDjf2e54EwL9pQzyzogLYk/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNjQwNGZhZWY0/ZTQ1YWUzYzQ3MDUw/MmMzMGY3NTQ0ZjNj/NDUwMDk5ZTI3MWRk/NWYyNTM4N2UwOTE0/NTI3ZDQzNy9lbi53/aWtpcGVkaWEub3Jn/Lw\",\"path\":\"\u203A
+        wiki  \u203A Migros\"},\"age\":\"2 weeks ago\",\"extra_snippets\":[\"Thus
+        the word connotes prices that are halfway between retail and wholesale, along
+        with the business model (medium-scale semi-wholesale). The logo of the company
+        is a large orange M. Migros is often referred to as \\\"the orange giant\\\"
+        (German: oranger Riese, French: g\xE9ant orange, Italian: gigante arancio).\",\"Migros
+        was founded in 1925 in Zurich as a private enterprise by Gottlieb Duttweiler,
+        who had the idea of selling just six basic products at low prices to householders
+        who, in those days, did not have ready access to markets of any kind. At first
+        he sold only coffee, rice, sugar, pasta, coconut oil and soap from five lorries
+        that went from one village or hamlet to another.\",\"The strategy to cut the
+        intermediate trade and their margins led to the broad resistance of his competitors
+        who goaded the producers to boycott him. As a reaction to this threat, Migros
+        started creating its own line of goods beginning with meat, milk and chocolate.\",\"By
+        1941, the energetic entrepreneur had built a number of markets but, in that
+        year, he basically gave the business to his customers by transforming everything
+        from his privately owned enterprises into regional cooperatives, headed by
+        the Federation of Migros Cooperatives.\",\"As early as 1935, Duttweiler showed
+        his zest for expansion by founding the Hotelplan travel agency. In 1942, the
+        Migros brand was applied to a weekly magazine, Wir Br\xFCckenbauer (lit. 'We
+        Bridgebuilders', now known as Migros Magazine).\"]},{\"title\":\"Migros: Food
+        & Groceries App - App Store\",\"url\":\"https://apps.apple.com/us/app/migros-food-groceries/id397585390\",\"is_source_local\":false,\"is_source_both\":false,\"description\":\"Migros
+        <strong>brings grocery shopping directly to your door</strong>. Whether using
+        Migros Sanal Market or Migros Hemen, you can place orders for yourself or
+        your loved ones and receive them promptly.\",\"profile\":{\"name\":\"App Store\",\"url\":\"https://apps.apple.com/us/app/migros-food-groceries/id397585390\",\"long_name\":\"apps.apple.com\",\"img\":\"https://imgs.search.brave.com/_z2UHgNWh4jJ6brYGbXxpDTMJmD9b1fxdUBJ2mJOP4w/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMDYzNzRkMjA3/NzAwOWZhNjI1MmM5/NzRiMzIwZGQ4YzZl/ZDgwYmM0Zjk3MDE2/ZDM1Y2FlMDBiNjVi/OWEzZDIzNy9hcHBz/LmFwcGxlLmNvbS8\"},\"language\":\"en\",\"family_friendly\":true,\"type\":\"search_result\",\"subtype\":\"creative_work\",\"is_live\":false,\"meta_url\":{\"scheme\":\"https\",\"netloc\":\"apps.apple.com\",\"hostname\":\"apps.apple.com\",\"favicon\":\"https://imgs.search.brave.com/_z2UHgNWh4jJ6brYGbXxpDTMJmD9b1fxdUBJ2mJOP4w/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvMDYzNzRkMjA3/NzAwOWZhNjI1MmM5/NzRiMzIwZGQ4YzZl/ZDgwYmM0Zjk3MDE2/ZDM1Y2FlMDBiNjVi/OWEzZDIzNy9hcHBz/LmFwcGxlLmNvbS8\",\"path\":\"\u203A
+        us  \u203A app  \u203A migros-food-groceries  \u203A id397585390\"},\"thumbnail\":{\"src\":\"https://imgs.search.brave.com/RT8q18J_1A0K540dzt8AHoEB20SXfvDcvcz5VYuF3as/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pczEt/c3NsLm16c3RhdGlj/LmNvbS9pbWFnZS90/aHVtYi9QdXJwbGUy/MTEvdjQvZGYvMGQv/NGQvZGYwZDRkNTMt/MjgxYy00N2ZiLTRj/NjktNmJiM2U4YzAz/YWQ3L0FwcEljb24t/MC0wLTF4X1UwMDdl/bWFya2V0aW5nLTAt/OC0wLTg1LTIyMC0w/LnBuZy8xMjAweDYz/MHdhLnBuZw\",\"original\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/df/0d/4d/df0d4d53-281c-47fb-4c69-6bb3e8c03ad7/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220-0.png/1200x630wa.png\",\"logo\":true},\"creative_work\":{\"name\":\"Migros:
+        Food & Groceries\",\"rating\":{\"ratingValue\":4.8,\"bestRating\":5.0,\"reviewCount\":2625,\"is_tripadvisor\":false},\"thumbnail\":{\"src\":\"https://imgs.search.brave.com/RT8q18J_1A0K540dzt8AHoEB20SXfvDcvcz5VYuF3as/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9pczEt/c3NsLm16c3RhdGlj/LmNvbS9pbWFnZS90/aHVtYi9QdXJwbGUy/MTEvdjQvZGYvMGQv/NGQvZGYwZDRkNTMt/MjgxYy00N2ZiLTRj/NjktNmJiM2U4YzAz/YWQ3L0FwcEljb24t/MC0wLTF4X1UwMDdl/bWFya2V0aW5nLTAt/OC0wLTg1LTIyMC0w/LnBuZy8xMjAweDYz/MHdhLnBuZw\",\"original\":\"https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/df/0d/4d/df0d4d53-281c-47fb-4c69-6bb3e8c03ad7/AppIcon-0-0-1x_U007emarketing-0-8-0-85-220-0.png/1200x630wa.png\"}},\"organization\":{\"type\":\"organization\",\"name\":\"App
+        Store\",\"contact_points\":[]},\"extra_snippets\":[\"Migros is now at your
+        fingertips with a single application, offering comprehensive services to meet
+        all your home needs. With Migros' new application, you can have all your household
+        essentials delivered to your doorstep at your preferred day and time via Migros
+        Sanal Market.\",\"For instant needs, Migros Hemen delivers within minutes.
+        Additionally, you can order discounted meals from various restaurants through
+        Migros Yemek. Experience the convenience of online grocery shopping and food
+        ordering, all with Migros' renowned quality. If you seek more than just groceries,
+        Migros Extra offers a variety of products ranging from electronics to health
+        items.\",\"Migros brings grocery shopping directly to your door. Whether using
+        Migros Sanal Market or Migros Hemen, you can place orders for yourself or
+        your loved ones and receive them promptly. Migros Sanal Market and Migros
+        Hemen are now unified in one application! With Migros quality and benefits,
+        your grocery shopping arrives at your doorstep at a time of your choosing
+        with Sanal Market, or within minutes with Migros Hemen.\",\"Migros Yemek is
+        now also integrated into the Migros app. Easily order your favorite dishes
+        from local restaurants and have them delivered to your door. Currently, Migros
+        Yemek is available in select regions, with plans for broader availability
+        soon. Becoming a Migros member is straightforward but not obligatory!\"]},{\"title\":\"Migros
+        (@migros) \xB7 Z\xFCrich\",\"url\":\"https://www.instagram.com/migros/?hl=en\",\"is_source_local\":false,\"is_source_both\":false,\"description\":\"292K
+        Followers, 176 Following, 2,369 Posts - <strong>Migros</strong> (@migros)
+        on Instagram: &quot;Willkommen bei der <strong>Migros</strong>. \U0001F9E1
+        Hier findest du Inspiration, Aktionen &amp; Unterhaltung f\xFCr deinen Alltag.&quot;\",\"profile\":{\"name\":\"Instagram\",\"url\":\"https://www.instagram.com/migros/?hl=en\",\"long_name\":\"instagram.com\",\"img\":\"https://imgs.search.brave.com/kgdtgqUZQdNYzMKhbVXC5vthlFLPMJ0IOJAdFjEIRuk/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2RiYmJiZDA4/NTBkNWQ0ZmQ3NDE5/OGUxOGI4NzE5ZDI0/Zjk0M2ExMDkzZmJm/ODA0MmJiMzkwZjMy/ZDM4YWVkOS93d3cu/aW5zdGFncmFtLmNv/bS8\"},\"language\":\"en\",\"family_friendly\":true,\"type\":\"search_result\",\"subtype\":\"generic\",\"is_live\":false,\"meta_url\":{\"scheme\":\"https\",\"netloc\":\"instagram.com\",\"hostname\":\"www.instagram.com\",\"favicon\":\"https://imgs.search.brave.com/kgdtgqUZQdNYzMKhbVXC5vthlFLPMJ0IOJAdFjEIRuk/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvN2RiYmJiZDA4/NTBkNWQ0ZmQ3NDE5/OGUxOGI4NzE5ZDI0/Zjk0M2ExMDkzZmJm/ODA0MmJiMzkwZjMy/ZDM4YWVkOS93d3cu/aW5zdGFncmFtLmNv/bS8\",\"path\":\"\u203A
+        migros\"}},{\"title\":\"Migros Online | LinkedIn\",\"url\":\"https://www.linkedin.com/company/migros-online\",\"is_source_local\":false,\"is_source_both\":false,\"description\":\"Migros
+        Online | 9,069 followers on LinkedIn. Migros Online is <strong>the leading
+        Swiss online supermarket</strong>. The supermarket offers a unique assortment
+        containing Migros products as well as branded goods.\",\"profile\":{\"name\":\"LinkedIn\",\"url\":\"https://www.linkedin.com/company/migros-online\",\"long_name\":\"linkedin.com\",\"img\":\"https://imgs.search.brave.com/B3dmoKTAgUkkbrvzAxFg_MfHAm5WmWy0N-4kH1AGWOo/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGE1YzZjOWNj/NmNiODQ4NzI0ODg1/MGY5ZGQ2YzhjZTRm/N2NjOGIzZjc1NTlj/NDM2ZGI5Yjk3ZWI1/YzBmNzJmZS93d3cu/bGlua2VkaW4uY29t/Lw\"},\"language\":\"en\",\"family_friendly\":true,\"type\":\"search_result\",\"subtype\":\"generic\",\"is_live\":false,\"meta_url\":{\"scheme\":\"https\",\"netloc\":\"linkedin.com\",\"hostname\":\"www.linkedin.com\",\"favicon\":\"https://imgs.search.brave.com/B3dmoKTAgUkkbrvzAxFg_MfHAm5WmWy0N-4kH1AGWOo/rs:fit:32:32:1:0/g:ce/aHR0cDovL2Zhdmlj/b25zLnNlYXJjaC5i/cmF2ZS5jb20vaWNv/bnMvNGE1YzZjOWNj/NmNiODQ4NzI0ODg1/MGY5ZGQ2YzhjZTRm/N2NjOGIzZjc1NTlj/NDM2ZGI5Yjk3ZWI1/YzBmNzJmZS93d3cu/bGlua2VkaW4uY29t/Lw\",\"path\":\"\u203A
+        company  \u203A migros-online\"},\"thumbnail\":{\"src\":\"https://imgs.search.brave.com/jwg7mpWUHGg7ytmMUzDGfyFgIZjiaNPAcfqO4Oltltk/rs:fit:200:200:1:0/g:ce/aHR0cHM6Ly9tZWRp/YS5saWNkbi5jb20v/ZG1zL2ltYWdlL0M0/RTBCQVFIenM5WGRh/UlpsY2cvY29tcGFu/eS1sb2dvXzIwMF8y/MDAvMC8xNjMwNjM4/NTMwMTUxL21pZ3Jv/c19vbmxpbmVfbG9n/bz9lPTIxNDc0ODM2/NDcmYW1wO3Y9YmV0/YSZhbXA7dD1vWmNC/MElKQ0hocG1MMFFY/N0hYelh4OFdSN0pX/ZlgwNHlJcEpENi1f/cHdn\",\"original\":\"https://media.licdn.com/dms/image/C4E0BAQHzs9XdaRZlcg/company-logo_200_200/0/1630638530151/migros_online_logo?e=2147483647&amp;v=beta&amp;t=oZcB0IJCHhpmL0QX7HXzXx8WR7JWfX04yIpJD6-_pwg\",\"logo\":true},\"organization\":{\"type\":\"organization\",\"name\":\"Migros
+        Online\",\"contact_points\":[]},\"extra_snippets\":[\"Migros Online | 9,069
+        followers on LinkedIn. Migros Online is the leading Swiss online supermarket.
+        The supermarket offers a unique assortment containing Migros products as well
+        as branded goods. Groceries including frozen foods and other essentials for
+        home and hobby are delivered directly to the customers\u2019 door.\",\"Happy
+        International Woman\u2019s Day! At Migros Online, 50% of our Executive management
+        and 40% of our Teamleaders are women, because we believe in the power of diversity
+        and inclusion, not just this day, but every day. Here's to all the passionate
+        women out there!\",\"Old and poor? This is a bitter reality for many women
+        around the world. That's why the Migros panel discussion on the occasion of
+        International Women's Day today focussed on pension provision. Thanks to all
+        the women who made this exciting event possible.\",\"Out of a whopping 1000
+        participants from 31 Migros companies, three of our colleagues at Migros Online
+        made it into the top places in the ski race: - Michael Sch\xF6llhorn, 2nd
+        place \U0001F948 - Lisa Walther, 3rd place \U0001F949 - and Philipp B\xFCrki,
+        4th place \U0001F3C5 A huge congratulations to our fantastic trio, well done!\"]}],\"family_friendly\":true}}"
+    headers:
+      Connection:
+      - keep-alive
+      Content-Type:
+      - application/json
+      Date:
+      - Sat, 06 Jun 2026 12:50:03 GMT
+      Referrer-Policy:
+      - strict-origin-when-cross-origin
+      Strict-Transport-Security:
+      - max-age=31536000; includeSubDomains; preload
+      Transfer-Encoding:
+      - chunked
+      X-Content-Type-Options:
+      - nosniff
+      X-Download-Options:
+      - noopen
+      X-Frame-Options:
+      - SAMEORIGIN
+      X-XSS-Protection:
+      - 1; mode=block
+      content-length:
+      - '24546'
+      server-timing:
+      - search-roundtrip;dur=210.186
+      vary:
+      - Accept-Encoding
+      - Sec-Fetch-Dest, Sec-Fetch-Mode, Sec-Fetch-Site, Sec-Fetch-User
+      x-ratelimit-limit:
+      - 50, 0
+      x-ratelimit-policy:
+      - 50;w=1, 0;w=2592000
+      x-ratelimit-remaining:
+      - 49, 0
+      x-ratelimit-reset:
+      - 1, 2113795
+    status:
+      code: 200
+      message: OK
+version: 1

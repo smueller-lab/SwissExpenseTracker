@@ -37,7 +37,6 @@ nosetests.xml
 *.cover
 *.py,cover
 .hypothesis/
-tests/test_web_search/cassettes
 
 # My data files
 app/data/*.json
