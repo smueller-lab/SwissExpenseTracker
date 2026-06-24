@@ -14,12 +14,12 @@ from swiss_exp_tracker.config.user_config_loader import load
 # ─── helpers ────────────────────────────────────────────────────────────────
 
 
-def _write_user_config(path: Path, data: dict) -> None:
+def _write_user_config(path: Path, data: dict[str, object]) -> None:
     """Write a user_config.yaml at path."""
     path.write_text(yaml.safe_dump(data, allow_unicode=True), encoding="utf-8")
 
 
-def _write_detected_rules(path: Path, data: dict) -> None:
+def _write_detected_rules(path: Path, data: dict[str, object]) -> None:
     """Write a detected_rules.yaml at path."""
     path.write_text(yaml.safe_dump(data, allow_unicode=True), encoding="utf-8")
 
@@ -176,7 +176,9 @@ def test_invalid_type_raises(tmp_path: Path) -> None:
         user_path,
         {
             "investing": {
-                "transfers": [{"merchant": "My Brokerage", "min_amount": "not-a-number"}]
+                "transfers": [
+                    {"merchant": "My Brokerage", "min_amount": "not-a-number"}
+                ]
             }
         },
     )

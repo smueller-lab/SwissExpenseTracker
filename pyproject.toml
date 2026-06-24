@@ -2,9 +2,9 @@
 name = "swiss_exp_tracker"
 version = "0.1.0"
 description = "Swiss ExpenseTracker tool"
-authors = ["Sebastian Müller <you@example.com>"]
+authors = ["Sebastian Müller <sebastian96mueller@gmail.com>"]
 readme = "README.md"
-license = "MIT"  # You can change this or remove if undecided
+license = "GPL-3.0-or-later"
 packages = [{include = "swiss_exp_tracker", from = "src"}, {include = "tests"}]
 
 [tool.poetry.dependencies]
@@ -125,7 +125,10 @@ target-version = ["py312"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src"]
+files = ["src", "tests"]
+mypy_path = "src"
+explicit_package_bases = true
+namespace_packages = true
 strict = true
 plugins = ["pydantic.mypy"]
 enable_error_code = [
@@ -144,6 +147,10 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
 module = ["plotly", "plotly.*", "dash", "dash.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["xlrd", "xlrd.*"]
 ignore_missing_imports = true
 
 

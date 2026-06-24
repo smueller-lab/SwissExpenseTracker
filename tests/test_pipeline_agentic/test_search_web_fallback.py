@@ -8,7 +8,12 @@ from __future__ import annotations
 
 import json
 
+from typing import Any
+from typing import cast
+
 import pytest
+
+from agents.tool_context import ToolContext
 
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import SearchToolResult
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import WebSearchTool
@@ -33,7 +38,10 @@ class _MockToolCtx:
 
 async def _call_search_web(query: str) -> SearchToolResult:
     """Invoke search_web via its FunctionTool.on_invoke_tool interface."""
-    return await search_web.on_invoke_tool(_MockToolCtx(), json.dumps({"query": query}))
+    result = await search_web.on_invoke_tool(
+        cast("ToolContext[Any]", _MockToolCtx()), json.dumps({"query": query})
+    )
+    return cast("SearchToolResult", result)
 
 
 def _patch_noop_persistence(monkeypatch: pytest.MonkeyPatch) -> None:

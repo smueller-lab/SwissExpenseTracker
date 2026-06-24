@@ -28,6 +28,7 @@ Ever reach the end of the month, open your banking app, and you are asking yours
   - [📁 Download your bank data](#-download-your-bank-data)
   - [🔑 Configure API keys](#-configure-api-keys)
   - [📦 Install](#-install)
+  - [🐳 Run with Docker](#-run-with-docker)
   - [▶️ Run the pipeline](#-run-the-pipeline)
   - [🖥️ Launch the dashboard](#-launch-the-dashboard)
 - [🔎 Validate pipeline results](#-validate-pipeline-results)
@@ -249,6 +250,52 @@ cd SwissExpenseTracker
 python3 -m venv venv && source venv/bin/activate
 pip install poetry && poetry install
 ```
+
+---
+
+### 🐳 Run with Docker
+
+Prefer not to install Python and Poetry? The whole app runs in Docker — the only
+prerequisite is [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+> 🔑 **Your keys stay yours.** `.env` is never copied into the image, so each person
+> supplies their **own** API keys and spends only their **own** free-tier credits.
+> The merchant cache and database live in local folders, so every merchant is looked
+> up once and your usage is tracked separately from anyone else's.
+
+**1. Add your keys.** Copy the template and fill in your own keys:
+
+```bash
+cp .env.example .env      # then edit .env and paste in your API keys
+```
+
+**2. Add your bank exports.** Drop them into a `bank_data/lnd/` folder next to the
+compose file:
+
+```bash
+mkdir -p bank_data/lnd    # put your bank CSV/XLS exports inside bank_data/lnd/
+```
+
+**3. Build the database + enrich your transactions** (needs your keys; runs the full
+pipeline):
+
+```bash
+docker compose run --rm pipeline
+```
+
+**4. Launch the dashboard:**
+
+```bash
+docker compose up dashboard
+```
+
+Open [http://localhost:8050](http://localhost:8050). Re-running step 3 after adding new
+exports is safe — already-processed files are skipped.
+
+> ℹ️ Run the pipeline (step 3) **before** the dashboard — the dashboard loads the
+> database that the pipeline produces. The `database/`, `merchant_vector_store/`, and
+> `grocery_vector_store/` folders persist between runs so your data and cache survive
+> container restarts.
 
 ---
 

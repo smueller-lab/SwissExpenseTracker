@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -38,13 +40,13 @@ jobs:
 
       # The four checks below mirror the former .pre-commit-config.yaml hooks.
       - name: ruff check
-        run: poetry run ruff check src
+        run: poetry run ruff check src tests
 
       - name: black check
-        run: poetry run black --check src
+        run: poetry run black --check src tests
 
       - name: mypy
-        run: poetry run mypy --config-file pyproject.toml src
+        run: poetry run mypy --config-file pyproject.toml
 
       - name: pytest
         # Dummy keys satisfy the skipif guards so the web-search tests run and

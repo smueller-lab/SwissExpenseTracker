@@ -163,7 +163,10 @@ def test_detect_salary_payment_service_excluded() -> None:
     """Transactions with category_main=Payment Services → excluded from salary detection."""
     rows = [
         _make_income_row(
-            date=d, merchant="UBS Bank", amount_chf=10000.0, category_main="Payment Services"
+            date=d,
+            merchant="UBS Bank",
+            amount_chf=10000.0,
+            category_main="Payment Services",
         )
         for d in _SALARY_DATES_25
     ]
