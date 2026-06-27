@@ -17,13 +17,19 @@ WORKDIR /app
 RUN pip install --no-cache-dir "poetry==${POETRY_VERSION}" gunicorn
 
 # Install dependencies first (cached unless the lock file changes). --no-root skips
-# building the package itself — PYTHONPATH makes the source importable instead.
+# building the package itself here so this layer stays cached when only source changes.
 COPY pyproject.toml poetry.lock ./
 RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --no-root --only main
 
-# Application source
+# Application source. README.md is required by poetry to install the root package.
 COPY src ./src
+COPY README.md ./
+
+# Install the root package so its metadata is available. importlib.metadata.version()
+# powers the version shown in the dashboard sidebar; without this it reads as empty.
+# Dependencies are already installed above, so this only adds the root package.
+RUN poetry install --no-interaction --no-ansi --only main
 
 EXPOSE 8050
 

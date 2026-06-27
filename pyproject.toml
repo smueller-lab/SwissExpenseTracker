@@ -5,7 +5,7 @@ description = "Swiss ExpenseTracker tool"
 authors = ["Sebastian Müller <sebastian96mueller@gmail.com>"]
 readme = "README.md"
 license = "GPL-3.0-or-later"
-packages = [{include = "swiss_exp_tracker", from = "src"}, {include = "tests"}]
+packages = [{include = "swiss_exp_tracker", from = "src"}]
 
 [tool.poetry.dependencies]
 python = ">=3.12"
