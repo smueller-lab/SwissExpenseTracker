@@ -19,7 +19,6 @@ load_dotenv(override=True)
 
 
 class ApiKeys(BaseModel):
-    openai_api_key: str | None = None
     tavily_api_key: str | None = None
     exa_api_key: str | None = None
     brave_search_api_key: str | None = None
@@ -29,7 +28,6 @@ class ApiKeys(BaseModel):
 def get_settings() -> ApiKeys:
     """Load API keys and other settings from environment variables."""
     return ApiKeys(
-        openai_api_key=os.getenv("OPENAI_API_KEY"),
         tavily_api_key=os.getenv("TAVILY_API_KEY"),
         exa_api_key=os.getenv("EXA_API_KEY"),
         brave_search_api_key=os.getenv("BRAVE_SEARCH_API_KEY"),

@@ -269,12 +269,29 @@ prerequisite is [Docker Desktop](https://www.docker.com/products/docker-desktop/
 cp .env.example .env      # then edit .env and paste in your API keys
 ```
 
-**2. Add your bank exports.** Drop them into a `bank_data/lnd/` folder next to the
-compose file:
+**2. Add your bank exports.** By default they go in a `bank_data/lnd/` folder next to
+the compose file:
 
 ```bash
 mkdir -p bank_data/lnd    # put your bank CSV/XLS exports inside bank_data/lnd/
 ```
+
+To keep your data **outside the repo**, point `DATA_DIR` in `.env` at any folder — a
+sibling directory or an absolute path — and put your exports under its `lnd/`
+subfolder. This is the same `DATA_DIR` used for local (non-Docker) runs, so one
+setting covers both:
+
+```dotenv
+# .env
+DATA_DIR=../bank_data            # or an absolute path like /mnt/finance/bank_data
+```
+
+```bash
+mkdir -p ../bank_data/lnd
+```
+
+Compose mounts whatever `DATA_DIR` points to into the container, so nothing sensitive
+ever lives in the repo. If `DATA_DIR` is unset it falls back to `./bank_data`.
 
 **3. Build the database + enrich your transactions** (needs your keys; runs the full
 pipeline):
