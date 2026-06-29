@@ -5,9 +5,11 @@ import json
 from datetime import datetime
 
 from swiss_exp_tracker.db.sql import transactions
+from swiss_exp_tracker.pipeline_ingestion.adapters.generic_adapter import to_unified
 from swiss_exp_tracker.pipeline_ingestion.data_models.data_sources import (
-    SOURCE_MODEL_MAP,
+    SUPPORTED_SOURCES,
 )
+from swiss_exp_tracker.pipeline_ingestion.data_models.data_sources import get_profile
 from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceType
 from swiss_exp_tracker.pipeline_ingestion.data_models.tables import LandingRow
 from swiss_exp_tracker.pipeline_ingestion.db import create_all_tables
@@ -34,7 +36,11 @@ def _load_unprocessed_landing_rows(source_type: SourceType) -> list[LandingRow]:
 
 
 def process_raw_source(source_type: SourceType) -> dict[str, int]:
-    """Promote unprocessed landing rows to transactions_raw for source_type."""
+    """Promote unprocessed landing rows to transactions_raw for source_type.
+
+    Validates each row via the generic adapter (raises on malformed required data)
+    and writes the unchanged canonical row dict JSON to transactions_raw.
+    """
     create_all_tables()
     rows = _load_unprocessed_landing_rows(source_type)
 
@@ -42,23 +48,18 @@ def process_raw_source(source_type: SourceType) -> dict[str, int]:
     records_inserted = 0
     processed_file_ids: set[int] = set()
 
+    profile = get_profile(source_type)
+
     with get_connection() as db:
         for row in rows:
-            current_source = SourceType(row.source_type)
-            model_class = SOURCE_MODEL_MAP[current_source]
-
             payload = json.loads(row.raw_json)
-            source_model = model_class.model_validate(payload)
-            validated_raw_json = json.dumps(
-                source_model.model_dump(mode="json", by_alias=True),
-                ensure_ascii=False,
-            )
+            to_unified(payload, profile, row.source_file)
 
             transactions.insert_transactions_raw(
                 db,
                 landing_id=row.landing_id,
-                source_type=SourceType(row.source_type).value,
-                raw_json=validated_raw_json,
+                source_type=source_type.value,
+                raw_json=json.dumps(payload, ensure_ascii=False),
                 source_file=row.source_file,
                 created_at=datetime.now().isoformat(),
             )
@@ -86,7 +87,7 @@ def run_raw() -> dict[str, dict[str, int]]:
     """Run raw stage for all known source types."""
     results: dict[str, dict[str, int]] = {}
 
-    for source_type in SOURCE_MODEL_MAP:
+    for source_type in SUPPORTED_SOURCES:
         result = process_raw_source(source_type)
         results[source_type.value] = result
 

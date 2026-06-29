@@ -11,8 +11,20 @@ from swiss_exp_tracker.config.user_config_schema import DetectedRules
 from swiss_exp_tracker.config.user_config_schema import HousingDetected
 from swiss_exp_tracker.config.user_config_schema import RentDetected
 from swiss_exp_tracker.config.user_config_schema import SalaryDetected
+from swiss_exp_tracker.pipeline_ingestion.db import get_connection
 
 _PAYMENT_SERVICES = "Payment Services"
+
+# A rent row counts as "recurring" if its amount is within this fraction of the
+# merchant's median amount — wide enough for annual rent increases, tight enough
+# to exclude one-off fees/settlements booked under the same merchant.
+_RENT_AMOUNT_TOL = 0.2
+
+# transactions_use stores the CHF value in `amount`; detect_* expect `amount_chf`.
+_DETECTION_SQL = (
+    "SELECT merchant, amount AS amount_chf, date, transaction_type, category_main "
+    "FROM transactions_use"
+)
 
 
 def _to_type_str(value: str | Enum) -> str:
@@ -27,6 +39,20 @@ def _drop_payment_services(df: pd.DataFrame) -> pd.DataFrame:
     if "category_main" not in df.columns:
         return df
     return df[df["category_main"] != _PAYMENT_SERVICES]
+
+
+def _is_monthly_regular(dates: pd.Series, max_gap_std: float = 5.0) -> bool:
+    """Return True if dates recur ~monthly, judged by low std of inter-payment gaps in days.
+    Gap-based instead of day-of-month so end-of-month and start-of-month rent both qualify.
+    """
+    ordered = pd.to_datetime(dates).sort_values()
+    gaps = ordered.diff().dropna().dt.days
+    if len(gaps) < 2:
+        return False
+    median_gap = float(gaps.median())
+    if not 25.0 <= median_gap <= 35.0:
+        return False
+    return float(gaps.std(ddof=1)) <= max_gap_std
 
 
 def detect_salary(df: pd.DataFrame) -> list[str]:
@@ -64,8 +90,10 @@ def detect_salary(df: pd.DataFrame) -> list[str]:
 
 
 def detect_rent(df: pd.DataFrame) -> list[RentDetected]:
-    """Return RentDetected entries for merchants matching recurring fixed high-amount expense patterns.
-    Excludes Payment Services transactions using category_main. Results sorted by median_amount descending.
+    """Return RentDetected entries for merchants with a recurring fixed high-amount expense.
+    Anchors on the median amount and tests count/cv/regularity over only the rows near it, so
+    one-off charges a property manager books under the same name don't mask the rent. Excludes
+    Payment Services; checks monthly regularity via inter-payment gaps. Sorted by amount desc.
     """
     if df.empty:
         return []
@@ -76,24 +104,33 @@ def detect_rent(df: pd.DataFrame) -> list[RentDetected]:
     if expense_df.empty:
         return []
 
-    expense_df["_day"] = pd.to_datetime(expense_df["date"]).dt.day
-
     results: list[tuple[str, float, list[float]]] = []
 
     for merchant, group in expense_df.groupby("merchant"):
-        count = len(group)
-        amounts = group["amount_chf"].to_numpy(dtype=float)
-        mean_amount = float(np.mean(amounts))
+        median_amount = float(group["amount_chf"].median())
+
+        if median_amount < 400.0:
+            continue
+
+        # Keep only the recurring rent-sized rows; the median is robust to the
+        # minority of low one-off charges (fees, utility settlements) the same
+        # property manager books under this merchant name.
+        deviation = (group["amount_chf"].astype(float) - median_amount).abs()
+        recurring = group[deviation <= _RENT_AMOUNT_TOL * median_amount]
+
+        if len(recurring) < 3:
+            continue
+
+        rec_amounts = recurring["amount_chf"].to_numpy(dtype=float)
+        mean_amount = float(np.mean(rec_amounts))
 
         if mean_amount == 0.0:
             continue
 
-        median_amount = float(np.median(amounts))
-        cv = float(np.std(amounts, ddof=1) / mean_amount) if len(group) > 1 else 0.0
-        day_std = float(group["_day"].std(ddof=1)) if len(group) > 1 else 0.0
+        cv = float(np.std(rec_amounts, ddof=1) / mean_amount)
 
-        if count >= 3 and cv <= 0.15 and median_amount >= 400.0 and day_std <= 7:
-            unique_amounts = sorted(group["amount_chf"].unique().tolist())
+        if cv <= 0.15 and _is_monthly_regular(recurring["date"]):
+            unique_amounts = sorted(recurring["amount_chf"].unique().tolist())
             results.append((str(merchant), median_amount, unique_amounts))
 
     results.sort(key=lambda x: x[1], reverse=True)
@@ -126,3 +163,20 @@ def run_detection(
     )
 
     return detected
+
+
+def run_detection_from_db(
+    output_path: Path = _CONFIG_DIR / "detected_rules.yaml",
+) -> DetectedRules:
+    """Read transactions_use, detect salary/rent merchants, and write detected_rules.yaml.
+    Returns empty rules without writing if transactions_use does not exist yet (first run).
+    """
+    with get_connection() as db:
+        exists = db.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='transactions_use'"
+        ).fetchone()
+        if exists is None:
+            return DetectedRules()
+        df = pd.read_sql_query(_DETECTION_SQL, db)
+
+    return run_detection(df, output_path=output_path)

@@ -21,18 +21,34 @@ vis = VIS()
 
 def make_number_card(
     title: str,
-    Number: float,
+    Number: float | str | None,
     width: int = 3,
     unit: str = "CHF",
     fmt: str = ",.2f",
     value_class: str | None = None,
 ) -> Any:
-    suffix = f" {unit}" if unit else ""
-    cls = value_class if value_class is not None else get_balance_class(Number)
+    if isinstance(Number, str):
+        cls = value_class if value_class is not None else get_balance_class(None)
+        text = Number
+        return html.Div(
+            [make_card_title(title), html.P(text, className=cls)],
+            className=f"card card-kpi col-{width}",
+        )
+    is_missing = Number is None or math.isnan(Number)
+    cls = (
+        value_class
+        if value_class is not None
+        else get_balance_class(None if is_missing else Number)
+    )
+    if is_missing:
+        text = "—"
+    else:
+        suffix = f" {unit}" if unit else ""
+        text = f"{Number:{fmt}}{suffix}"
     return html.Div(
         [
             make_card_title(title),
-            html.P(f"{Number:{fmt}}{suffix}", className=cls),
+            html.P(text, className=cls),
         ],
         className=f"card card-kpi col-{width}",
     )

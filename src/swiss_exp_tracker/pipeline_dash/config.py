@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+# Debit-account sources that carry a running balance (balance_chf).
+# Used to derive the current-balance KPI and the balance-over-time chart.
+BALANCE_SOURCE_TYPES: tuple[str, ...] = ("ZKB_DEBIT", "UBS_DEBIT")
+
 # Substring → canonical brand name (applied in order; first match wins)
 GROCERY_MERCHANT_NORMALIZE: list[tuple[str, str]] = [
     ("migrolino", "Migrolino"),

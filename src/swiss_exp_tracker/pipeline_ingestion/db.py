@@ -21,16 +21,40 @@ def get_connection() -> Generator[sqlite3.Connection, None, None]:
         db.close()
 
 
-def _backfill_balance_chf_rfn(db: sqlite3.Connection) -> None:
-    """Populate balance_chf for existing ZKB rows from the raw JSON stored in transactions_raw."""
+# Per-source raw-JSON key holding the running account balance.
+_BALANCE_JSON_KEY: dict[str, str] = {
+    "ZKB_DEBIT": "Balance CHF",
+    "UBS_DEBIT": "Solde",
+}
+
+
+def _table_exists(db: sqlite3.Connection, name: str) -> bool:
+    """Return True if a table named `name` exists in the database."""
+    row = db.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
+    ).fetchone()
+    return row is not None
+
+
+def backfill_balance_chf_rfn(db: sqlite3.Connection) -> int:
+    """Fill NULL balance_chf in transactions_rfn from raw JSON; returns rows updated."""
+    if not _table_exists(db, "transactions_rfn") or not _table_exists(
+        db, "transactions_raw"
+    ):
+        return 0
     rows = transactions.get_rfn_rows_for_balance_backfill(db)
-    for row_id, raw_json_str in rows:
-        data = json.loads(raw_json_str)
-        balance = data.get("Balance CHF")
+    updated = 0
+    for row_id, source_type, raw_json_str in rows:
+        key = _BALANCE_JSON_KEY.get(str(source_type))
+        if key is None:
+            continue
+        balance = json.loads(raw_json_str).get(key)
         if balance is not None:
             transactions.set_rfn_balance_chf(
                 db, balance_chf=float(balance), rfn_id=row_id
             )
+            updated += 1
+    return updated
 
 
 def create_all_tables() -> None:
@@ -47,7 +71,7 @@ def create_all_tables() -> None:
             db.execute(transactions.alter_rfn_add_is_person.sql)
         if "balance_chf" not in refined_columns:
             db.execute(transactions.alter_rfn_add_balance_chf.sql)
-            _backfill_balance_chf_rfn(db)
+            backfill_balance_chf_rfn(db)
 
         transactions.create_idx_ingested_files_source(db)
         transactions.create_idx_landing_file_processed(db)

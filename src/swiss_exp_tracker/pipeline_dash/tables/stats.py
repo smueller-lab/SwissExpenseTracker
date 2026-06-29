@@ -4,6 +4,7 @@ import sqlite3
 
 import pandas as pd
 
+from swiss_exp_tracker.pipeline_dash.config import BALANCE_SOURCE_TYPES
 from swiss_exp_tracker.pipeline_dash.config import NET_BALANCE_EXPENSE_EXCLUDE_MAIN
 
 
@@ -42,9 +43,15 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     )
     ytd_net = ytd.get("INCOME", 0.0) - ytd.get("EXPENSE", 0.0)
 
-    zkb = df[(df["source_type"] == "ZKB_DEBIT") & df["balance_chf"].notna()]
+    # Current balance = sum of the most recent known balance per debit account,
+    # so it works for any balance-carrying source (ZKB, UBS, …), not just ZKB.
+    with_balance = df[
+        df["source_type"].isin(BALANCE_SOURCE_TYPES) & df["balance_chf"].notna()
+    ].sort_values("date")
     balance_current = (
-        float(zkb.sort_values("date")["balance_chf"].iloc[-1]) if len(zkb) > 0 else None
+        float(with_balance.groupby("source_type")["balance_chf"].last().sum())
+        if len(with_balance) > 0
+        else None
     )
 
     expense_avg_12m = (

@@ -242,12 +242,12 @@ VALUES (
 )
 
 -- name: get_rfn_rows_for_balance_backfill
--- Return ZKB_DEBIT refined rows that are missing balance_chf, joined with raw JSON.
-SELECT rfn.id, raw.raw_json
+-- Return balance-carrying debit refined rows missing balance_chf, joined with raw JSON.
+SELECT rfn.id, rfn.source_type, raw.raw_json
 FROM transactions_rfn rfn
 JOIN transactions_raw raw ON raw.id = rfn.raw_id
-WHERE rfn.source_type = 'ZKB_DEBIT'
-  AND rfn.balance_chf IS NULL
+WHERE rfn.balance_chf IS NULL
+  AND rfn.source_type IN ('ZKB_DEBIT', 'UBS_DEBIT')
 
 -- name: set_rfn_balance_chf!
 -- Update balance_chf for a single refined row by id.

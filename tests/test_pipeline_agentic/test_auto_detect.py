@@ -94,6 +94,24 @@ _RENT_DATES_1: list[str] = [
     "2023-12-01",
 ]
 
+# End-of-month rent that occasionally slips across the month boundary to the 1st.
+# Day-of-month values jump between ~31 and 1 (linear std ≈ 14), but the calendar
+# gap between payments stays ~30 days — so gap-based regularity still detects it.
+_RENT_DATES_END_OF_MONTH: list[str] = [
+    "2023-01-31",
+    "2023-03-01",
+    "2023-03-31",
+    "2023-05-01",
+    "2023-05-31",
+    "2023-06-30",
+    "2023-07-31",
+    "2023-08-31",
+    "2023-10-01",
+    "2023-10-31",
+    "2023-11-30",
+    "2023-12-31",
+]
+
 # Amounts with a high coefficient of variation (range 100-2000 CHF).
 _HIGH_CV_AMOUNTS: list[float] = [
     100.0,
@@ -163,7 +181,10 @@ def test_detect_salary_payment_service_excluded() -> None:
     """Transactions with category_main=Payment Services → excluded from salary detection."""
     rows = [
         _make_income_row(
-            date=d, merchant="UBS Bank", amount_chf=10000.0, category_main="Payment Services"
+            date=d,
+            merchant="UBS Bank",
+            amount_chf=10000.0,
+            category_main="Payment Services",
         )
         for d in _SALARY_DATES_25
     ]
@@ -267,6 +288,54 @@ def test_detect_rent_income_rows_ignored() -> None:
     result = detect_rent(df)
     merchants = [r.merchant for r in result]
     assert "Landlord A" not in merchants
+
+
+def test_detect_rent_mixed_with_one_off_charges() -> None:
+    """A property manager that also books low one-off charges under the same merchant
+    is still detected, and only the recurring rent amounts are returned.
+    """
+    rent_amounts = [1000.0] * 6 + [1050.0] * 6  # annual rent increase
+    rows = [
+        _make_expense_row(date=d, merchant="Property Manager", amount_chf=a)
+        for d, a in zip(_RENT_DATES_1, rent_amounts, strict=False)
+    ]
+    # Low one-off charges (fees / utility settlements) on off-cycle dates.
+    rows += [
+        _make_expense_row(date=d, merchant="Property Manager", amount_chf=100.0)
+        for d in ("2023-04-10", "2023-09-03")
+    ]
+    df = pd.DataFrame(rows)
+    result = detect_rent(df)
+    entry = next((r for r in result if r.merchant == "Property Manager"), None)
+    assert entry is not None
+    assert 100.0 not in entry.amounts
+    assert set(entry.amounts) == {1000.0, 1050.0}
+
+
+def test_detect_rent_end_of_month_payments() -> None:
+    """Rent paid at month-end, slipping to the 1st some months, is still detected.
+    Day-of-month std is large here; gap-based regularity must accept it.
+    """
+    rows = [
+        _make_expense_row(date=d, merchant="Landlord EOM", amount_chf=1500.0)
+        for d in _RENT_DATES_END_OF_MONTH
+    ]
+    df = pd.DataFrame(rows)
+    result = detect_rent(df)
+    merchants = [r.merchant for r in result]
+    assert "Landlord EOM" in merchants
+
+
+def test_detect_rent_beginning_of_month_payments() -> None:
+    """Rent paid at the beginning of the month (day 1, occasionally day 2) is detected."""
+    rows = [
+        _make_expense_row(date=d, merchant="Landlord BOM", amount_chf=1500.0)
+        for d in _RENT_DATES_1
+    ]
+    df = pd.DataFrame(rows)
+    result = detect_rent(df)
+    merchants = [r.merchant for r in result]
+    assert "Landlord BOM" in merchants
 
 
 # ─── run_detection integration test ─────────────────────────────────────────

@@ -6,6 +6,7 @@ import time
 
 from datetime import datetime
 
+from openai import APIError
 from tqdm import tqdm
 
 from swiss_exp_tracker.db.sql import agentic
@@ -118,6 +119,14 @@ async def run_all_transactions(
                         "Pipeline stopped. No further transactions will be processed this run."
                     )
                     return
+                except APIError as exc:
+                    # Transient OpenAI errors are retried inside MerchantManager;
+                    # if they still surface here, skip this transaction (it stays
+                    # pending for a future run) rather than crash the whole batch.
+                    tqdm.write(
+                        f"[WARN] OpenAI API error ({type(exc).__name__}) for "
+                        f"'{merchant_label[:40]}' — skipping; left pending for next run."
+                    )
                 pbar.update(1)
 
         await asyncio.gather(*(process_one(tx) for tx in transactions))

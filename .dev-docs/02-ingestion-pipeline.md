@@ -20,13 +20,13 @@ Landing Zone (filesystem)
         │
         ▼
   Stage 2 — Raw
-  validate each lnd row against source-specific Pydantic model
+  re-validate each lnd row through the generic SourceProfile parser
   ──────────────────────────────────────────────────────────
   transactions_raw (validated JSON, processed=0)
         │
         ▼
   Stage 3 — Refined
-  unify fields across sources, extract merchant, detect persons
+  unify fields across sources via the profile, extract merchant, detect persons
   ──────────────────────────────────────────────────────────
   transactions_rfn (canonical rows, enrichment_status='pending')
         │
@@ -75,11 +75,19 @@ Defined as `SourceType` (`StrEnum`) in `data_models/source_type.py`.
 | `SWISSQUOTE` | Swissquote positions XLS snapshot |
 | `MIGROS_GROCERY` | Migros receipt CSV export |
 
-The mapping from `SourceType` to Pydantic validation model is in
-`data_models/data_sources.py → SOURCE_MODEL_MAP` (transactions only).
+Each transaction source is described **declaratively** by a `SourceProfile`
+(`data_models/source_profiles.yaml`, loaded by `data_models/profile_loader.py`).
+A profile maps the source's columns onto the canonical fields — date columns and
+formats, amount mode (`debit_credit` / `signed`), currency, reference and booking
+text, optional balance column, and optional header normalization
+(`header_signature` + `column_aliases`) for foreign-header / preamble exports.
 
-Each transaction source also has a corresponding **Adapter** (`adapters/adapters.py`) that
-converts the source-specific validated model to the common `UnifiedTransaction`.
+There is **no per-source Pydantic model and no per-source adapter class**. One
+generic parser and one profile-driven `to_unified` (`adapters/generic_adapter.py`)
+serve every source. Adding an ordinary source = one `SourceType` enum line + one
+profile block + one sample file. See the `/new-data-source` command. Genuinely
+algorithmic quirks (Revolut exchange pairing, ZKB eBanking parent/detail
+stitching) live in `stages/transactions/source_hooks.py`, keyed by `SourceType`.
 
 ---
 
@@ -103,9 +111,9 @@ Delimiter detection is automatic (comma / semicolon).
 **File:** `stages/transactions/stage_02_raw.py`
 
 1. Loads all `transactions_lnd` rows where `processed = 0`.
-2. Validates each row's JSON against the source-specific Pydantic model
-   (`SOURCE_MODEL_MAP`). This catches type errors, missing required fields,
-   and invalid enum values.
+2. Re-validates each row's JSON through the generic `SourceProfile` parser for its
+   `SourceType` (coerces dates / Swiss-formatted numbers, checks the profile's
+   required columns). This catches malformed values before transformation.
 3. Writes the re-serialised (validated) JSON into `transactions_raw`
    (`processed = 0`) and marks the lnd row as `processed = 1`.
 
@@ -120,10 +128,11 @@ transformation logic runs.
 
 The heaviest stage. For each unprocessed `transactions_raw` row:
 
-1. Deserialises JSON back into the source model.
-2. Passes the model through the corresponding **Adapter** → `UnifiedTransaction`
-   (canonical fields: `date`, `amount`, `currency`, `transaction_type`,
-   `booking_text`, `zkb_reference`).
+1. Deserialises the stored row JSON back into a dict.
+2. Passes the dict + the source's `SourceProfile` through the generic
+   `to_unified` → `UnifiedTransaction` (canonical fields: `date`, `amount`,
+   `currency`, `transaction_type`, `booking_text`, `reference_id`). Source-
+   specific quirks are applied via `source_hooks.py` before/around this step.
 3. Runs **merchant normalisation** (`_normalize_merchant`):
    - Lowercases, strips umlauts
    - Applies `MERCHANT_COMPOUND_BRANDS` (longest-match patterns, e.g. "migros m express")
@@ -221,15 +230,19 @@ All models are Pydantic `BaseModel` subclasses in `data_models/`.
 
 | Model | File | Purpose |
 |-------|------|---------|
-| `ZKBTransaction` | `transaction.py` | Raw ZKB CSV row |
-| `VisecaTransaction` | `transaction.py` | Raw Viseca CSV row |
-| `RevolutTransaction` | `transaction.py` | Raw Revolut CSV row |
+| `SourceProfile` | `source_profile.py` | Declarative column→field mapping for one source |
+| `AmountSpec` / `CurrencySpec` | `source_profile.py` | Amount-mode and currency sub-specs of a profile |
 | `UnifiedTransaction` | `transaction.py` | Common format across all sources |
 | `LandingRow` | `tables.py` | DB read model for `transactions_lnd` |
 | `RawRow` | `tables.py` | DB read model for `transactions_raw` |
 
-Adapters (`adapters/adapters.py`) implement `BaseAdapter[S].to_unified()` which converts
-a source-specific model `S` into a `UnifiedTransaction`.
+Profiles are defined as data in `data_models/source_profiles.yaml` and loaded via
+`profile_loader.load_profiles()`. The generic `to_unified`
+(`adapters/generic_adapter.py`) converts a raw row dict + its `SourceProfile`
+into a `UnifiedTransaction` — no per-source model or adapter class exists. Amount
+direction is data: `debit_credit` mode decides EXPENSE/INCOME by which column is
+populated (`abs()` of the value, sign-agnostic); `signed` mode decides by the
+sign of a single column via `expense_sign`.
 
 ---
 
