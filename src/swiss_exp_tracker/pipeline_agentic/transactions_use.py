@@ -174,9 +174,18 @@ def run_transactions_use() -> None:
         rows_to_insert = [dict(row) for row in rows]
         agentic.insert_transactions_use(db, rows_to_insert)
 
+        # transactions_use is append-only, so rows deleted from rfn after a prior run
+        # (e.g. credit-card bill payments dropped in postprocess) would otherwise linger
+        # in the analysis table and the dashboard. Remove those orphans here.
+        orphans_removed = agentic.delete_transactions_use_orphans(db)
+
         db.commit()
 
-    logger.debug("transactions_use: %d rows written", len(rows_to_insert))
+    logger.debug(
+        "transactions_use: %d rows written, %d orphans removed",
+        len(rows_to_insert),
+        orphans_removed,
+    )
 
     _backfill_balance_chf_use()
     _sync_categories_from_rfn()

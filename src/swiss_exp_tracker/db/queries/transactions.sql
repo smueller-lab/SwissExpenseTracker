@@ -253,28 +253,12 @@ WHERE rfn.balance_chf IS NULL
 -- Update balance_chf for a single refined row by id.
 UPDATE transactions_rfn SET balance_chf = :balance_chf WHERE id = :rfn_id
 
--- name: get_zkb_credit_card_payment_rows
--- Return ZKB expense rows that are Viseca or LSV debit payments, ordered for matching.
-SELECT id, amount
+-- name: get_rfn_rows_by_source_and_type
+-- Return id/amount/date/booking_text for a source and transaction type, ordered for matching.
+SELECT id, amount, date, booking_text
 FROM transactions_rfn
 WHERE source_type = :source_type
   AND transaction_type = :transaction_type
-  AND (
-        booking_text LIKE '%Viseca Payment%'
-     OR booking_text LIKE '%Debit from LSV%'
-  )
-ORDER BY amount, COALESCE(date, ''), id
-
--- name: get_viseca_income_rows
--- Return Viseca income rows with empty or null booking_text, ordered for matching.
-SELECT id, amount
-FROM transactions_rfn
-WHERE source_type = :source_type
-  AND transaction_type = :transaction_type
-  AND (
-        booking_text IS NULL
-     OR TRIM(booking_text) = ''
-  )
 ORDER BY amount, COALESCE(date, ''), id
 
 -- name: fill_viseca_fee_text!

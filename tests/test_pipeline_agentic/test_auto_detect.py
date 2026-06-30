@@ -380,3 +380,43 @@ def test_run_detection_salary_in_file(tmp_path: Path) -> None:
         data = yaml.safe_load(f)
     parsed = DetectedRules.model_validate(data)
     assert "Employer X" in parsed.salary.employers
+
+
+# ─── non-destructive merge — credit_card_payments preserved ──────────────────
+
+
+def test_run_detection_preserves_credit_card_payments(tmp_path: Path) -> None:
+    """run_detection recomputes salary/rent but leaves a pre-existing credit_card_payments section intact."""
+    output_path = tmp_path / "detected.yaml"
+
+    # Pre-seed the YAML with a credit_card_payments section.
+    pre_existing: dict[str, object] = {
+        "credit_card_payments": {
+            "booking_texts": ["2002 LSV-Zahlung", "UBS Card Center"]
+        }
+    }
+    output_path.write_text(
+        yaml.safe_dump(pre_existing, allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
+
+    # Run detection with enough salary rows to detect a new employer.
+    rows = [
+        _make_income_row(date=d, merchant="Employer Z", amount_chf=9000.0)
+        for d in _SALARY_DATES_25
+    ]
+    df = pd.DataFrame(rows)
+    run_detection(df, output_path=output_path)
+
+    with output_path.open(encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+    parsed = DetectedRules.model_validate(data)
+
+    # Salary was recomputed and the new employer is present.
+    assert "Employer Z" in parsed.salary.employers
+
+    # The pre-existing credit_card_payments section must survive unchanged.
+    assert parsed.credit_card_payments.booking_texts == [
+        "2002 LSV-Zahlung",
+        "UBS Card Center",
+    ]

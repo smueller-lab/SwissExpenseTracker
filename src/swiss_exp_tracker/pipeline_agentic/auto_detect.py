@@ -147,13 +147,20 @@ def run_detection(
     df: pd.DataFrame,
     output_path: Path = _CONFIG_DIR / "detected_rules.yaml",
 ) -> DetectedRules:
-    """Detect salary and rent merchants, write YAML to output_path, and return DetectedRules."""
+    """Detect salary/rent, preserve existing credit_card_payments, write YAML, return DetectedRules."""
+    existing = DetectedRules()
+    if output_path.exists():
+        with output_path.open(encoding="utf-8") as f:
+            raw: object = yaml.safe_load(f) or {}
+        existing = DetectedRules.model_validate(raw)
+
     employers = detect_salary(df)
     rent_list = detect_rent(df)
 
     detected = DetectedRules(
         salary=SalaryDetected(employers=employers),
         housing=HousingDetected(rent=rent_list),
+        credit_card_payments=existing.credit_card_payments,
     )
 
     output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -27,9 +27,22 @@ class HousingDetected(BaseModel):
     rent: list[RentDetected] = []
 
 
+class CreditCardPaymentsDetected(BaseModel):
+    booking_texts: list[str] = []
+
+    @field_validator("booking_texts", mode="before")
+    @classmethod
+    def coerce_booking_texts(cls, value: object) -> list[str]:
+        """Coerce booking_texts entries to a list of strings; a non-list becomes empty."""
+        if not isinstance(value, list):
+            return []
+        return [str(v) for v in value]
+
+
 class DetectedRules(BaseModel):
     salary: SalaryDetected = SalaryDetected()
     housing: HousingDetected = HousingDetected()
+    credit_card_payments: CreditCardPaymentsDetected = CreditCardPaymentsDetected()
 
 
 # ── UserConfig — written by the user in user_config.yaml ─────────────────────

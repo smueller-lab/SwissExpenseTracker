@@ -273,6 +273,13 @@ WHERE id = :id
 -- Delete the transactions_use row with the given id.
 DELETE FROM transactions_use WHERE id = :id
 
+-- name: delete_transactions_use_orphans!
+-- Delete transactions_use rows whose reference no longer exists in transactions_rfn.
+-- Keeps the analysis table consistent when rows are removed from rfn (e.g. credit-card
+-- bill payments dropped in postprocess), since transactions_use is built incrementally.
+DELETE FROM transactions_use
+WHERE reference NOT IN (SELECT reference FROM transactions_rfn)
+
 -- name: update_transactions_use_amount!
 -- Update the amount field for the given transactions_use row id.
 UPDATE transactions_use SET amount = :amount WHERE id = :id

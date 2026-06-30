@@ -5,6 +5,15 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+import pytest
+import yaml
+
+import swiss_exp_tracker.pipeline_ingestion.stages.transactions.stage_04_postprocess as _postprocess_mod
+
+from swiss_exp_tracker.config.user_config_schema import DetectedRules
+from swiss_exp_tracker.pipeline_ingestion.stages.transactions.stage_04_postprocess import (
+    _record_credit_card_payments,
+)
 from swiss_exp_tracker.pipeline_ingestion.stages.transactions.stage_04_postprocess import (
     run_postprocess,
 )
@@ -90,8 +99,17 @@ def _insert_rfn_row(
 # ---------------------------------------------------------------------------
 
 
-def test_credit_card_pair_removed(tmp_db: Path) -> None:
+def test_credit_card_pair_removed(
+    tmp_db: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Matched ZKB EXPENSE + VISECA INCOME of same amount → both deleted."""
+    rules_path = tmp_path / "detected_rules.yaml"
+    monkeypatch.setattr(
+        _postprocess_mod,
+        "_record_credit_card_payments",
+        lambda matches: _record_credit_card_payments(matches, output_path=rules_path),
+    )
+
     _insert_rfn_row(
         tmp_db,
         source_type="ZKB_DEBIT",
@@ -194,3 +212,103 @@ def test_empty_db_returns_zero_counters(tmp_db: Path) -> None:
 
     assert result["credit_card_pairs_removed"] == 0
     assert result["viseca_fee_rows_updated"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Postprocess deletion — UBS pair, unmatched row survives
+# ---------------------------------------------------------------------------
+
+
+def test_postprocess_matched_legs_deleted_unmatched_remains(
+    tmp_db: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """UBS pair + unmatched ZKB row: matched legs deleted, unmatched row remains, counter=1."""
+    rules_path = tmp_path / "detected_rules.yaml"
+    # Redirect _record_credit_card_payments to a tmp file so the real config is never touched.
+    monkeypatch.setattr(
+        _postprocess_mod,
+        "_record_credit_card_payments",
+        lambda matches: _record_credit_card_payments(matches, output_path=rules_path),
+    )
+
+    # Unmatched row: booking_text does not match the LSV/Viseca SQL filter.
+    _insert_rfn_row(
+        tmp_db,
+        source_type="ZKB_DEBIT",
+        amount=80.0,
+        transaction_type="EXPENSE",
+        booking_text="Regular purchase",
+    )
+    # Matched pair: UBS_DEBIT LSV expense + UBS_CREDIT empty-text settlement.
+    _insert_rfn_row(
+        tmp_db,
+        source_type="UBS_DEBIT",
+        amount=75.0,
+        transaction_type="EXPENSE",
+        booking_text="LSV payment",
+    )
+    _insert_rfn_row(
+        tmp_db,
+        source_type="UBS_CREDIT",
+        amount=75.0,
+        transaction_type="INCOME",
+        booking_text=None,
+    )
+
+    result = run_postprocess()
+
+    assert result["credit_card_pairs_removed"] == 1
+
+    with sqlite3.connect(tmp_db) as db:
+        remaining = db.execute(
+            "SELECT source_type, booking_text FROM transactions_rfn"
+        ).fetchall()
+
+    assert len(remaining) == 1
+    assert remaining[0][0] == "ZKB_DEBIT"
+    assert remaining[0][1] == "Regular purchase"
+
+
+# ---------------------------------------------------------------------------
+# Postprocess persistence — YAML written with credit_card_payments section
+# ---------------------------------------------------------------------------
+
+
+def test_postprocess_persistence_yaml_contains_pairs(
+    tmp_db: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """After run_postprocess the tmp detected_rules.yaml holds the matched pair."""
+    rules_path = tmp_path / "detected_rules.yaml"
+    monkeypatch.setattr(
+        _postprocess_mod,
+        "_record_credit_card_payments",
+        lambda matches: _record_credit_card_payments(matches, output_path=rules_path),
+    )
+
+    _insert_rfn_row(
+        tmp_db,
+        source_type="ZKB_DEBIT",
+        amount=50.0,
+        transaction_type="EXPENSE",
+        booking_text="Viseca Payment",
+    )
+    _insert_rfn_row(
+        tmp_db,
+        source_type="VISECA",
+        amount=50.0,
+        transaction_type="INCOME",
+        booking_text="2002 LSV-Zahlung",
+    )
+
+    run_postprocess()
+
+    assert rules_path.exists()
+    with rules_path.open(encoding="utf-8") as fh:
+        data = yaml.safe_load(fh)
+    parsed = DetectedRules.model_validate(data)
+
+    # Both legs' distinct texts are recorded, sorted and deduplicated.
+    assert parsed.credit_card_payments.booking_texts == [
+        "2002 LSV-Zahlung",
+        "Viseca Payment",
+    ]
