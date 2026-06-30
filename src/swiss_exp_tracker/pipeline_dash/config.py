@@ -65,6 +65,10 @@ NET_BALANCE_EXPENSE_EXCLUDE_MAIN: list[str] = [
     "Salary",
 ]
 
+# Minimum transactions in the last month for a category to qualify as Top Category;
+# below this it is skipped in favour of the next-highest-spend eligible category.
+TOP_CATEGORY_MIN_TRANSACTIONS: int = 4
+
 TOP_EXPENSES_EXCLUDE_MAIN: list[str] = [
     "Government",
     "Finance",
