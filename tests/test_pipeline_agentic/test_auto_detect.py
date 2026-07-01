@@ -312,6 +312,26 @@ def test_detect_rent_mixed_with_one_off_charges() -> None:
     assert set(entry.amounts) == {1000.0, 1050.0}
 
 
+def test_detect_rent_keeps_only_highest_per_month() -> None:
+    """Two payments in the same calendar month → only the highest counts as rent.
+    The lower same-month charge is within CV tolerance but must still be dropped.
+    """
+    rows = [
+        _make_expense_row(date=d, merchant="Landlord C", amount_chf=1500.0)
+        for d in _RENT_DATES_1
+    ]
+    # A second, smaller same-month charge (within the 0.2 tolerance band).
+    rows.append(
+        _make_expense_row(date="2023-03-15", merchant="Landlord C", amount_chf=1400.0)
+    )
+    df = pd.DataFrame(rows)
+    result = detect_rent(df)
+    entry = next((r for r in result if r.merchant == "Landlord C"), None)
+    assert entry is not None
+    assert 1400.0 not in entry.amounts
+    assert entry.amounts == [1500.0]
+
+
 def test_detect_rent_end_of_month_payments() -> None:
     """Rent paid at month-end, slipping to the 1st some months, is still detected.
     Day-of-month std is large here; gap-based regularity must accept it.
@@ -363,6 +383,23 @@ def test_run_detection_writes_file(tmp_path: Path) -> None:
     # Detected employers and rent must match what was returned
     assert parsed.salary.employers == detected.salary.employers
     assert len(parsed.housing.rent) == len(detected.housing.rent)
+
+
+def test_run_detection_excludes_rent_exclude_merchant(tmp_path: Path) -> None:
+    """A merchant in rent_exclude is dropped from detection, so it never reaches the YAML."""
+    output_path = tmp_path / "detected.yaml"
+    rows = [
+        _make_expense_row(date=d, merchant="TrueWealth", amount_chf=500.0)
+        for d in _RENT_DATES_1
+    ]
+    df = pd.DataFrame(rows)
+
+    detected = run_detection(df, output_path=output_path, rent_exclude=["TrueWealth"])
+
+    assert [r.merchant for r in detected.housing.rent] == []
+    with output_path.open(encoding="utf-8") as f:
+        parsed = DetectedRules.model_validate(yaml.safe_load(f))
+    assert [r.merchant for r in parsed.housing.rent] == []
 
 
 def test_run_detection_salary_in_file(tmp_path: Path) -> None:

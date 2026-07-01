@@ -233,3 +233,38 @@ def test_no_parseable_date_debit_no_match(tmp_db: Path) -> None:
         matches = find_credit_card_payment_pairs(db)
 
     assert matches == []
+
+
+# ---------------------------------------------------------------------------
+# enrichment_status='pending' on credit leg — matching is status-independent
+# ---------------------------------------------------------------------------
+
+
+def test_credit_leg_with_pending_enrichment_status_matches(tmp_db: Path) -> None:
+    """Matching is driven by source/type/amount/date only — enrichment_status='pending' on credit leg does not block pairing.
+
+    This regression guards against a future change to the SQL query accidentally
+    filtering by enrichment_status; a detected card-payment row left pending by the
+    agentic pipeline must still be paired by the credit-card matcher.
+    """
+    debit_id = _insert_rfn(
+        tmp_db, "ZKB_DEBIT", 150.0, "EXPENSE", "Viseca Payment", "2025-05-01"
+    )
+    credit_id = _insert_rfn(tmp_db, "VISECA", 150.0, "INCOME", None, "2025-05-03")
+
+    # Confirm the credit leg carries enrichment_status='pending' (as left by the agentic
+    # pipeline when it skips detected card-payment rows without enriching them).
+    with sqlite3.connect(tmp_db) as db:
+        row = db.execute(
+            "SELECT enrichment_status FROM transactions_rfn WHERE id = ?", (credit_id,)
+        ).fetchone()
+    assert row is not None
+    assert row[0] == "pending"
+
+    with sqlite3.connect(tmp_db) as db:
+        matches = find_credit_card_payment_pairs(db)
+
+    assert len(matches) == 1
+    assert matches[0].debit_id == debit_id
+    assert matches[0].credit_id == credit_id
+    assert matches[0].amount == pytest.approx(150.0)

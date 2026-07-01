@@ -369,10 +369,26 @@ def test_viseca_currency_is_always_chf() -> None:
     assert unified.currency == Currency.CHF
 
 
-def test_viseca_null_merchant_does_not_raise() -> None:
-    """Empty MerchantName → adapter does not raise; booking_text is falsy."""
+def test_viseca_empty_merchant_falls_back_to_details() -> None:
+    """Empty MerchantName → booking_text falls back to Details (e.g. card payments)."""
     profile = load_profiles()[SourceType.VISECA]
-    row = _make_viseca_row(MerchantName="")
+    row = _make_viseca_row(MerchantName="", Details="Ihre Zahlung - Danke")
+    unified = to_unified(row, profile, "test.csv")
+    assert unified.booking_text == "Ihre Zahlung - Danke"
+
+
+def test_viseca_merchant_name_wins_over_details() -> None:
+    """Present MerchantName takes precedence over Details for booking_text."""
+    profile = load_profiles()[SourceType.VISECA]
+    row = _make_viseca_row(MerchantName="COOP-2440 ZUERICH", Details="ignored")
+    unified = to_unified(row, profile, "test.csv")
+    assert unified.booking_text == "COOP-2440 ZUERICH"
+
+
+def test_viseca_null_merchant_and_details_does_not_raise() -> None:
+    """Empty MerchantName and Details → adapter does not raise; booking_text is falsy."""
+    profile = load_profiles()[SourceType.VISECA]
+    row = _make_viseca_row(MerchantName="", Details="")
     unified = to_unified(row, profile, "test.csv")
     assert not unified.booking_text
 

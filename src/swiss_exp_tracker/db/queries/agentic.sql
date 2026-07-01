@@ -76,6 +76,12 @@ UPDATE transactions_rfn
 SET enrichment_status = 'skipped'
 WHERE id = :refined_id
 
+-- name: mark_transaction_needs_review!
+-- Flag a transactions_rfn row for manual investigation (e.g. missing booking_text).
+UPDATE transactions_rfn
+SET enrichment_status = 'needs_review'
+WHERE id = :refined_id
+
 -- name: insert_merchant_metadata_raw!
 -- Insert one raw merchant metadata result row.
 INSERT INTO merchant_metadata_raw (

@@ -32,7 +32,7 @@ VISECA:
   date_columns: ["Date", "ValutaDate"]
   date_formats: ["iso"]
   reference_columns: ["TransactionId"]
-  booking_text_columns: ["MerchantName"]
+  booking_text_columns: ["MerchantName", "Details"]   # fall back to Details (e.g. "Ihre Zahlung - Danke") when MerchantName is empty
   amount:
     mode: signed
     amount_column: "Amount"            # domestic CHF amount

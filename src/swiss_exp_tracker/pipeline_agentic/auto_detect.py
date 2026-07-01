@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import yaml
 
+from swiss_exp_tracker.config.user_config_loader import load_rent_exclude
 from swiss_exp_tracker.config.user_config_schema import DetectedRules
 from swiss_exp_tracker.config.user_config_schema import HousingDetected
 from swiss_exp_tracker.config.user_config_schema import RentDetected
@@ -39,6 +40,15 @@ def _drop_payment_services(df: pd.DataFrame) -> pd.DataFrame:
     if "category_main" not in df.columns:
         return df
     return df[df["category_main"] != _PAYMENT_SERVICES]
+
+
+def _highest_per_month(group: pd.DataFrame) -> pd.DataFrame:
+    """Drop same-month payments below that month's max — a smaller same-month charge is a fee, not rent.
+    Equal-amount rows are kept so end-of-month drift (two months' rent in one calendar month) survives.
+    """
+    months = pd.to_datetime(group["date"]).dt.to_period("M")
+    month_max = group["amount_chf"].groupby(months).transform("max")
+    return group[group["amount_chf"] >= month_max]
 
 
 def _is_monthly_regular(dates: pd.Series, max_gap_std: float = 5.0) -> bool:
@@ -91,9 +101,8 @@ def detect_salary(df: pd.DataFrame) -> list[str]:
 
 def detect_rent(df: pd.DataFrame) -> list[RentDetected]:
     """Return RentDetected entries for merchants with a recurring fixed high-amount expense.
-    Anchors on the median amount and tests count/cv/regularity over only the rows near it, so
-    one-off charges a property manager books under the same name don't mask the rent. Excludes
-    Payment Services; checks monthly regularity via inter-payment gaps. Sorted by amount desc.
+    Collapses to the highest payment per month (one rent per month), then anchors on the median
+    and tests count/cv/regularity over rows near it. Excludes Payment Services; sorted amount desc.
     """
     if df.empty:
         return []
@@ -107,6 +116,7 @@ def detect_rent(df: pd.DataFrame) -> list[RentDetected]:
     results: list[tuple[str, float, list[float]]] = []
 
     for merchant, group in expense_df.groupby("merchant"):
+        group = _highest_per_month(group)
         median_amount = float(group["amount_chf"].median())
 
         if median_amount < 400.0:
@@ -146,16 +156,20 @@ _CONFIG_DIR = Path(__file__).parent / "config"
 def run_detection(
     df: pd.DataFrame,
     output_path: Path = _CONFIG_DIR / "detected_rules.yaml",
+    rent_exclude: list[str] | None = None,
 ) -> DetectedRules:
-    """Detect salary/rent, preserve existing credit_card_payments, write YAML, return DetectedRules."""
+    """Detect salary/rent, preserve existing credit_card_payments, write YAML, return DetectedRules.
+    Merchants in rent_exclude are dropped from detection; defaults to housing.rent_exclude from config.
+    """
     existing = DetectedRules()
     if output_path.exists():
         with output_path.open(encoding="utf-8") as f:
             raw: object = yaml.safe_load(f) or {}
         existing = DetectedRules.model_validate(raw)
 
+    excluded = set(load_rent_exclude() if rent_exclude is None else rent_exclude)
     employers = detect_salary(df)
-    rent_list = detect_rent(df)
+    rent_list = [r for r in detect_rent(df) if r.merchant not in excluded]
 
     detected = DetectedRules(
         salary=SalaryDetected(employers=employers),

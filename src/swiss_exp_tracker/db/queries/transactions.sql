@@ -253,6 +253,22 @@ WHERE rfn.balance_chf IS NULL
 -- Update balance_chf for a single refined row by id.
 UPDATE transactions_rfn SET balance_chf = :balance_chf WHERE id = :rfn_id
 
+-- name: get_rfn_rows_missing_booking_text
+-- Return refined rows with a NULL/empty booking_text, joined with their raw JSON.
+SELECT rfn.id, rfn.source_type, raw.raw_json
+FROM transactions_rfn rfn
+JOIN transactions_raw raw ON raw.id = rfn.raw_id
+WHERE rfn.booking_text IS NULL
+   OR TRIM(rfn.booking_text) = ''
+
+-- name: set_rfn_booking_text!
+-- Update booking_text, merchant_normalized and is_person for a single refined row by id.
+UPDATE transactions_rfn
+SET booking_text = :booking_text,
+    merchant_normalized = :merchant_normalized,
+    is_person = :is_person
+WHERE id = :rfn_id
+
 -- name: get_rfn_rows_by_source_and_type
 -- Return id/amount/date/booking_text for a source and transaction type, ordered for matching.
 SELECT id, amount, date, booking_text

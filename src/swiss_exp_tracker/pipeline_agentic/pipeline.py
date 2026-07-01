@@ -9,24 +9,48 @@ from datetime import datetime
 from openai import APIError
 from tqdm import tqdm
 
+from swiss_exp_tracker.config.user_config_loader import load_credit_card_payment_texts
 from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_summary import (
     AllProvidersExhaustedError,
 )
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import Transaction
 from swiss_exp_tracker.pipeline_agentic.merchant_manager import MerchantManager
+from swiss_exp_tracker.pipeline_agentic.merchant_result import MerchantResult
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
+
+logger = logging.getLogger(__name__)
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
-def load_pending_transactions() -> list[Transaction]:
-    """Step 1: Load transactions from database where enrichment is pending.
+def _normalize_text(text: str) -> str:
+    """Lowercase and collapse surrounding/internal whitespace for card-payment text matching."""
+    return " ".join(text.split()).lower()
 
-    Reads all rows from transactions_rfn table where enrichment_status = 'PENDING'
-    and converts them to Transaction objects for processing.
+
+def _is_empty_row(
+    date_str: str | None,
+    merchant: str | None,
+    reference: str | None,
+    amount: float | None,
+) -> bool:
+    """Return True if a refined row carries no meaningful content (all fields empty/zero)."""
+    return (
+        not date_str
+        and not merchant
+        and not reference
+        and (amount is None or amount == 0)
+    )
+
+
+def load_pending_transactions() -> list[Transaction]:
+    """Load pending transactions_rfn rows as Transactions, excluding detected card-payment
+    rows; rows with no booking_text are triaged ('skipped' if empty, else 'needs_review').
     """
     pending_transactions: list[Transaction] = []
+    result = MerchantResult()
+    card_payment_texts = {_normalize_text(t) for t in load_credit_card_payment_texts()}
 
     with get_connection() as db:
         db.row_factory = None  # Reset row factory to get tuples
@@ -42,6 +66,41 @@ def load_pending_transactions() -> list[Transaction]:
             amount,
             is_person,
         ) = row
+
+        # booking_text is required for enrichment. A NULL value never reaches the
+        # Transaction model (which would raise a ValidationError and crash the run);
+        # instead the row is triaged so it leaves the pending pool.
+        if booking_text is None:
+            if _is_empty_row(date_str, merchant, reference, amount):
+                # Empty row (all fields None/zero) — drop it silently.
+                logger.info(
+                    "Skipping empty refined row %s (no booking_text, no data).",
+                    refined_id,
+                )
+                result.mark_transaction_skipped(refined_id)
+            else:
+                # Row carries data but no booking_text — flag for manual review.
+                logger.warning(
+                    "Refined row %s has no booking_text but carries data "
+                    "(merchant=%r, reference=%r, amount=%r); marking 'needs_review'.",
+                    refined_id,
+                    merchant,
+                    reference,
+                    amount,
+                )
+                result.mark_transaction_needs_review(refined_id)
+            continue
+
+        # Rows matching a detected credit-card payment pattern are excluded from
+        # enrichment but left untouched in the DB so they stay available for
+        # pipeline_dash aggregation with their existing status.
+        if _normalize_text(booking_text) in card_payment_texts:
+            logger.info(
+                "Skipping credit-card payment row %s (booking_text=%r); left pending.",
+                refined_id,
+                booking_text,
+            )
+            continue
 
         # Parse date if it exists
         transaction_date = None

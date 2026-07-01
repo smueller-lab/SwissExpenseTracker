@@ -49,9 +49,9 @@ def backfill_balance_chf_rfn(db: sqlite3.Connection) -> int:
         if key is None:
             continue
         balance = json.loads(raw_json_str).get(key)
-        if balance is not None:
+        if balance is not None and str(balance).strip() != "":
             transactions.set_rfn_balance_chf(
-                db, balance_chf=float(balance), rfn_id=row_id
+                db, balance_chf=float(str(balance).strip()), rfn_id=row_id
             )
             updated += 1
     return updated
