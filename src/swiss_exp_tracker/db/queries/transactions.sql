@@ -68,6 +68,16 @@ CREATE TABLE IF NOT EXISTS api_usage (
     UNIQUE(provider, period)
 )
 
+-- name: create_dash_budget_table#
+-- Create the dash_budget table if it does not exist.
+CREATE TABLE IF NOT EXISTS dash_budget (
+    category TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    budget_chf REAL NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(year, category)
+)
+
 -- name: create_idx_ingested_files_source#
 -- Create index on ingested_files(source_type) if it does not exist.
 CREATE INDEX IF NOT EXISTS idx_ingested_files_source
@@ -303,6 +313,18 @@ ON CONFLICT(provider, period) DO UPDATE SET
     used = excluded.used,
     credit_limit = excluded.credit_limit,
     updated_at = excluded.updated_at
+
+-- name: upsert_dash_budget!
+-- Insert or update the budget for a category and year.
+INSERT INTO dash_budget (category, year, budget_chf, updated_at)
+VALUES (:category, :year, :budget_chf, :updated_at)
+ON CONFLICT(year, category) DO UPDATE SET
+    budget_chf = excluded.budget_chf,
+    updated_at = excluded.updated_at
+
+-- name: get_dash_budget
+-- Select all rows from dash_budget.
+SELECT category, year, budget_chf, updated_at FROM dash_budget
 
 -- name: get_transactions_use
 -- Select all rows from transactions_use.

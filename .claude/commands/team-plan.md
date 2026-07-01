@@ -16,7 +16,24 @@ Name: `plan-<feature-slug>.md` where `<feature-slug>` is a short kebab-case name
 
 One paragraph: what is being built, why it's needed, which part of the app it touches.
 
-### 2. Builder Tasks
+### 2. Component Mockups (required whenever the feature adds or changes a page, figure, or table)
+
+Whenever the plan introduces or modifies any **dashboard page, Plotly figure, or table**,
+include a `## Component Mockups` section that sketches roughly how each new/changed component
+will look — **before any code is written** — so the user can preview and correct the layout.
+
+- One labelled ASCII mockup per component (input card, chart, table, KPI row, …), drawn
+  inside a box so structure, headers, axes, columns, and key labels are visible.
+- For charts: show axis labels, series/legend, and any solid-vs-dashed or color meaning.
+- For tables: show the column headers and one or two representative rows, plus any
+  conditional coloring (e.g. red = over, green = under).
+- Note each component's card type and `col-` width, and that the cards share one `grid`.
+- State explicitly that these are structural sketches, not pixel-accurate renders.
+
+Skip this section only when the feature touches no page/figure/table (e.g. a pure data-source
+or pipeline-only change).
+
+### 3. Builder Tasks
 
 One entry per distinct implementation component. Components that touch different files can run in parallel; components with dependencies must be sequenced. For each task:
 
@@ -30,7 +47,7 @@ One entry per distinct implementation component. Components that touch different
 - **Blocked by**: other builder task names that must complete first (or "none")
 ```
 
-### 3. Tester Task
+### 4. Tester Task
 
 One task covering all builder output:
 
@@ -44,7 +61,7 @@ One task covering all builder output:
 - **Blocked by**: all builder task names
 ```
 
-### 4. Validator Task
+### 5. Validator Task
 
 ```
 #### Validator Task: Validate <feature>

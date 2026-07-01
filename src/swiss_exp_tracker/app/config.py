@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
 
 from dash.dash_table import FormatTemplate
@@ -83,6 +84,29 @@ class config:
 
     # number of top categories shown in the vacation boxplot
     vacation_top_n: int = 4
+
+    # budget / forecast page
+    npixel_Budget: int = 50
+    budget_default_categories: list[str] = field(
+        default_factory=lambda: [
+            "Travel",
+            "Restaurant",
+            "Groceries",
+            "Transport",
+            "Retail",
+        ]
+    )
+    forecast_freq_rule: dict[str, str] = field(
+        default_factory=lambda: {"D": "D", "W": "W", "M": "MS"}
+    )
+    forecast_freq_options: list[dict[str, str]] = field(
+        default_factory=lambda: [
+            {"label": "Daily", "value": "D"},
+            {"label": "Weekly", "value": "W"},
+            {"label": "Monthly", "value": "M"},
+        ]
+    )
+    forecast_freq_default: str = "W"
 
     # in-chart text-label fonts
     font_no_data = {"color": "white", "size": 16}

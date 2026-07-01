@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from swiss_exp_tracker.app.callbacks import budget_forecast
 from swiss_exp_tracker.app.callbacks import food
 from swiss_exp_tracker.app.callbacks import groceries
 from swiss_exp_tracker.app.callbacks import groceries_detail
@@ -22,6 +23,7 @@ _PAGE_CALLBACKS = [
     transport,
     retail,
     smarttable,
+    budget_forecast,
 ]
 
 
