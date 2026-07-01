@@ -277,6 +277,14 @@ WHERE source_type = :source_type
   AND transaction_type = :transaction_type
 ORDER BY amount, COALESCE(date, ''), id
 
+-- name: delete_rfn_by_source_type_and_merchant_substr!
+-- Delete refined rows for a source/type whose merchant_normalized contains the substring.
+DELETE FROM transactions_rfn
+WHERE source_type = :source_type
+  AND transaction_type = :transaction_type
+  AND merchant_normalized IS NOT NULL
+  AND lower(merchant_normalized) LIKE :merchant_pattern
+
 -- name: fill_viseca_fee_text!
 -- Set booking_text and merchant_normalized on matching Viseca fee rows.
 UPDATE transactions_rfn

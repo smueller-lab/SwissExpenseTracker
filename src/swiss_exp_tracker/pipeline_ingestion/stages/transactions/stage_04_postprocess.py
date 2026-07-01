@@ -84,6 +84,17 @@ def _clean_credit_card_payments(db: sqlite3.Connection) -> int:
     return len(matches)
 
 
+def _clean_revolut_transfers(db: sqlite3.Connection) -> int:
+    """Drop ZKB Debit EXPENSE rows whose merchant is Revolut (internal top-ups); returns rows removed."""
+    rowcount: int = transactions.delete_rfn_by_source_type_and_merchant_substr(
+        db,
+        source_type=SourceType.ZKB_DEBIT.value,
+        transaction_type=TransactionType.EXPENSE.value,
+        merchant_pattern="%revolut%",
+    )
+    return max(rowcount, 0)
+
+
 def _fill_viseca_credit_card_fee_text(db: sqlite3.Connection) -> int:
     """Backfill booking_text and merchant for Viseca fee rows; returns rows updated."""
     rowcount: int = transactions.fill_viseca_fee_text(
@@ -98,14 +109,16 @@ def _fill_viseca_credit_card_fee_text(db: sqlite3.Connection) -> int:
 
 
 def run_postprocess() -> dict[str, int]:
-    """Run postprocessing: remove credit card payment pairs and fill Viseca fee text."""
+    """Run postprocessing: remove credit card pairs, drop ZKB Revolut top-ups, and fill Viseca fee text."""
     create_all_tables()
 
     with get_connection() as db:
         credit_card_pairs_removed = _clean_credit_card_payments(db)
+        revolut_transfers_removed = _clean_revolut_transfers(db)
         viseca_fee_rows_updated = _fill_viseca_credit_card_fee_text(db)
 
     return {
         "credit_card_pairs_removed": credit_card_pairs_removed,
+        "revolut_transfers_removed": revolut_transfers_removed,
         "viseca_fee_rows_updated": viseca_fee_rows_updated,
     }

@@ -312,3 +312,124 @@ def test_postprocess_persistence_yaml_contains_pairs(
         "2002 LSV-Zahlung",
         "Viseca Payment",
     ]
+
+
+# ---------------------------------------------------------------------------
+# Revolut transfer pair removal
+# ---------------------------------------------------------------------------
+
+
+def test_zkb_revolut_topup_removed_and_counter_correct(tmp_db: Path) -> None:
+    """ZKB Debit EXPENSE with 'revolut' in merchant → dropped; revolut_transfers_removed counts it."""
+    _insert_rfn_row(
+        tmp_db,
+        source_type="ZKB_DEBIT",
+        amount=1000.0,
+        transaction_type="EXPENSE",
+        booking_text="Debit eBanking: Revolut LTD, CH",
+        merchant_normalized="revolut ch",
+    )
+
+    result = run_postprocess()
+
+    assert result["revolut_transfers_removed"] == 1
+
+    with sqlite3.connect(tmp_db) as db:
+        rfn_count = db.execute("SELECT COUNT(*) FROM transactions_rfn").fetchone()[0]
+    assert rfn_count == 0
+
+
+def test_revolut_source_expense_is_not_dropped(tmp_db: Path) -> None:
+    """A REVOLUT-source EXPENSE ('To Sebastian') is never dropped by the ZKB top-up cleanup."""
+    _insert_rfn_row(
+        tmp_db,
+        source_type="REVOLUT",
+        amount=936.13,
+        transaction_type="EXPENSE",
+        booking_text="To Sebastian Mueller",
+        merchant_normalized="to sebastian mueller",
+    )
+
+    result = run_postprocess()
+
+    assert result["revolut_transfers_removed"] == 0
+
+    with sqlite3.connect(tmp_db) as db:
+        rfn_count = db.execute("SELECT COUNT(*) FROM transactions_rfn").fetchone()[0]
+    assert rfn_count == 1
+
+
+def test_zkb_non_revolut_expense_is_kept(tmp_db: Path) -> None:
+    """A ZKB Debit EXPENSE whose merchant is not Revolut is kept; counter stays 0."""
+    _insert_rfn_row(
+        tmp_db,
+        source_type="ZKB_DEBIT",
+        amount=42.0,
+        transaction_type="EXPENSE",
+        booking_text="Migros",
+        merchant_normalized="migros",
+    )
+
+    result = run_postprocess()
+
+    assert result["revolut_transfers_removed"] == 0
+
+    with sqlite3.connect(tmp_db) as db:
+        rfn_count = db.execute("SELECT COUNT(*) FROM transactions_rfn").fetchone()[0]
+    assert rfn_count == 1
+
+
+def test_postprocess_result_dict_contains_revolut_transfers_removed(
+    tmp_db: Path,
+) -> None:
+    """run_postprocess() always returns the 'revolut_transfers_removed' key, even with empty DB."""
+    result = run_postprocess()
+
+    assert "revolut_transfers_removed" in result
+    assert result["revolut_transfers_removed"] == 0
+
+
+def test_revolut_topup_and_credit_card_both_cleaned(
+    tmp_db: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """ZKB Revolut top-up + credit-card pair both cleaned independently; counters correct."""
+    rules_path = tmp_path / "detected_rules.yaml"
+    monkeypatch.setattr(
+        _postprocess_mod,
+        "_record_credit_card_payments",
+        lambda matches: _record_credit_card_payments(matches, output_path=rules_path),
+    )
+
+    # ZKB Revolut top-up (dropped by merchant substring).
+    _insert_rfn_row(
+        tmp_db,
+        source_type="ZKB_DEBIT",
+        amount=1000.0,
+        transaction_type="EXPENSE",
+        booking_text="Debit eBanking: Revolut LTD, CH",
+        merchant_normalized="revolut ch",
+    )
+    # Credit card pair: ZKB_DEBIT Viseca + VISECA INCOME (matched by amount).
+    _insert_rfn_row(
+        tmp_db,
+        source_type="ZKB_DEBIT",
+        amount=50.0,
+        transaction_type="EXPENSE",
+        booking_text="Viseca Payment",
+    )
+    _insert_rfn_row(
+        tmp_db,
+        source_type="VISECA",
+        amount=50.0,
+        transaction_type="INCOME",
+        booking_text=None,
+    )
+
+    result = run_postprocess()
+
+    assert result["revolut_transfers_removed"] == 1
+    assert result["credit_card_pairs_removed"] == 1
+
+    with sqlite3.connect(tmp_db) as db:
+        rfn_count = db.execute("SELECT COUNT(*) FROM transactions_rfn").fetchone()[0]
+    assert rfn_count == 0
