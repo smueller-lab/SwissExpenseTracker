@@ -64,7 +64,7 @@ def _make_rfn_row(**overrides: object) -> dict[str, object]:
 
 def _insert_file(db: sqlite3.Connection, **overrides: object) -> None:
     """Insert one ingested_files_pos row."""
-    pos_sql.insert_ingested_file_pos(db, **_make_file_row(**overrides))  # type: ignore[arg-type]
+    pos_sql.insert_ingested_file_pos(db, **_make_file_row(**overrides))
     db.commit()
 
 
@@ -72,14 +72,15 @@ def _insert_lnd(db: sqlite3.Connection, **overrides: object) -> int:
     """Insert one positions_lnd row and return its id."""
     pos_sql.insert_positions_lnd(db, [_make_lnd_row(**overrides)])
     db.commit()
-    return db.execute(
+    row_id = db.execute(
         "SELECT id FROM positions_lnd ORDER BY id DESC LIMIT 1"
     ).fetchone()[0]
+    return int(row_id)
 
 
 def _insert_rfn(db: sqlite3.Connection, **overrides: object) -> None:
     """Insert one positions_rfn row (OR IGNORE)."""
-    pos_sql.insert_positions_rfn_ignore(db, **_make_rfn_row(**overrides))  # type: ignore[arg-type]
+    pos_sql.insert_positions_rfn_ignore(db, **_make_rfn_row(**overrides))
     db.commit()
 
 

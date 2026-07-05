@@ -37,9 +37,10 @@ def _insert_pair(
 
 def _balance(con: sqlite3.Connection, rfn_id: int) -> float | None:
     """Return the balance_chf stored on a refined row."""
-    return con.execute(
+    value = con.execute(
         "SELECT balance_chf FROM transactions_rfn WHERE id=?", (rfn_id,)
     ).fetchone()[0]
+    return None if value is None else float(value)
 
 
 def test_backfill_ubs_debit_from_solde(tmp_db: Path) -> None:

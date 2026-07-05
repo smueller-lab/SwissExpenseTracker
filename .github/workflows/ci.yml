@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -38,13 +40,13 @@ jobs:
 
       # The four checks below mirror the former .pre-commit-config.yaml hooks.
       - name: ruff check
-        run: poetry run ruff check src
+        run: poetry run ruff check src tests
 
       - name: black check
-        run: poetry run black --check src
+        run: poetry run black --check src tests
 
       - name: mypy
-        run: poetry run mypy --config-file pyproject.toml src
+        run: poetry run mypy --config-file pyproject.toml
 
       - name: pytest
         # Dummy keys satisfy the skipif guards so the web-search tests run and
@@ -57,3 +59,28 @@ jobs:
           BRAVE_SEARCH_API_KEY: dummy
           SCRAPE_DO_API_KEY: dummy
         run: poetry run pytest tests --ignore=tests/test_claude_chrome --tb=short
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      # Catches a broken compose file (bad keys, undefined volumes, etc.) without
+      # needing a build. Requires .env to exist because docker-compose.yml has env_file.
+      - name: Validate docker-compose config
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+
+      # Builds the image so a broken Dockerfile fails CI instead of merging silently.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: swiss-expense-tracker:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

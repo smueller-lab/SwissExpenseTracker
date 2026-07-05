@@ -1,0 +1,53 @@
+# Swiss Expense Tracker — two services from one image.
+#
+#   1. Put your bank exports under ./bank_data/  (it must contain an  lnd/  folder).
+#      To keep data outside the repo, point DATA_DIR in .env at any path
+#      (e.g. ../bank_data or /mnt/finance/bank_data) — that folder must contain lnd/.
+#   2. Copy .env.example to .env and fill in YOUR OWN API keys
+#   3. Build + enrich your data:   docker compose run --rm pipeline
+#   4. Launch the dashboard:       docker compose up dashboard
+#                                  → open http://localhost:8050
+#
+# Your API keys come from your own .env (never baked into the image), so each
+# person uses their own free-tier credits. The merchant/grocery caches and the
+# database persist in the volumes below, so a merchant is only looked up once.
+
+services:
+  # The interactive dashboard. Needs the database to exist — run `pipeline` first.
+  dashboard:
+    build: .
+    image: swiss-expense-tracker
+    ports:
+      - "8050:8050"
+    env_file:
+      - .env
+    environment:
+      # Overrides DATA_DIR from .env so it points inside the container.
+      DATA_DIR: /data
+    volumes:
+      # Host path comes from DATA_DIR in .env (e.g. ../bank_data or an absolute path),
+      # so data can live outside the repo. The environment: block below overrides
+      # DATA_DIR to /data inside the container; compose reads the host value here.
+      # Defaults to ./bank_data so it works without extra setup.
+      - ${DATA_DIR:-./bank_data}:/data
+      - ./database:/app/database
+      - ./merchant_vector_store:/app/merchant_vector_store
+      - ./grocery_vector_store:/app/grocery_vector_store
+    restart: unless-stopped
+
+  # The ingestion + AI enrichment pipeline. Run on demand, not part of `up`.
+  # Usage:  docker compose run --rm pipeline
+  pipeline:
+    build: .
+    image: swiss-expense-tracker
+    profiles: ["tools"]
+    env_file:
+      - .env
+    environment:
+      DATA_DIR: /data
+    volumes:
+      - ${DATA_DIR:-./bank_data}:/data
+      - ./database:/app/database
+      - ./merchant_vector_store:/app/merchant_vector_store
+      - ./grocery_vector_store:/app/grocery_vector_store
+    command: ["python", "-m", "swiss_exp_tracker.pipeline"]

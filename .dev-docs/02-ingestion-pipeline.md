@@ -264,10 +264,13 @@ sign of a single column via `expense_sign`.
 |----------|-------|
 | `INGESTION_DB_PATH` | `<project_root>/database/transactions.db` |
 | `POSITIONS_DB_PATH` | `<project_root>/database/positions.db` |
-| `LANDING_ZONE_DIR` | `DIR_BOX / "lnd"` (from `user_config.py`) |
+| `LANDING_ZONE_DIR` | `DIR_DATA / "lnd"` (from `user_config.py`) |
 
-`user_config.py` (not in version control) defines `DIR_BOX` — the root of the
-local data folder where bank exports are dropped.
+`user_config.py` reads the `DATA_DIR` environment variable (via `python-dotenv`,
+so a `.env` file works) and exposes it as `DIR_DATA` — the root of the local data
+folder where bank exports are dropped. It raises `RuntimeError` if `DATA_DIR` is
+unset. See [`05-running-and-deployment.md`](05-running-and-deployment.md) for the
+full configuration and how `DATA_DIR` is wired in Docker.
 
 ---
 

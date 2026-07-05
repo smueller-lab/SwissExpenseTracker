@@ -28,6 +28,7 @@ Ever reach the end of the month, open your banking app, and you are asking yours
   - [📁 Download your bank data](#-download-your-bank-data)
   - [🔑 Configure API keys](#-configure-api-keys)
   - [📦 Install](#-install)
+  - [🐳 Run with Docker](#-run-with-docker)
   - [▶️ Run the pipeline](#-run-the-pipeline)
   - [🖥️ Launch the dashboard](#-launch-the-dashboard)
 - [🔎 Validate pipeline results](#-validate-pipeline-results)
@@ -92,6 +93,7 @@ Set a per-category budget for the year, then let the model project your end-of-y
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 🏠**Home**              | Balance progression, net balance per month, top spending category, expense distribution                                                                                                |
 | 📊**Balance Sheet**     | Yearly income / spent / invested / net gain with gain & YoY rates, all-time KPIs (lifetime net gain, total invested, avg gain rate, avg annual net gain), major-category spend by year |
+| 💰**Budget / Forecasting** | Per-category yearly budgets, seasonally-paced end-of-year forecast, lumpy-category handling, budget-used-now KPIs, over/under table                                                   |
 | 🛒**Groceries**         | Store breakdown (Migros, Coop, Lidl, Aldi, ...), spend distribution                                                                                                                    |
 | **M Cumulus Analytics** | Item-level grocery analysis: categories, health score, top articles                                                                                                                    |
 | 🍽️**Dining & Bars**   | Restaurant & grocery spend by frequency, per-visit box plots                                                                                                                           |
@@ -101,7 +103,6 @@ Set a per-category budget for the year, then let the model project your end-of-y
 | 🛍️**Retail**          | Retail breakdown by subcategory, spend donut, top purchases                                                                                                                            |
 | 🔍**Smart Table**       | Fully filterable transaction browser                                                                                                                                                   |
 | 📈**Investing**         | Portfolio value vs. invested, P&L, per-position progression                                                                                                                            |
-| 💰**Budget / Forecasting** | Per-category yearly budgets, seasonally-paced end-of-year forecast, lumpy-category handling, budget-used-now KPIs, over/under table                                                   |
 
 ---
 
@@ -256,6 +257,69 @@ cd SwissExpenseTracker
 python3 -m venv venv && source venv/bin/activate
 pip install poetry && poetry install
 ```
+
+---
+
+### 🐳 Run with Docker
+
+Prefer not to install Python and Poetry? The whole app runs in Docker — the only
+prerequisite is [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+> 🔑 **Your keys stay yours.** `.env` is never copied into the image, so each person
+> supplies their **own** API keys and spends only their **own** free-tier credits.
+> The merchant cache and database live in local folders, so every merchant is looked
+> up once and your usage is tracked separately from anyone else's.
+
+**1. Add your keys.** Copy the template and fill in your own keys:
+
+```bash
+cp .env.example .env      # then edit .env and paste in your API keys
+```
+
+**2. Add your bank exports.** By default they go in a `bank_data/lnd/` folder next to
+the compose file:
+
+```bash
+mkdir -p bank_data/lnd    # put your bank CSV/XLS exports inside bank_data/lnd/
+```
+
+To keep your data **outside the repo**, point `DATA_DIR` in `.env` at any folder — a
+sibling directory or an absolute path — and put your exports under its `lnd/`
+subfolder. This is the same `DATA_DIR` used for local (non-Docker) runs, so one
+setting covers both:
+
+```dotenv
+# .env
+DATA_DIR=../bank_data            # or an absolute path like /mnt/finance/bank_data
+```
+
+```bash
+mkdir -p ../bank_data/lnd
+```
+
+Compose mounts whatever `DATA_DIR` points to into the container, so nothing sensitive
+ever lives in the repo. If `DATA_DIR` is unset it falls back to `./bank_data`.
+
+**3. Build the database + enrich your transactions** (needs your keys; runs the full
+pipeline):
+
+```bash
+docker compose run --rm pipeline
+```
+
+**4. Launch the dashboard:**
+
+```bash
+docker compose up dashboard
+```
+
+Open [http://localhost:8050](http://localhost:8050). Re-running step 3 after adding new
+exports is safe — already-processed files are skipped.
+
+> ℹ️ Run the pipeline (step 3) **before** the dashboard — the dashboard loads the
+> database that the pipeline produces. The `database/`, `merchant_vector_store/`, and
+> `grocery_vector_store/` folders persist between runs so your data and cache survive
+> container restarts.
 
 ---
 
@@ -442,6 +506,8 @@ Detailed technical documentation lives in `.dev-docs/`:
 | [`03-dashboard.md`](.dev-docs/03-dashboard.md)                   | Every dashboard page, KPI cards, chart specs                      |
 | [`04-pipeline-dash.md`](.dev-docs/04-pipeline-dash.md)           | Pre-aggregation pipeline that feeds the dashboard                 |
 | [`05-budget-forecasting.md`](.dev-docs/05-budget-forecasting.md) | Year-end forecast model, seasonal pacing, lumpy-category handling |
+| [`05-running-and-deployment.md`](.dev-docs/05-running-and-deployment.md) | Pipeline entry point, local + Docker run, config, versioning      |
+| [`06-database-and-sql.md`](.dev-docs/06-database-and-sql.md)     | aiosql query layer, connection helpers, table creation/migrations |
 
 ---
 

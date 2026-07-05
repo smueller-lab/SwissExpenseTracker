@@ -1,0 +1,34 @@
+# Keep the build context small and never bake secrets or local state into the image.
+
+# Secrets — supplied at runtime via env_file, must never enter an image layer
+.env
+.env.*
+
+# Generated runtime state — mounted as volumes instead
+database/
+merchant_vector_store/
+grocery_vector_store/
+
+# Local virtualenv / caches
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Tests are not needed in the runtime image
+tests/
+
+# VCS and editor
+.git/
+.gitignore
+.vscode/
+.idea/
+.claude/
+
+# Docs / dev-only
+.dev-docs/
+htmlcov/
+coverage.*
+*.log

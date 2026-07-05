@@ -5,6 +5,8 @@ No DB or fixtures required — all helpers are exercised with synthetic DataFram
 
 from __future__ import annotations
 
+from typing import Literal
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -102,7 +104,7 @@ def _make_spend(category: str, amount: float) -> pd.DataFrame:
     [("M", 12), ("W", 52), ("D", 365)],
 )
 def test_seasonal_pacing_curve_sample_count_tracks_freq(
-    freq: str, expected_len: int
+    freq: Literal["D", "W", "M"], expected_len: int
 ) -> None:
     """Output row count equals the canonical grid size for the given frequency."""
     empty = pd.DataFrame(columns=["category", "year", "year_fraction", "spend_chf"])
@@ -116,7 +118,9 @@ def test_seasonal_pacing_curve_sample_count_tracks_freq(
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_seasonal_pacing_curve_no_history_is_linear(freq: str) -> None:
+def test_seasonal_pacing_curve_no_history_is_linear(
+    freq: Literal["D", "W", "M"],
+) -> None:
     """With no prior history the curve is exactly the linear grid (cum_share == year_fraction)."""
     empty = pd.DataFrame(columns=["category", "year", "year_fraction", "spend_chf"])
     curve = seasonal_pacing_curve(empty, "Groceries", freq)
@@ -134,7 +138,9 @@ def test_seasonal_pacing_curve_no_history_is_linear(freq: str) -> None:
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_seasonal_pacing_curve_monotone_non_decreasing(freq: str) -> None:
+def test_seasonal_pacing_curve_monotone_non_decreasing(
+    freq: Literal["D", "W", "M"],
+) -> None:
     """cum_share is monotonically non-decreasing across the full curve."""
     history = _make_linear_history("Groceries", [2022, 2023], freq)
     curve = seasonal_pacing_curve(history, "Groceries", freq)
@@ -143,7 +149,7 @@ def test_seasonal_pacing_curve_monotone_non_decreasing(freq: str) -> None:
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_seasonal_pacing_curve_ends_at_one(freq: str) -> None:
+def test_seasonal_pacing_curve_ends_at_one(freq: Literal["D", "W", "M"]) -> None:
     """The last cum_share value is exactly 1.0."""
     history = _make_linear_history("Groceries", [2022, 2023], freq)
     curve = seasonal_pacing_curve(history, "Groceries", freq)
@@ -269,7 +275,7 @@ def test_forecast_year_end_front_loaded_lower_than_flat() -> None:
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_build_forecast_line_output_columns(freq: str) -> None:
+def test_build_forecast_line_output_columns(freq: Literal["D", "W", "M"]) -> None:
     """Output DataFrame has exactly [period_end, cumulative_chf, segment] columns."""
     curve = _make_linear_curve(freq)
     cumulative = _make_cumulative_df(
@@ -282,7 +288,7 @@ def test_build_forecast_line_output_columns(freq: str) -> None:
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_build_forecast_line_segment_values_valid(freq: str) -> None:
+def test_build_forecast_line_segment_values_valid(freq: Literal["D", "W", "M"]) -> None:
     """Output 'segment' column contains only 'actual' and 'forecast'."""
     curve = _make_linear_curve(freq)
     cumulative = _make_cumulative_df(
@@ -295,7 +301,9 @@ def test_build_forecast_line_segment_values_valid(freq: str) -> None:
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_build_forecast_line_actual_rows_at_or_before_as_of(freq: str) -> None:
+def test_build_forecast_line_actual_rows_at_or_before_as_of(
+    freq: Literal["D", "W", "M"],
+) -> None:
     """All 'actual' rows have period_end <= as_of."""
     curve = _make_linear_curve(freq)
     cumulative = _make_cumulative_df(
@@ -310,7 +318,9 @@ def test_build_forecast_line_actual_rows_at_or_before_as_of(freq: str) -> None:
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_build_forecast_line_forecast_rows_at_or_after_as_of(freq: str) -> None:
+def test_build_forecast_line_forecast_rows_at_or_after_as_of(
+    freq: Literal["D", "W", "M"],
+) -> None:
     """All 'forecast' rows (including boundary) have period_end >= as_of."""
     curve = _make_linear_curve(freq)
     cumulative = _make_cumulative_df(
@@ -325,7 +335,9 @@ def test_build_forecast_line_forecast_rows_at_or_after_as_of(freq: str) -> None:
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_build_forecast_line_boundary_point_joins_segments(freq: str) -> None:
+def test_build_forecast_line_boundary_point_joins_segments(
+    freq: Literal["D", "W", "M"],
+) -> None:
     """The boundary point at as_of appears in the forecast segment for trace continuity."""
     curve = _make_linear_curve(freq)
     cumulative = _make_cumulative_df(
