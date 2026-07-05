@@ -48,3 +48,11 @@ class MerchantResult:
         with get_connection() as db:
             agentic.mark_transaction_skipped(db, refined_id=refined_id)
             db.commit()
+
+    def mark_transaction_needs_review(self, refined_id: int | None) -> None:
+        """Set enrichment_status to 'needs_review' for a row that needs manual investigation."""
+        if refined_id is None:
+            return
+        with get_connection() as db:
+            agentic.mark_transaction_needs_review(db, refined_id=refined_id)
+            db.commit()

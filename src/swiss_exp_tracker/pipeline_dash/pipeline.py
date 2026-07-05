@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import logging
 import sqlite3
 
@@ -25,6 +24,7 @@ from swiss_exp_tracker.pipeline_dash.tables import top_category
 from swiss_exp_tracker.pipeline_dash.tables import top_expenses
 from swiss_exp_tracker.pipeline_dash.tables import transport
 from swiss_exp_tracker.pipeline_dash.tables import vacation
+from swiss_exp_tracker.pipeline_ingestion.db import backfill_balance_chf_rfn
 
 logger = logging.getLogger(__name__)
 
@@ -38,14 +38,9 @@ def _ensure_balance_chf(con: sqlite3.Connection) -> None:
     rfn_cols = {row[1] for row in transactions.get_rfn_column_names(con)}
     if "balance_chf" not in rfn_cols:
         con.execute(transactions.alter_rfn_add_balance_chf.sql)
-        rows = transactions.get_rfn_rows_for_balance_backfill(con)
-        for row_id, raw_json_str in rows:
-            data = json.loads(raw_json_str)
-            balance_val = data.get("Balance CHF")
-            if balance_val is not None:
-                transactions.set_rfn_balance_chf(
-                    con, balance_chf=float(balance_val), rfn_id=row_id
-                )
+    # Always backfill: rows ingested before balance mapping existed for their
+    # source still have NULL balance even though the column is present.
+    backfill_balance_chf_rfn(con)
 
     use_cols = {row[1] for row in transactions.get_use_column_names(con)}
     if "balance_chf" not in use_cols:

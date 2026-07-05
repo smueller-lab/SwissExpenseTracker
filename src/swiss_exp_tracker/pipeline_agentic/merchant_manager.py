@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+
 from collections.abc import AsyncIterator
 from datetime import datetime
+from typing import Any
 
+from agents import Agent
 from agents import Runner
+from agents import RunResult
 from agents import gen_trace_id
 from agents import trace
 from agents.exceptions import MaxTurnsExceeded
 from agents.exceptions import OutputGuardrailTripwireTriggered
+from openai import APIConnectionError
+from openai import InternalServerError
+from openai import RateLimitError
 from tqdm import tqdm
 
 from swiss_exp_tracker.pipeline_agentic.agents_.agent_metadata import metadata_agent
@@ -26,6 +34,35 @@ from swiss_exp_tracker.pipeline_agentic.data_models.merchant import Transaction
 from swiss_exp_tracker.pipeline_agentic.merchant_result import MerchantResult
 from swiss_exp_tracker.pipeline_agentic.merchant_result import MetadataResult
 from swiss_exp_tracker.pipeline_agentic.merchant_store import MerchantStore
+
+# Transient OpenAI failures worth retrying: timeouts (APITimeoutError subclasses
+# APIConnectionError), dropped connections, rate limits and 5xx responses.
+_RETRYABLE_OPENAI_ERRORS = (
+    APIConnectionError,
+    RateLimitError,
+    InternalServerError,
+)
+_OPENAI_RETRY_WAIT_S = 3.0
+_OPENAI_MAX_RETRIES = 5
+
+
+async def _run_agent_with_retry(
+    agent: Agent[Any], agent_input: str, max_turns: int
+) -> RunResult:
+    """Run an agent, retrying transient OpenAI errors after a 3s wait; re-raises if all fail."""
+    for attempt in range(1, _OPENAI_MAX_RETRIES + 1):
+        try:
+            return await Runner.run(agent, agent_input, max_turns=max_turns)
+        except _RETRYABLE_OPENAI_ERRORS as exc:
+            if attempt == _OPENAI_MAX_RETRIES:
+                raise
+            tqdm.write(
+                f"[WARN] OpenAI API error ({type(exc).__name__}) on attempt "
+                f"{attempt}/{_OPENAI_MAX_RETRIES} — waiting "
+                f"{_OPENAI_RETRY_WAIT_S:.0f}s and retrying"
+            )
+            await asyncio.sleep(_OPENAI_RETRY_WAIT_S)
+    raise RuntimeError("unreachable: retry loop exited without returning")
 
 
 class MerchantManager:
@@ -140,7 +177,7 @@ class MerchantManager:
     ) -> SearchToolResult:
         """Get merchant summary. Returns (summary, search_tool_used)."""
         try:
-            run_result = await Runner.run(
+            run_result = await _run_agent_with_retry(
                 summary_agent, merchant.model_dump_json(), max_turns=10
             )
             search_result = run_result.final_output_as(SearchToolResult)
@@ -171,7 +208,7 @@ class MerchantManager:
         max_retries = 3
         for attempt in range(1, max_retries + 1):
             try:
-                result = await Runner.run(
+                result = await _run_agent_with_retry(
                     metadata_agent, agent_input.model_dump_json(), max_turns=10
                 )
                 return result.final_output_as(MerchantMetaData)

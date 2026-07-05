@@ -3,46 +3,37 @@ from __future__ import annotations
 import json
 import re
 
-from collections import defaultdict
 from datetime import datetime
-from typing import cast
 
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import MERCHANT_BRANDS
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import (
     MERCHANT_COMPOUND_BRANDS,
 )
+from swiss_exp_tracker.pipeline_ingestion.adapters.coercion import parse_swiss_float
+from swiss_exp_tracker.pipeline_ingestion.adapters.generic_adapter import to_unified
 from swiss_exp_tracker.pipeline_ingestion.data_models.data_sources import (
-    SOURCE_MODEL_MAP,
+    SUPPORTED_SOURCES,
 )
-from swiss_exp_tracker.pipeline_ingestion.data_models.data_sources import (
-    get_source_adapter_map,
-)
+from swiss_exp_tracker.pipeline_ingestion.data_models.data_sources import get_profile
 from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceType
 from swiss_exp_tracker.pipeline_ingestion.data_models.tables import RawRow
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import Currency
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
     EnrichmentStatus,
 )
-from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
-    RevolutTransaction,
-)
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import TransactionType
-from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import ZKBTransaction
-from swiss_exp_tracker.pipeline_ingestion.data_models.transformation import (
-    DebitEBankingContext,
-)
-from swiss_exp_tracker.pipeline_ingestion.data_models.transformation import (
-    RevolutExchangeEvent,
-)
-from swiss_exp_tracker.pipeline_ingestion.data_models.transformation import (
-    RevolutExchangePending,
-)
-from swiss_exp_tracker.pipeline_ingestion.data_models.transformation import (
-    RevolutRatePoint,
-)
 from swiss_exp_tracker.pipeline_ingestion.db import create_all_tables
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
+from swiss_exp_tracker.pipeline_ingestion.stages.transactions.source_hooks import (
+    DebitEBankingContext,
+)
+from swiss_exp_tracker.pipeline_ingestion.stages.transactions.source_hooks import (
+    clean_zkb_ebanking,
+)
+from swiss_exp_tracker.pipeline_ingestion.stages.transactions.source_hooks import (
+    get_revolut_chf_map,
+)
 
 
 def _is_person_transaction(text: str) -> bool:
@@ -125,180 +116,13 @@ def _load_unprocessed_raw_rows(source_type: SourceType) -> list[RawRow]:
     ]
 
 
-def _resolve_revolut_chf_amounts(
-    rows: list[tuple[RawRow, RevolutTransaction]],
-) -> dict[int, float | None]:
-    """Resolve CHF-equivalent signed amounts for Revolut raw rows.
-
-    The Revolut export can contain currency exchange rows as two linked entries:
-    one negative leg in the source currency and one positive leg in the target
-    currency. Those exchange rows should not become refined transactions, but
-    they are used to build a simple historical CHF conversion timeline.
-
-    Processing steps:
-    1. Identify paired exchange rows and exclude them from refined output.
-    2. Derive a running CHF rate for each target currency from exchange events.
-    3. Convert non-exchange Revolut rows into signed CHF amounts using the most
-       recent known rate at the transaction timestamp.
-
-    Returns a mapping from `transactions_raw.id` to a signed CHF amount. Rows
-    that represent exchange legs are mapped to `None` so the caller can skip
-    them during refined insertion.
-    """
-    exchange_pending: dict[tuple[str, str], RevolutExchangePending] = {}
-    exchange_row_ids: set[int] = set()
-    exchange_events: list[RevolutExchangeEvent] = []
-
-    # Step 1: pair matching exchange legs and collect events for later CHF-rate
-    # reconstruction. Unmatched exchange rows are also excluded from output.
-    for raw_row, tx in rows:
-        if tx.Type.lower() != "exchange":
-            continue
-
-        pair_key = (tx.Description, tx.StartedDate.isoformat())
-        if pair_key in exchange_pending:
-            other_pending = exchange_pending.pop(pair_key)
-            exchange_row_ids.add(raw_row.raw_id)
-            exchange_row_ids.add(other_pending.raw_id)
-
-            if tx.Amount < 0:
-                from_tx, to_tx = tx, other_pending.transaction
-            else:
-                from_tx, to_tx = other_pending.transaction, tx
-
-            exchange_events.append(
-                RevolutExchangeEvent(
-                    event_date=from_tx.StartedDate,
-                    from_currency=from_tx.currency,
-                    to_currency=to_tx.currency,
-                    from_amount=abs(from_tx.Amount),
-                    to_amount=abs(to_tx.Amount),
-                )
-            )
-        else:
-            exchange_pending[pair_key] = RevolutExchangePending(
-                raw_id=raw_row.raw_id,
-                transaction=tx,
-            )
-
-    for unmatched_pending in exchange_pending.values():
-        exchange_row_ids.add(unmatched_pending.raw_id)
-
-    # Step 2: build a simple timeline of inferred CHF conversion rates based on
-    # the observed exchange events, starting from CHF = 1.0.
-    exchange_events.sort(key=lambda event: event.event_date)
-    running_rates: dict[str, float] = {"CHF": 1.0}
-    rate_timeline: dict[str, list[RevolutRatePoint]] = defaultdict(list)
-
-    for event in exchange_events:
-        chf_cost = event.from_amount * running_rates.get(event.from_currency, 1.0)
-        if event.to_amount > 0:
-            new_rate = chf_cost / event.to_amount
-            running_rates[event.to_currency] = new_rate
-            rate_timeline[event.to_currency].append(
-                RevolutRatePoint(
-                    event_date=event.event_date,
-                    rate_to_chf=new_rate,
-                )
-            )
-
-    def _rate_at(currency: str, date: datetime) -> float:
-        if currency == "CHF":
-            return 1.0
-
-        entries = rate_timeline.get(currency, [])
-        rate = 1.0
-        for entry in entries:
-            if entry.event_date <= date:
-                rate = entry.rate_to_chf
-            else:
-                break
-        return rate
-
-    # Step 3: apply the most recent known rate to each non-exchange row and
-    # return its signed CHF amount. Exchange legs are returned as None so they
-    # can be skipped by the refined stage.
-    result: dict[int, float | None] = {}
-    for raw_row, tx in rows:
-        if raw_row.raw_id in exchange_row_ids:
-            result[raw_row.raw_id] = None
-            continue
-
-        tx_date = tx.CompletedDate or tx.StartedDate
-        result[raw_row.raw_id] = tx.Amount * _rate_at(tx.currency, tx_date)
-
-    return result
-
-
-def _get_revolut_chf_map(
-    rows: list[RawRow], source_type: SourceType = SourceType.REVOLUT
-) -> dict[int, float | None]:
-    """Build a raw_id → signed CHF amount map for all Revolut rows."""
-    revolut_chf_map: dict[int, float | None] = {}
-    model_class = SOURCE_MODEL_MAP[source_type]
-    pre_parsed: list[tuple[RawRow, RevolutTransaction]] = cast(
-        "list[tuple[RawRow, RevolutTransaction]]",
-        [(row, model_class.model_validate(json.loads(row.raw_json))) for row in rows],
-    )
-    revolut_chf_map = _resolve_revolut_chf_amounts(pre_parsed)
-
-    return revolut_chf_map
-
-
-def _clean_debit_ebanking(
-    zkb_model: ZKBTransaction,
-    context: DebitEBankingContext,
-) -> ZKBTransaction | None:
-    """Normalize ZKB debit eBanking parent/detail rows.
-
-    Returns the cleaned transaction row. Parent helper rows return `None`
-    because they only provide context for following detail rows and should not
-    be inserted into `transactions_rfn`.
-    """
-    booking_text = zkb_model.BookingText.strip()
-
-    if re.fullmatch(
-        r"Debit (?:eBanking(?: Mobile)?|Mobile Banking|Standing order)(?: \(\d+\))?",
-        booking_text,
-    ):
-        context.parent_date = zkb_model.Date or zkb_model.ValueDate
-        context.parent_reference = (
-            zkb_model.ZKBReference or zkb_model.ReferenceNumber or None
-        )
-        context.detail_counter = 0
-        return None
-
-    is_ebanking_detail = (
-        zkb_model.Date is None
-        and zkb_model.AmountDebit is None
-        and zkb_model.AmountCredit is None
-        and zkb_model.AmountDetails is not None
-        and zkb_model.Curr is not None
-    )
-    if is_ebanking_detail and context.parent_date is not None:
-        zkb_model.Date = context.parent_date
-        if context.parent_reference is not None:
-            context.detail_counter += 1
-            zkb_model.ZKBReference = (
-                f"{context.parent_reference}-{context.detail_counter}"
-            )
-        return zkb_model
-
-    if zkb_model.Date is not None:
-        context.parent_date = None
-        context.parent_reference = None
-        context.detail_counter = 0
-
-    return zkb_model
-
-
 def process_refined_source(source_type: SourceType) -> dict[str, int]:
     """Transform unprocessed raw rows of a source into refined transactions.
 
     High-level flow:
     1. Ensure schema exists and load all unprocessed raw rows for the source.
     2. Precompute source-specific context (e.g. Revolut CHF conversion map).
-    3. Parse each raw row into its source model and apply source-specific rules.
+    3. Parse each raw row via the generic profile-driven adapter and apply source hooks.
     4. Skip rows that should not become refined records (duplicates, exchange
        legs, topups, helper parent rows) while still marking them processed.
     5. Insert normalized rows into `transactions_rfn` and mark raw rows as
@@ -310,18 +134,18 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
     """
     create_all_tables()
 
-    # Step 1: load candidate raw rows and source adapters.
     rows = _load_unprocessed_raw_rows(source_type)
-    source_adapter_map = get_source_adapter_map()
+    profile = get_profile(source_type)
 
-    # Step 2: Get revolut CHF conversion map if processing Revolut rows
+    # Precompute Revolut CHF conversion map before the main loop.
     revolut_chf_map: dict[int, float | None] = {}
     if source_type == SourceType.REVOLUT:
-        revolut_chf_map = _get_revolut_chf_map(rows)
+        revolut_chf_map = get_revolut_chf_map(rows, profile)
 
     rows_processed = 0
     records_inserted = 0
     duplicates_found = 0
+    pending_skipped = 0
     processed_file_ids: set[int] = set()
     zkb_ebanking_context = DebitEBankingContext()
 
@@ -334,60 +158,51 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
             processed_file_ids.add(file_id)
             rows_processed += 1
 
-        # Step 3: row-by-row parse, source-rule handling, dedup, and insertion.
         for row in rows:
-            current_source = SourceType(row.source_type)
-            model_class = SOURCE_MODEL_MAP[current_source]
-            adapter = source_adapter_map[current_source]
+            payload: dict[str, object] = json.loads(row.raw_json)
 
-            payload = json.loads(row.raw_json)
-            source_model = model_class.model_validate(payload)
-
-            # Step 3a: ZKB debit eBanking
+            # Step 3a: ZKB debit eBanking parent/detail stitching.
             if source_type == SourceType.ZKB_DEBIT:
-                zkb_model = cast("ZKBTransaction", source_model)
-                cleaned_zkb_model = _clean_debit_ebanking(
-                    zkb_model,
-                    zkb_ebanking_context,
-                )
-                if cleaned_zkb_model is None:
+                cleaned = clean_zkb_ebanking(payload, zkb_ebanking_context, profile)
+                if cleaned is None:
                     mark_processed(row.raw_id, row.file_id)
                     continue
-                source_model = cleaned_zkb_model
+                payload = cleaned
 
-            # Extract running balance for ZKB rows (NULL for all other sources)
+            # Extract running balance for debit-account sources (None elsewhere).
             balance_chf: float | None = None
-            if source_type == SourceType.ZKB_DEBIT:
-                balance_chf = cast("ZKBTransaction", source_model).Balance
+            if profile.balance_column is not None:
+                balance_chf = parse_swiss_float(payload.get(profile.balance_column))
 
-            # Step 3b: Revolut processing
+            # Step 3b: Revolut exchange-leg and topup filtering.
             revolut_chf_signed: float | None = None
             if source_type == SourceType.REVOLUT:
-                # Exchange legs are pre-marked as `None` in the CHF map and
-                # should be skipped from refined insertion.
                 chf_candidate = revolut_chf_map.get(row.raw_id)
                 if chf_candidate is None:
+                    # Exchange legs are pre-marked as None; skip from refined output.
                     mark_processed(row.raw_id, row.file_id)
                     continue
 
-                revolut_source_model = cast("RevolutTransaction", source_model)
-                # Topups are balance movements, not spending/income records for
-                # the refined transaction table.
-                if revolut_source_model.Type.lower() == "topup":
+                if str(payload.get("Type", "")).lower() == "topup":
+                    # Topups are balance movements, not spending/income records.
                     mark_processed(row.raw_id, row.file_id)
                     continue
 
-                # Keep the signed CHF value so we can derive both absolute
-                # amount and transaction direction after unification.
                 revolut_chf_signed = chf_candidate
 
-            # Step 3c: convert the source-specific model into the common
-            # unified transaction shape used by downstream refinement logic.
-            unified = adapter.to_unified(source_model, source_file=row.source_file)
+            # Step 3c: convert to unified transaction via the generic profile adapter.
+            unified = to_unified(payload, profile, row.source_file)
+
+            # Validate Revolut currency after exchange/topup skips — raises ValueError
+            # for unrecognised currency strings (e.g. "XYZ"), preserving old behaviour.
+            if (
+                source_type == SourceType.REVOLUT
+                and profile.currency.column is not None
+            ):
+                Currency(str(payload.get(profile.currency.column) or ""))
 
             if source_type == SourceType.REVOLUT and revolut_chf_signed is not None:
-                # Revolut rows are stored in CHF using the precomputed signed
-                # amount. The sign determines expense vs. income.
+                # Override amount and direction using the precomputed signed CHF value.
                 amount = abs(revolut_chf_signed)
                 transaction_type = (
                     TransactionType.EXPENSE
@@ -396,15 +211,21 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
                 ).value
                 currency = Currency.CHF.value
             else:
-                # Non-Revolut sources already provide the final amount,
-                # transaction type, and currency through the unified model.
                 amount = unified.amount
                 transaction_type = unified.transaction_type.value
                 currency = unified.currency.value
 
-            # Step 3d: normalize final values before deduplication and insert.
+            # Step 3d: normalise values, check pending/duplicate, then insert.
             amount = round(amount, 2)
             date_iso = _as_iso_datetime(unified.date)
+
+            # A unified transaction with no date is pending (not yet confirmed by the
+            # bank). Drop it and let the confirmed row arrive in a later export.
+            if date_iso is None:
+                pending_skipped += 1
+                mark_processed(row.raw_id, row.file_id)
+                continue
+
             reference = unified.reference_id
             is_duplicate = bool(
                 transactions.check_duplicate_rfn(
@@ -456,6 +277,7 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
         "rows_processed": rows_processed,
         "records_inserted": records_inserted,
         "duplicates_found": duplicates_found,
+        "pending_skipped": pending_skipped,
     }
 
 
@@ -463,7 +285,7 @@ def run_refined() -> dict[str, dict[str, int]]:
     """Run refined stage for all known source types."""
     results: dict[str, dict[str, int]] = {}
 
-    for source_type in SOURCE_MODEL_MAP:
+    for source_type in SUPPORTED_SOURCES:
         result = process_refined_source(source_type)
         results[source_type.value] = result
 

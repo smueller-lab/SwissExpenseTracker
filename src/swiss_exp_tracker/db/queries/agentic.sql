@@ -76,6 +76,12 @@ UPDATE transactions_rfn
 SET enrichment_status = 'skipped'
 WHERE id = :refined_id
 
+-- name: mark_transaction_needs_review!
+-- Flag a transactions_rfn row for manual investigation (e.g. missing booking_text).
+UPDATE transactions_rfn
+SET enrichment_status = 'needs_review'
+WHERE id = :refined_id
+
 -- name: insert_merchant_metadata_raw!
 -- Insert one raw merchant metadata result row.
 INSERT INTO merchant_metadata_raw (
@@ -272,6 +278,13 @@ WHERE id = :id
 -- name: delete_transactions_use_by_id!
 -- Delete the transactions_use row with the given id.
 DELETE FROM transactions_use WHERE id = :id
+
+-- name: delete_transactions_use_orphans!
+-- Delete transactions_use rows whose reference no longer exists in transactions_rfn.
+-- Keeps the analysis table consistent when rows are removed from rfn (e.g. credit-card
+-- bill payments dropped in postprocess), since transactions_use is built incrementally.
+DELETE FROM transactions_use
+WHERE reference NOT IN (SELECT reference FROM transactions_rfn)
 
 -- name: update_transactions_use_amount!
 -- Update the amount field for the given transactions_use row id.

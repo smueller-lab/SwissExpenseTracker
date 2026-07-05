@@ -2,49 +2,78 @@ from __future__ import annotations
 
 import sqlite3
 
-from collections import defaultdict
+from pathlib import Path
 
+import yaml
+
+from swiss_exp_tracker.config.user_config_schema import CreditCardPaymentsDetected
+from swiss_exp_tracker.config.user_config_schema import DetectedRules
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceType
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import TransactionType
 from swiss_exp_tracker.pipeline_ingestion.db import create_all_tables
 from swiss_exp_tracker.pipeline_ingestion.db import get_connection
+from swiss_exp_tracker.pipeline_ingestion.stages.transactions.credit_card_matcher import (
+    CreditCardPaymentMatch,
+)
+from swiss_exp_tracker.pipeline_ingestion.stages.transactions.credit_card_matcher import (
+    find_credit_card_payment_pairs,
+)
+
+_DETECTED_RULES_PATH: Path = (
+    Path(__file__).parent.parent.parent.parent
+    / "pipeline_agentic"
+    / "config"
+    / "detected_rules.yaml"
+)
+
+
+def _record_credit_card_payments(
+    matches: list[CreditCardPaymentMatch],
+    output_path: Path = _DETECTED_RULES_PATH,
+) -> None:
+    """Persist the matched legs' distinct booking texts into detected_rules.yaml; keeps salary/housing."""
+    if not matches:
+        return
+
+    existing = DetectedRules()
+    if output_path.exists():
+        with output_path.open(encoding="utf-8") as f:
+            raw: object = yaml.safe_load(f) or {}
+        existing = DetectedRules.model_validate(raw)
+
+    texts: set[str] = set()
+    for m in matches:
+        for text in (m.debit_text, m.credit_text):
+            if text and text.strip():
+                texts.add(text.strip())
+
+    updated = DetectedRules(
+        salary=existing.salary,
+        housing=existing.housing,
+        credit_card_payments=CreditCardPaymentsDetected(booking_texts=sorted(texts)),
+    )
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        yaml.safe_dump(updated.model_dump(), allow_unicode=True, sort_keys=False),
+        encoding="utf-8",
+    )
 
 
 def _clean_credit_card_payments(db: sqlite3.Connection) -> int:
-    """Remove matched ZKB-Viseca payment pairs from transactions_rfn; returns pair count removed."""
-    zkb_rows = transactions.get_zkb_credit_card_payment_rows(
-        db,
-        source_type=SourceType.ZKB_DEBIT.value,
-        transaction_type=TransactionType.EXPENSE.value,
-    )
+    """Remove matched credit-card payment pairs from transactions_rfn; returns pair count removed."""
+    matches = find_credit_card_payment_pairs(db)
 
-    viseca_rows = transactions.get_viseca_income_rows(
-        db,
-        source_type=SourceType.VISECA.value,
-        transaction_type=TransactionType.INCOME.value,
-    )
+    if not matches:
+        return 0
 
-    zkb_by_amount: dict[float, list[int]] = defaultdict(list)
-    for row in zkb_rows:
-        zkb_by_amount[float(row[1])].append(int(row[0]))
-
-    viseca_by_amount: dict[float, list[int]] = defaultdict(list)
-    for row in viseca_rows:
-        viseca_by_amount[float(row[1])].append(int(row[0]))
+    _record_credit_card_payments(matches)
 
     ids_to_delete: list[int] = []
-    for amount, zkb_ids in zkb_by_amount.items():
-        viseca_ids = viseca_by_amount.get(amount)
-        if not viseca_ids:
-            continue
-
-        match_count = min(len(zkb_ids), len(viseca_ids))
-        ids_to_delete.extend(zkb_ids[:match_count])
-        ids_to_delete.extend(viseca_ids[:match_count])
-
-    if not ids_to_delete:
-        return 0
+    for match in matches:
+        ids_to_delete.append(match.debit_id)
+        ids_to_delete.append(match.credit_id)
 
     # dynamic IN clause: cannot be expressed as static aiosql SQL
     placeholders = ",".join("?" for _ in ids_to_delete)
@@ -52,7 +81,18 @@ def _clean_credit_card_payments(db: sqlite3.Connection) -> int:
         f"DELETE FROM transactions_rfn WHERE id IN ({placeholders})",
         tuple(ids_to_delete),
     )
-    return len(ids_to_delete) // 2
+    return len(matches)
+
+
+def _clean_revolut_transfers(db: sqlite3.Connection) -> int:
+    """Drop ZKB Debit EXPENSE rows whose merchant is Revolut (internal top-ups); returns rows removed."""
+    rowcount: int = transactions.delete_rfn_by_source_type_and_merchant_substr(
+        db,
+        source_type=SourceType.ZKB_DEBIT.value,
+        transaction_type=TransactionType.EXPENSE.value,
+        merchant_pattern="%revolut%",
+    )
+    return max(rowcount, 0)
 
 
 def _fill_viseca_credit_card_fee_text(db: sqlite3.Connection) -> int:
@@ -69,14 +109,16 @@ def _fill_viseca_credit_card_fee_text(db: sqlite3.Connection) -> int:
 
 
 def run_postprocess() -> dict[str, int]:
-    """Run postprocessing: remove credit card payment pairs and fill Viseca fee text."""
+    """Run postprocessing: remove credit card pairs, drop ZKB Revolut top-ups, and fill Viseca fee text."""
     create_all_tables()
 
     with get_connection() as db:
         credit_card_pairs_removed = _clean_credit_card_payments(db)
+        revolut_transfers_removed = _clean_revolut_transfers(db)
         viseca_fee_rows_updated = _fill_viseca_credit_card_fee_text(db)
 
     return {
         "credit_card_pairs_removed": credit_card_pairs_removed,
+        "revolut_transfers_removed": revolut_transfers_removed,
         "viseca_fee_rows_updated": viseca_fee_rows_updated,
     }

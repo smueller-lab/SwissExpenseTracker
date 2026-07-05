@@ -20,7 +20,9 @@ def make_card_title(title: str) -> Any:
     return html.H6(title, className="card-title")
 
 
-def get_balance_class(value: float) -> str:
+def get_balance_class(value: float | None) -> str:
+    if value is None:
+        return "kpi-value"
     return "kpi-value kpi-positive" if value > 0 else "kpi-value kpi-negative"
 
 

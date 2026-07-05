@@ -1,0 +1,120 @@
+# Declarative ingestion profiles. One block per SourceType (keyed by its enum
+# value). The loader injects the top-level key as the profile's `source` field.
+#
+# Column references (date_columns, amount.*, currency.column, reference_columns,
+# booking_text_columns, balance_column) use the CANONICAL column name — i.e. the
+# right-hand side of `column_aliases`. Sources without aliasing use their raw
+# export header. `header_signature` marks the row that starts the table (skips a
+# metadata preamble); omit it when the file has no preamble.
+#
+# Verified against tests/test_data/: zkb_test.csv, viseca_test.csv,
+# revolut_smoke_test.csv, ubs_debit_test.csv, ubs_credit_test.csv.
+
+ZKB_DEBIT:
+  detect_required_columns: ["ZKB reference", "Booking text", "Debit CHF"]
+  date_columns: ["Date", "Value date"]
+  date_formats: ["%d.%m.%Y", "iso"]
+  reference_columns: ["ZKB reference", "Reference number"]
+  booking_text_columns: ["Booking text"]
+  amount:
+    mode: debit_credit
+    debit_column: "Debit CHF"
+    credit_column: "Credit CHF"
+    fallback_amount_column: "Amount details"   # foreign-currency leg -> EXPENSE
+  currency:
+    mode: column
+    column: "Curr"
+    default: CHF
+  balance_column: "Balance CHF"
+
+VISECA:
+  detect_required_columns: ["TransactionId", "Amount", "MerchantName"]
+  date_columns: ["Date", "ValutaDate"]
+  date_formats: ["iso"]
+  reference_columns: ["TransactionId"]
+  booking_text_columns: ["MerchantName", "Details"]   # fall back to Details (e.g. "Ihre Zahlung - Danke") when MerchantName is empty
+  amount:
+    mode: signed
+    amount_column: "Amount"            # domestic CHF amount
+    expense_sign: positive
+  currency:
+    mode: fixed
+    default: CHF
+
+REVOLUT:
+  detect_required_columns: ["Type", "Started Date", "Amount", "Currency"]
+  date_columns: ["Completed Date", "Started Date"]
+  date_formats: ["iso"]
+  reference_columns: []                # -> NOID-<uuid>
+  booking_text_columns: ["Description"]
+  amount:
+    mode: signed
+    amount_column: "Amount"            # native; stage_03 overrides with CHF map
+    expense_sign: negative
+  currency:
+    mode: column
+    column: "Currency"
+    default: CHF
+
+UBS_DEBIT:
+  detect_required_columns: ["Date de transaction", "Debit", "Credit", "Solde"]
+  header_signature: "Date de transaction"   # skip metadata preamble; this row starts the table
+  column_aliases:                            # raw French header -> canonical (matched accent/mojibake-insensitive)
+    "Date de transaction": "Date de transaction"
+    "Heure de transaction": "Heure de transaction"
+    "Date de comptabilisation": "Date de comptabilisation"
+    "Date de valeur": "Date de valeur"
+    "Monnaie": "Monnaie"
+    "Débit": "Debit"
+    "Crédit": "Credit"
+    "Sous-montant": "Sous-montant"
+    "Solde": "Solde"
+    "No de transaction": "No de transaction"
+    "Description1": "Description1"
+    "Description2": "Description2"
+    "Description3": "Description3"
+    "Notes de bas de page": "Notes de bas de page"
+  date_columns: ["Date de transaction", "Date de comptabilisation", "Date de valeur"]
+  date_formats: ["iso", "%d.%m.%Y"]
+  reference_columns: ["No de transaction"]
+  booking_text_columns: ["Description1", "Description3"]
+  amount:
+    mode: debit_credit
+    debit_column: "Debit"
+    credit_column: "Credit"
+  currency:
+    mode: column
+    column: "Monnaie"
+    default: CHF
+  balance_column: "Solde"
+
+UBS_CREDIT:
+  detect_required_columns: ["Date d'achat", "Texte comptable", "Montant"]
+  header_signature: "Date d'achat"          # this row starts the table (sep= prefix stripped first)
+  column_aliases:                            # raw French header -> canonical (matched accent/mojibake-insensitive)
+    "Numéro de compte": "Numero de compte"
+    "Numéro de carte": "Numero de carte"
+    "Titulaire de compte/carte": "Titulaire de compte/carte"
+    "Date d'achat": "Date d'achat"
+    "Texte comptable": "Texte comptable"
+    "Secteur": "Secteur"
+    "Montant": "Montant"
+    "Monnaie originale": "Monnaie originale"
+    "Cours": "Cours"
+    "Monnaie": "Monnaie"
+    "Débit": "Debit"
+    "Crédit": "Credit"
+    "Ecriture": "Ecriture"
+  date_columns: ["Date d'achat"]
+  date_formats: ["%d.%m.%Y", "iso"]
+  reference_columns: []                # -> NOID-<uuid>
+  booking_text_columns: ["Texte comptable"]
+  amount:
+    mode: debit_credit
+    debit_column: "Debit"
+    credit_column: "Credit"
+    fallback_amount_column: "Montant"   # when no Debit/Credit -> EXPENSE
+  currency:
+    mode: column
+    column: "Monnaie"
+    default: CHF

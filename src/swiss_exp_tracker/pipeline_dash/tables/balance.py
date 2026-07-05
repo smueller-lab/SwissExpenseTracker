@@ -4,9 +4,11 @@ import sqlite3
 
 import pandas as pd
 
+from swiss_exp_tracker.pipeline_dash.config import BALANCE_SOURCE_TYPES
+
 
 def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
-    mask = (df["source_type"] == "ZKB_DEBIT") & df["balance_chf"].notna()
+    mask = df["source_type"].isin(BALANCE_SOURCE_TYPES) & df["balance_chf"].notna()
     df_bal = df[mask].copy()
 
     df_bal = (

@@ -27,6 +27,13 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
 
     by_month = pdf.groupby(["Month", "category_main"], as_index=False)["amount"].sum()
 
+    count_last = (
+        pdf[pdf["Month"] == month_last]
+        .groupby("category_main", as_index=False)
+        .size()
+        .rename(columns={"size": "n_transactions_MonthLast"})
+    )
+
     last = by_month[by_month["Month"] == month_last].rename(
         columns={"amount": "amount_MonthLast"}
     )
@@ -48,8 +55,12 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
             prev[["category_main", "amount_MonthPrev"]], on="category_main", how="left"
         )
         .merge(avg_12m, on="category_main", how="left")
+        .merge(count_last, on="category_main", how="left")
         .sort_values("amount_MonthLast", ascending=False)
         .reset_index(drop=True)
+    )
+    result["n_transactions_MonthLast"] = (
+        result["n_transactions_MonthLast"].fillna(0).astype(int)
     )
 
     result["diff_prev_pct"] = (
