@@ -7,7 +7,7 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
-import pytest
+from pytest_mock import MockerFixture
 
 from swiss_exp_tracker.pipeline_agentic.pipeline import load_pending_transactions
 
@@ -119,7 +119,7 @@ def _get_enrichment_status(db_path: Path, rfn_id: int) -> str:
 
 
 def test_card_payment_row_excluded_and_status_stays_pending(
-    tmp_db: Path, mocker: pytest.MockerFixture
+    tmp_db: Path, mocker: MockerFixture
 ) -> None:
     """Pending row matching a detected card-payment text is excluded from result but stays pending."""
     mocker.patch(
@@ -135,9 +135,7 @@ def test_card_payment_row_excluded_and_status_stays_pending(
     assert _get_enrichment_status(tmp_db, rfn_id) == "pending"
 
 
-def test_normal_merchant_not_excluded(
-    tmp_db: Path, mocker: pytest.MockerFixture
-) -> None:
+def test_normal_merchant_not_excluded(tmp_db: Path, mocker: MockerFixture) -> None:
     """Pending row with a non-card-payment booking_text is returned as a Transaction."""
     mocker.patch(
         "swiss_exp_tracker.pipeline_agentic.pipeline.load_credit_card_payment_texts",
@@ -152,7 +150,7 @@ def test_normal_merchant_not_excluded(
 
 
 def test_card_payment_exclusion_is_case_and_whitespace_insensitive(
-    tmp_db: Path, mocker: pytest.MockerFixture
+    tmp_db: Path, mocker: MockerFixture
 ) -> None:
     """Exclusion is case- and whitespace-insensitive: padded/mixed-case text is excluded."""
     mocker.patch(
@@ -171,7 +169,7 @@ def test_card_payment_exclusion_is_case_and_whitespace_insensitive(
 
 
 def test_empty_detected_list_does_not_exclude_any_row(
-    tmp_db: Path, mocker: pytest.MockerFixture
+    tmp_db: Path, mocker: MockerFixture
 ) -> None:
     """With an empty detected list, all pending rows are returned regardless of booking_text."""
     mocker.patch(
@@ -192,7 +190,7 @@ def test_empty_detected_list_does_not_exclude_any_row(
 
 
 def test_missing_booking_text_with_data_excluded_and_marked_needs_review(
-    tmp_db: Path, mocker: pytest.MockerFixture
+    tmp_db: Path, mocker: MockerFixture
 ) -> None:
     """Row with no booking_text but carrying data is excluded from result and marked needs_review."""
     mocker.patch(
@@ -217,7 +215,7 @@ def test_missing_booking_text_with_data_excluded_and_marked_needs_review(
 
 
 def test_all_empty_row_with_no_booking_text_excluded_and_marked_skipped(
-    tmp_db: Path, mocker: pytest.MockerFixture
+    tmp_db: Path, mocker: MockerFixture
 ) -> None:
     """Row with no booking_text and no other data (all-empty) is excluded and marked skipped."""
     mocker.patch(

@@ -11,6 +11,7 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 
+from agents import Runner
 from openai import APITimeoutError
 
 from swiss_exp_tracker.pipeline_agentic import merchant_manager as mm
@@ -30,7 +31,7 @@ async def test_retry_recovers_after_transient_timeouts(
     monkeypatch.setattr(mm, "_OPENAI_RETRY_WAIT_S", 0.0)
     sentinel = object()
     run_mock = AsyncMock(side_effect=[_timeout(), _timeout(), sentinel])
-    monkeypatch.setattr(mm.Runner, "run", run_mock)
+    monkeypatch.setattr(Runner, "run", run_mock)
 
     result = await mm._run_agent_with_retry(MagicMock(), "{}", max_turns=10)
 
@@ -44,7 +45,7 @@ async def test_retry_reraises_after_exhausting_attempts(
     """Persistent timeouts: the wrapper retries up to the cap, then re-raises."""
     monkeypatch.setattr(mm, "_OPENAI_RETRY_WAIT_S", 0.0)
     run_mock = AsyncMock(side_effect=_timeout())
-    monkeypatch.setattr(mm.Runner, "run", run_mock)
+    monkeypatch.setattr(Runner, "run", run_mock)
 
     with pytest.raises(APITimeoutError):
         await mm._run_agent_with_retry(MagicMock(), "{}", max_turns=10)
@@ -58,7 +59,7 @@ async def test_non_retryable_error_propagates_immediately(
     """A non-OpenAI error is not retried — it surfaces on the first attempt."""
     monkeypatch.setattr(mm, "_OPENAI_RETRY_WAIT_S", 0.0)
     run_mock = AsyncMock(side_effect=ValueError("boom"))
-    monkeypatch.setattr(mm.Runner, "run", run_mock)
+    monkeypatch.setattr(Runner, "run", run_mock)
 
     with pytest.raises(ValueError, match="boom"):
         await mm._run_agent_with_retry(MagicMock(), "{}", max_turns=10)

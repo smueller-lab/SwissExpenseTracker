@@ -7,6 +7,7 @@ Module-scoped loader covers read-only tests; function-scoped writable_loader cov
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 import pytest
@@ -235,7 +236,7 @@ def test_get_category_year_spend_excludes_income(loader: object) -> None:
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
 def test_get_category_cumulative_has_expected_columns(
-    loader: object, freq: str
+    loader: object, freq: Literal["D", "W", "M"]
 ) -> None:
     """Output has exactly [category, period_end, cumulative_chf] columns."""
     from swiss_exp_tracker.app.data.loader import DataLoader
@@ -247,7 +248,7 @@ def test_get_category_cumulative_has_expected_columns(
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
 def test_get_category_cumulative_period_end_is_datetime(
-    loader: object, freq: str
+    loader: object, freq: Literal["D", "W", "M"]
 ) -> None:
     """period_end contains real datetime64 values, not pd.Period."""
     from swiss_exp_tracker.app.data.loader import DataLoader
@@ -259,7 +260,9 @@ def test_get_category_cumulative_period_end_is_datetime(
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_get_category_cumulative_chf_non_decreasing(loader: object, freq: str) -> None:
+def test_get_category_cumulative_chf_non_decreasing(
+    loader: object, freq: Literal["D", "W", "M"]
+) -> None:
     """cumulative_chf is monotonically non-decreasing within the Groceries category."""
     from swiss_exp_tracker.app.data.loader import DataLoader
 
@@ -317,7 +320,9 @@ def test_get_category_cumulative_empty_for_absent_category(loader: object) -> No
 
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
-def test_get_category_period_history_columns(loader: object, freq: str) -> None:
+def test_get_category_period_history_columns(
+    loader: object, freq: Literal["D", "W", "M"]
+) -> None:
     """Output has exactly [category, year, year_fraction, spend_chf] columns."""
     from swiss_exp_tracker.app.data.loader import DataLoader
 
@@ -328,7 +333,7 @@ def test_get_category_period_history_columns(loader: object, freq: str) -> None:
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
 def test_get_category_period_history_excludes_target_year(
-    loader: object, freq: str
+    loader: object, freq: Literal["D", "W", "M"]
 ) -> None:
     """All rows have year strictly less than exclude_year=2024."""
     from swiss_exp_tracker.app.data.loader import DataLoader
@@ -341,7 +346,7 @@ def test_get_category_period_history_excludes_target_year(
 
 @pytest.mark.parametrize("freq", ["D", "W", "M"])
 def test_get_category_period_history_year_fraction_in_range(
-    loader: object, freq: str
+    loader: object, freq: Literal["D", "W", "M"]
 ) -> None:
     """year_fraction is strictly positive and at most 1.0 for every row."""
     from swiss_exp_tracker.app.data.loader import DataLoader
