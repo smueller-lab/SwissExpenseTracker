@@ -1,10 +1,10 @@
 [tool.poetry]
 name = "swiss_exp_tracker"
-version = "0.1.0"
+version = "0.2.0"
 description = "Swiss ExpenseTracker tool"
-authors = ["Sebastian Müller <you@example.com>"]
+authors = ["Sebastian Müller <sebastian96mueller@gmail.com>"]
 readme = "README.md"
-license = "MIT"  # You can change this or remove if undecided
+license = "GPL-3.0-only"
 packages = [{include = "swiss_exp_tracker", from = "src"}, {include = "tests"}]
 
 [tool.poetry.dependencies]

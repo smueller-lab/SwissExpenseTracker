@@ -80,6 +80,10 @@ Detected any suspicious transaction or exceptional big spike in the data? The fu
 
 ![Smart Table](assets/smarttable.png)
 
+#### 💰 Budget / Forecasting
+
+Set a per-category budget for the year, then let the model project your end-of-year spend. It uses seasonal pacing (so a mid-year snapshot isn't naively doubled) and handles lumpy categories, and shows you at a glance where you stand now (Budget used Now) and where you'll likely land (Forecast EOY), with a per-category table flagging over/under budget.
+
 > _Screenshots use synthetic demo data, so no real data or figures are shown._
 
 ### Pages
@@ -97,6 +101,7 @@ Detected any suspicious transaction or exceptional big spike in the data? The fu
 | 🛍️**Retail**          | Retail breakdown by subcategory, spend donut, top purchases                                                                                                                            |
 | 🔍**Smart Table**       | Fully filterable transaction browser                                                                                                                                                   |
 | 📈**Investing**         | Portfolio value vs. invested, P&L, per-position progression                                                                                                                            |
+| 💰**Budget / Forecasting** | Per-category yearly budgets, seasonally-paced end-of-year forecast, lumpy-category handling, budget-used-now KPIs, over/under table                                                   |
 
 ---
 

@@ -31,15 +31,15 @@ All coefficients are collected here. Curve/level/lumpiness constants live in
 `app/data/forecast.py`; the two that a user might plausibly want to change live in the
 `config` dataclass (`app/config.py`).
 
-| Constant | Value | Where | Meaning |
-|---|---|---|---|
-| `forecast_shrinkage_k` | `0.1` | `config` | Shrinkage `k` in the year-end blend `w = elapsed / (elapsed + k)`. Lower ⇒ current-year pace takes over sooner. |
-| `forecast_lumpy_lookback_years` | `2` | `config` | Years of monthly history used to detect lumpiness and compute the median rate. |
-| `DEFAULT_SHRINKAGE_K` | `0.1` | `forecast.py` | Library fallback for `k` when a caller doesn't pass the config value. |
-| `_CURVE_LINEAR_REG` | `0.35` | `forecast.py` | How far the multi-year pacing curve is pulled toward a flat/linear curve. A single prior year is regularized harder (`0.5`). |
-| `_CURVE_MIN_YEAR_FRAC` | `0.2` | `forecast.py` | Years whose total is below this fraction of the median year total are ignored when learning the seasonal shape. |
-| `_LEVEL_RECENT_YEARS` | `2` | `forecast.py` | Number of most-recent prior years averaged into the history level anchor. |
-| `_LUMPY_MEAN_MEDIAN_RATIO` | `1.3` | `forecast.py` | A category is lumpy when its mean monthly spend exceeds this multiple of its median monthly spend. |
+| Constant                          | Value    | Where           | Meaning                                                                                                                        |
+| --------------------------------- | -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `forecast_shrinkage_k`          | `0.1`  | `config`      | Shrinkage`k` in the year-end blend `w = elapsed / (elapsed + k)`. Lower ⇒ current-year pace takes over sooner.            |
+| `forecast_lumpy_lookback_years` | `2`    | `config`      | Years of monthly history used to detect lumpiness and compute the median rate.                                                 |
+| `DEFAULT_SHRINKAGE_K`           | `0.1`  | `forecast.py` | Library fallback for`k` when a caller doesn't pass the config value.                                                         |
+| `_CURVE_LINEAR_REG`             | `0.35` | `forecast.py` | How far the multi-year pacing curve is pulled toward a flat/linear curve. A single prior year is regularized harder (`0.5`). |
+| `_CURVE_MIN_YEAR_FRAC`          | `0.2`  | `forecast.py` | Years whose total is below this fraction of the median year total are ignored when learning the seasonal shape.                |
+| `_LEVEL_RECENT_YEARS`           | `2`    | `forecast.py` | Number of most-recent prior years averaged into the history level anchor.                                                      |
+| `_LUMPY_MEAN_MEDIAN_RATIO`      | `1.3`  | `forecast.py` | A category is lumpy when its mean monthly spend exceeds this multiple of its median monthly spend.                             |
 
 ---
 
@@ -172,22 +172,21 @@ Lumpiness ratio = mean ÷ median of monthly totals. Threshold `1.3`.
 > classified the moment it's selected, and a category is re-classified automatically as
 > its recent history shifts. Ratios below will drift as more data arrives.
 
-| Category | ratio | Class | Method |
-|---|---|---|---|
-| Sport | 0.98 | continuous | seasonal pacing |
-| Groceries | 1.05 | continuous | seasonal pacing |
-| Restaurant | 1.11 | continuous | seasonal pacing |
-| Retail | 1.14 | continuous | seasonal pacing |
-| Bar | 1.17 | continuous | seasonal pacing |
-| Car | 1.36 | **lumpy** | median rate |
-| Healthcare | 1.36 | **lumpy** | median rate |
-| Transport | 1.76 | **lumpy** | median rate |
-| Clothing | 2.43 | **lumpy** | median rate |
-| Travel | 3.35 | **lumpy** | median rate |
-| Car Rental | ∞ (median 0) | **lumpy** | median rate |
+| Category   | ratio         | Class           | Method          |
+| ---------- | ------------- | --------------- | --------------- |
+| Sport      | 0.98          | continuous      | seasonal pacing |
+| Groceries  | 1.05          | continuous      | seasonal pacing |
+| Restaurant | 1.11          | continuous      | seasonal pacing |
+| Retail     | 1.14          | continuous      | seasonal pacing |
+| Bar        | 1.17          | continuous      | seasonal pacing |
+| Car        | 1.36          | **lumpy** | median rate     |
+| Healthcare | 1.36          | **lumpy** | median rate     |
+| Transport  | 1.76          | **lumpy** | median rate     |
+| Clothing   | 2.43          | **lumpy** | median rate     |
+| Travel     | 3.35          | **lumpy** | median rate     |
+| Car Rental | ∞ (median 0) | **lumpy** | median rate     |
 
-**Note on Retail (ratio 1.14 ⇒ continuous):** Retail *is* historically regular
-(~390 CHF/month median), so it uses seasonal pacing. Its occasional big purchases (a new
+**Note on Retail (ratio 1.14 ⇒ continuous):** Retail *is* historically regular, so it uses seasonal pacing. Its occasional big purchases (a new
 sofa) are *within-year* events, and the detector reads *historical* lumpiness — so a
 one-off in an otherwise-steady category is not caught. Handling that would require
 dampening spikes in the **current** year's run-rate (winsorizing this year's monthly
@@ -197,12 +196,12 @@ spend), which is not currently implemented.
 
 ## Data layer — `loader.py`
 
-| Method | Returns | Used for |
-|---|---|---|
-| `get_category_year_spend(year)` | per-category YTD EXPENSE total | current spend-to-date in the budget table |
-| `get_category_cumulative(year, cats, freq)` | long-format cumulative spend per category at `freq` | the "actual" segment of each chart line |
-| `get_category_period_history(cats, before_year, freq)` | per-period spend for all prior years (`category, year, year_fraction, spend_chf`) | building the pacing curve and the history level |
-| `get_category_monthly_totals(cats, before_year, n_years)` | per-category list of zero-filled monthly totals for the last `n_years` | lumpiness detection + median rate |
+| Method                                                      | Returns                                                                             | Used for                                        |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `get_category_year_spend(year)`                           | per-category YTD EXPENSE total                                                      | current spend-to-date in the budget table       |
+| `get_category_cumulative(year, cats, freq)`               | long-format cumulative spend per category at`freq`                                | the "actual" segment of each chart line         |
+| `get_category_period_history(cats, before_year, freq)`    | per-period spend for all prior years (`category, year, year_fraction, spend_chf`) | building the pacing curve and the history level |
+| `get_category_monthly_totals(cats, before_year, n_years)` | per-category list of zero-filled monthly totals for the last`n_years`             | lumpiness detection + median rate               |
 
 All amounts are EXPENSE-only and cover both `category_main` and `category_second` levels.
 
@@ -222,8 +221,7 @@ All amounts are EXPENSE-only and cover both `category_main` and `category_second
    ones so it follows the pacing curve and shrinks toward history.
 
 It then builds the **budget vs forecast table** (`build_budget_table`). Columns, in order:
-`Category | Budget | Spent | Forecast EOY | Budget used Now | Now Δ CHF | Now Δ % | EOY Δ
-CHF | EOY Δ %` — the three magnitudes (target, spent-so-far, projected year-end) sit
+`Category | Budget | Spent | Forecast EOY | Budget used Now | Now Δ CHF | Now Δ % | EOY Δ CHF | EOY Δ %` — the three magnitudes (target, spent-so-far, projected year-end) sit
 together up front so the differences are visible at a glance, then the `now` block (its
 target + two deltas) and the `end-of-year` delta pair.
 
@@ -233,12 +231,10 @@ Two comparisons per category, against different references:
   (`pace_budget = budget × elapsed_year_fraction`) is a **linear** pro-ration of the
   budget: for a 3000 budget on June 1 you'd expect to have spent ~5/12 ≈ 1250, assuming
   even spending and *ignoring* seasonality (unlike the forecast, this is about "am I on
-  track", for which a flat monthly target is the intuitive yardstick). `Now Δ CHF = spend
-  − pace_budget`, and `Now Δ %` is that delta **relative to the pace target**
+  track", for which a flat monthly target is the intuitive yardstick). `Now Δ CHF = spend − pace_budget`, and `Now Δ %` is that delta **relative to the pace target**
   (`over_under_now_chf / pace_budget`), i.e. how far off pace you are right now — not a
   fraction of the annual budget.
-- **End of year** — will you land over budget? `EOY Δ CHF = forecast − budget` and `EOY Δ
-  % = over_under_eoy_chf / budget` (relative to the full annual budget).
+- **End of year** — will you land over budget? `EOY Δ CHF = forecast − budget` and `EOY Δ % = over_under_eoy_chf / budget` (relative to the full annual budget).
 
 Both `Δ %` columns divide by zero safely (a zero budget / pace target yields `0.0`).
 
@@ -250,6 +246,5 @@ Both `Δ %` columns divide by zero safely (a zero budget / pace target yields `0
 production model against candidate baselines (flat run-rate, last-year ratio,
 Holt-Winters) by projecting the year-end total from partial-year data at several
 checkpoints and scoring absolute percentage error. It imports the production functions
-directly, so it always reflects the live model; `forecast_year_end` with `prior_level =
-None` gives the pure pace forecast used as one of the baselines. Open it as a notebook and
+directly, so it always reflects the live model; `forecast_year_end` with `prior_level = None` gives the pure pace forecast used as one of the baselines. Open it as a notebook and
 change `CATEGORY` / `FREQ` to explore a category.
