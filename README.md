@@ -93,6 +93,7 @@ Set a per-category budget for the year, then let the model project your end-of-y
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 🏠**Home**              | Balance progression, net balance per month, top spending category, expense distribution                                                                                                |
 | 📊**Balance Sheet**     | Yearly income / spent / invested / net gain with gain & YoY rates, all-time KPIs (lifetime net gain, total invested, avg gain rate, avg annual net gain), major-category spend by year |
+| 💰**Budget / Forecasting** | Per-category yearly budgets, seasonally-paced end-of-year forecast, lumpy-category handling, budget-used-now KPIs, over/under table                                                   |
 | 🛒**Groceries**         | Store breakdown (Migros, Coop, Lidl, Aldi, ...), spend distribution                                                                                                                    |
 | **M Cumulus Analytics** | Item-level grocery analysis: categories, health score, top articles                                                                                                                    |
 | 🍽️**Dining & Bars**   | Restaurant & grocery spend by frequency, per-visit box plots                                                                                                                           |
@@ -102,7 +103,6 @@ Set a per-category budget for the year, then let the model project your end-of-y
 | 🛍️**Retail**          | Retail breakdown by subcategory, spend donut, top purchases                                                                                                                            |
 | 🔍**Smart Table**       | Fully filterable transaction browser                                                                                                                                                   |
 | 📈**Investing**         | Portfolio value vs. invested, P&L, per-position progression                                                                                                                            |
-| 💰**Budget / Forecasting** | Per-category yearly budgets, seasonally-paced end-of-year forecast, lumpy-category handling, budget-used-now KPIs, over/under table                                                   |
 
 ---
 
