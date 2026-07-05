@@ -1,0 +1,13 @@
+﻿Numéro de compte:;1;;;;;;;;;;;;
+IBAN:;0;;;;;;;;;;;;
+Du:;2024-05-27;;;;;;;;;;;;
+Au:;2025-05-05;;;;;;;;;;;;
+Solde initial:;3000;;;;;;;;;;;;
+Solde final:;1000;;;;;;;;;;;;
+Évaluation en:;CHF;;;;;;;;;;;;
+Nombre de transactions dans cette période:;Cette période contient plus de 1000 transactions. Seules les 1000 premières seront exportées.;;;;;;;;;;;;
+;;;;;;;;;;;;;
+Date de transaction;Heure de transaction;Date de comptabilisation;Date de valeur;Monnaie;Débit;Crédit;Sous-montant;Solde;No de transaction;Description1;Description2;Description3;Notes de bas de page
+2025-05-05;;2025-05-05;2025-05-05;CHF;-12.9;;;20;1;Migros Zurich;Ordre e-banking;Migros Zurich;
+2025-05-05;;2025-05-05;2025-05-05;CHF;-5.2;;;150;2;Credit Suisse Bank;Ordre e-banking;Credit Suisse Bank;
+2025-05-05;;2025-05-05;2025-05-05;CHF;-2.7;;;200;3;Tinyfish Zurich;Ordre e-banking;Tinyfish Zurich;

@@ -15,10 +15,9 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from swiss_exp_tracker.pipeline_agentic.clean_pipeline_output import run_post_clean
+from swiss_exp_tracker.pipeline_agentic.auto_detect import run_detection_from_db
 from swiss_exp_tracker.pipeline_agentic.pipeline import load_pending_transactions
 from swiss_exp_tracker.pipeline_agentic.pipeline import run_all_transactions
-from swiss_exp_tracker.pipeline_agentic.transactions_use import run_transactions_use
 from swiss_exp_tracker.pipeline_dash.pipeline import run_dashboard_pipeline
 from swiss_exp_tracker.pipeline_ingestion.pipeline import run_ingestion
 
@@ -42,6 +41,18 @@ def main() -> None:
         asyncio.run(run_all_transactions(transactions))
     else:
         logger.info("No pending transactions — skipping enrichment.")
+
+    # ── Stage 2.5: Auto-detect salary/rent rules ──────────────────────────────
+    # Detect employer/rent merchants from the prior run's transactions_use and
+    # write detected_rules.yaml. This must run BEFORE the post-clean and
+    # transactions_use modules are imported, because both load the merged config
+    # (which reads detected_rules.yaml) at import time — so deferring their
+    # imports until here lets the freshly written rules take effect this run.
+    logger.info("=== Stage 2.5: Auto-detect salary/rent rules ===")
+    run_detection_from_db()
+
+    from swiss_exp_tracker.pipeline_agentic.clean_pipeline_output import run_post_clean
+    from swiss_exp_tracker.pipeline_agentic.transactions_use import run_transactions_use
 
     # ── Stage 3: Post-clean ───────────────────────────────────────────────────
     logger.info("=== Stage 3: Post-clean ===")

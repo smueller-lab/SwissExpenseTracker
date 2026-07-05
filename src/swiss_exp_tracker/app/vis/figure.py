@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from typing import Literal
 
 import numpy as np
@@ -1102,3 +1103,91 @@ class Fig:
         )
 
         return fig
+
+
+def get_fig_BudgetForecast(
+    pdf_lines: pd.DataFrame, npixel: int, vk_margin: dict[str, Any]
+) -> go.Figure:
+    """Return a multi-category cumulative spend forecast figure with solid actual and dotted forecast lines.
+
+    Expects pdf_lines columns: category, period_end (datetime), cumulative_chf, segment ("actual"/"forecast").
+    """
+    if pdf_lines.empty:
+        return _make_no_data_fig("budget forecast")
+
+    # Sort categories by peak cumulative spend descending for cross-chart color consistency.
+    category_totals = (
+        pdf_lines.groupby("category")["cumulative_chf"]
+        .max()
+        .sort_values(ascending=False)
+    )
+    categories = category_totals.index.tolist()
+    color_map = _build_category_colors(categories, {})
+
+    fig = go.Figure()
+
+    for category in categories:
+        cat_df = pdf_lines[pdf_lines["category"] == category]
+        color = color_map[category]
+
+        actual_df = cat_df[cat_df["segment"] == "actual"].sort_values("period_end")
+        if not actual_df.empty:
+            fig.add_trace(
+                go.Scatter(
+                    x=actual_df["period_end"],
+                    y=actual_df["cumulative_chf"],
+                    mode="lines",
+                    name=category,
+                    line={"color": color, "width": 2},
+                    legendgroup=category,
+                    showlegend=True,
+                )
+            )
+
+        forecast_df = cat_df[cat_df["segment"] == "forecast"].sort_values("period_end")
+        if not forecast_df.empty:
+            fig.add_trace(
+                go.Scatter(
+                    x=forecast_df["period_end"],
+                    y=forecast_df["cumulative_chf"],
+                    mode="lines",
+                    name=category,
+                    line={"color": color, "width": 2, "dash": "dot"},
+                    legendgroup=category,
+                    showlegend=False,
+                )
+            )
+
+    dTick = get_adaptive_dTick(float(pdf_lines["cumulative_chf"].max()))
+    ry_Axis = get_ryAxis(dTick, pdf_lines["cumulative_chf"], True)
+    height_figure = get_heightFigure(npixel, vk_margin)
+
+    x_dates = pd.to_datetime(pdf_lines["period_end"])
+    tick_vals, tick_texts, fmt = get_rxAxis_Date(x_dates)
+    x_range: list[object] = [x_dates.min() - pd.Timedelta(days=3), tick_vals[-1]]
+
+    fig.update_layout(
+        xaxis={
+            "tickvals": tick_vals,
+            "ticktext": tick_texts,
+            "tickformat": fmt,
+            "range": x_range,
+            "showline": True,
+        },
+        yaxis={
+            "dtick": dTick,
+            "range": ry_Axis,
+            "showline": True,
+        },
+        height=height_figure,
+        showlegend=True,
+        legend={
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "left",
+            "x": 0,
+        },
+    )
+
+    return fig

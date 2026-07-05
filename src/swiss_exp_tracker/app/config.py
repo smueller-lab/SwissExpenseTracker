@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import field
 from pathlib import Path
 
 from dash.dash_table import FormatTemplate
@@ -83,6 +84,27 @@ class config:
 
     # number of top categories shown in the vacation boxplot
     vacation_top_n: int = 4
+
+    # budget / forecast page
+    npixel_Budget: int = 50
+    budget_default_categories: list[str] = field(
+        default_factory=lambda: [
+            "Travel",
+            "Restaurant",
+            "Groceries",
+            "Transport",
+            "Retail",
+        ]
+    )
+    # Fixed resolution for the budget/forecast page (the UI selector was removed).
+    forecast_freq_default: str = "W"
+    # Shrinkage constant k for the year-end blend: forecast = w*pace + (1-w)*history,
+    # with w = elapsed_year_fraction / (elapsed_year_fraction + k). Current-year pace is
+    # the main driver; history only anchors the first weeks. Lower k trusts the current
+    # year even sooner (raise it if early-year forecasts feel too jumpy).
+    forecast_shrinkage_k: float = 0.1
+    # Years of monthly history used to detect lumpy categories and their median monthly rate.
+    forecast_lumpy_lookback_years: int = 2
 
     # in-chart text-label fonts
     font_no_data = {"color": "white", "size": 16}

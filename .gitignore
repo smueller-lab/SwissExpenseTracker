@@ -50,4 +50,3 @@ database/
 # user specific overrides for pipeline config
 src/swiss_exp_tracker/config.py
 src/swiss_exp_tracker/pipeline_agentic/config
-.claude/settings.json

@@ -10,6 +10,8 @@ import yaml
 from pydantic import ValidationError
 
 from swiss_exp_tracker.config.user_config_loader import load
+from swiss_exp_tracker.config.user_config_schema import CreditCardPaymentsDetected
+from swiss_exp_tracker.config.user_config_schema import DetectedRules
 
 # ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -259,3 +261,50 @@ def test_user_custom_rules_pass_through(tmp_path: Path) -> None:
     rule = next(r for r in cfg.custom_rules if r.merchant == "My Gym")
     assert rule.category_main == "Sport"
     assert rule.category_second == "Fitness"
+
+
+# ─── CreditCardPaymentsDetected / DetectedRules ──────────────────────────────
+
+
+def test_detected_rules_loads_without_credit_card_payments() -> None:
+    """DetectedRules with no credit_card_payments key defaults to an empty booking_texts list."""
+    data: dict[str, object] = {"salary": {"employers": ["Corp A"]}}
+    parsed = DetectedRules.model_validate(data)
+    assert parsed.credit_card_payments.booking_texts == []
+
+
+def test_detected_rules_loads_with_credit_card_payments() -> None:
+    """DetectedRules with a credit_card_payments section parses the booking_texts list."""
+    data: dict[str, object] = {
+        "credit_card_payments": {
+            "booking_texts": ["2002 LSV-Zahlung", "UBS Card Center"]
+        }
+    }
+    parsed = DetectedRules.model_validate(data)
+    assert parsed.credit_card_payments.booking_texts == [
+        "2002 LSV-Zahlung",
+        "UBS Card Center",
+    ]
+
+
+def test_credit_card_payments_coerces_entries_to_str() -> None:
+    """Non-string booking_texts entries are coerced to strings."""
+    detected = CreditCardPaymentsDetected.model_validate(
+        {"booking_texts": [2002, "LSV"]}
+    )
+    assert detected.booking_texts == ["2002", "LSV"]
+
+
+def test_detected_rules_roundtrip_model_dump_validate() -> None:
+    """DetectedRules with credit_card_payments survives model_dump → model_validate unchanged."""
+    original = DetectedRules(
+        credit_card_payments=CreditCardPaymentsDetected(
+            booking_texts=["2002 LSV-Zahlung", "UBS Card Center"]
+        )
+    )
+    dumped = original.model_dump()
+    restored = DetectedRules.model_validate(dumped)
+    assert restored.credit_card_payments.booking_texts == [
+        "2002 LSV-Zahlung",
+        "UBS Card Center",
+    ]

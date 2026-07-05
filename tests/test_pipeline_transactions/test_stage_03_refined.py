@@ -10,13 +10,6 @@ from pathlib import Path
 import pytest
 
 from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceType
-from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
-    RevolutTransaction,
-)
-from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
-    VisecaTransaction,
-)
-from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import ZKBTransaction
 from swiss_exp_tracker.pipeline_ingestion.stages.transactions.stage_03_refined import (
     process_refined_source,
 )
@@ -72,44 +65,28 @@ def _seed_raw_row(
 
 
 # ---------------------------------------------------------------------------
-# JSON loaders from test CSVs
+# Row JSON helpers — build raw canonical-keyed row dicts
 # ---------------------------------------------------------------------------
 
 
 def _zkb_row_json(**overrides: object) -> str:
-    """Return a valid ZKB row JSON string, optionally overriding fields."""
+    """Return a canonical ZKB row JSON string, optionally overriding fields."""
     with (TEST_DATA_DIR / "zkb_test.csv").open(encoding="utf-8-sig", newline="") as fh:
         reader = csv.DictReader(fh)
         row: dict[str, object] = dict(next(reader))
     row.update(overrides)
-    model = ZKBTransaction.model_validate(row)
-    return json.dumps(model.model_dump(mode="json", by_alias=True))
+    return json.dumps(row, ensure_ascii=False)
 
 
 def _viseca_row_json(**overrides: object) -> str:
-    """Return a valid Viseca row JSON string, optionally overriding fields."""
+    """Return a canonical Viseca row JSON string, optionally overriding fields."""
     with (TEST_DATA_DIR / "viseca_test.csv").open(
         encoding="utf-8-sig", newline=""
     ) as fh:
         reader = csv.DictReader(fh)
         row: dict[str, object] = dict(next(reader))
     row.update(overrides)
-    model = VisecaTransaction.model_validate(row)
-    return json.dumps(model.model_dump(mode="json", by_alias=True))
-
-
-def _revolut_transfer_row_json(**overrides: object) -> str:
-    """Return the Revolut Transfer row JSON string (row 3 from test CSV)."""
-    with (TEST_DATA_DIR / "account_statement_EUR_test.csv").open(
-        encoding="utf-8-sig", newline=""
-    ) as fh:
-        reader = csv.DictReader(fh)
-        rows = list(reader)
-    # Row index 2 is the Transfer row (index 0 = first Exchange)
-    row: dict[str, object] = dict(rows[2])
-    row.update(overrides)
-    model = RevolutTransaction.model_validate(row)
-    return json.dumps(model.model_dump(mode="json", by_alias=True))
+    return json.dumps(row, ensure_ascii=False)
 
 
 # ---------------------------------------------------------------------------
@@ -199,7 +176,6 @@ def test_duplicate_skipped(tmp_db: Path) -> None:
 
 def test_zkb_ebanking_parent_row_skipped(tmp_db: Path) -> None:
     """ZKB eBanking parent row (no date, no amounts) is skipped from rfn."""
-    # Seed a parent row with the matching booking text pattern
     parent_json = json.dumps(
         {
             "Date": None,
@@ -229,23 +205,22 @@ def test_zkb_ebanking_parent_row_skipped(tmp_db: Path) -> None:
     assert raw_processed == 1
 
 
-def test_zkb_ebanking_detail_row_inherits_date(tmp_db: Path) -> None:
-    """eBanking detail rows inherit parent date and are inserted into rfn."""
+def test_zkb_ebanking_detail_row_inserted(tmp_db: Path) -> None:
+    """Rows from the eBanking test CSV are inserted and have non-null dates."""
     with (TEST_DATA_DIR / "zkb_ebanking_test.csv").open(
         encoding="utf-8-sig", newline=""
     ) as fh:
         reader = csv.DictReader(fh)
         rows = list(reader)
 
-    # Row 0 = parent, rows 1 and 2 = details
+    # Row 0 = parent (skipped), rows 1 and 2 are normal rows with their own dates.
     for row in rows:
-        model = ZKBTransaction.model_validate(row)
-        raw_json = json.dumps(model.model_dump(mode="json", by_alias=True))
+        raw_json = json.dumps(dict(row), ensure_ascii=False)
         _seed_raw_row(tmp_db, raw_json, "ZKB_DEBIT")
 
     result = process_refined_source(SourceType.ZKB_DEBIT)
 
-    # Parent row skipped → 2 detail rows inserted
+    # Parent row skipped → 2 normal rows inserted
     assert result["records_inserted"] == 2
 
     with sqlite3.connect(tmp_db) as db:
@@ -343,7 +318,6 @@ def test_zkb_mobile_banking_detail_rows_kept(tmp_db: Path) -> None:
 
 def test_revolut_exchange_leg_skipped(tmp_db: Path) -> None:
     """Matched Revolut exchange pair → both rows skipped, records_inserted=0."""
-    # Build a pair: same Description, same StartedDate, one negative CHF, one positive EUR
     started = "2023-06-01 10:00:00"
     chf_row = {
         "Type": "Exchange",
@@ -370,8 +344,7 @@ def test_revolut_exchange_leg_skipped(tmp_db: Path) -> None:
         "Balance": "104",
     }
     for row_dict in (chf_row, eur_row):
-        model = RevolutTransaction.model_validate(row_dict)
-        raw_json = json.dumps(model.model_dump(mode="json", by_alias=True))
+        raw_json = json.dumps(row_dict, ensure_ascii=False)
         _seed_raw_row(tmp_db, raw_json, "REVOLUT")
 
     result = process_refined_source(SourceType.REVOLUT)
@@ -399,8 +372,7 @@ def test_revolut_topup_skipped(tmp_db: Path) -> None:
         "State": "COMPLETED",
         "Balance": "300",
     }
-    model = RevolutTransaction.model_validate(topup_row)
-    raw_json = json.dumps(model.model_dump(mode="json", by_alias=True))
+    raw_json = json.dumps(topup_row, ensure_ascii=False)
     _seed_raw_row(tmp_db, raw_json, "REVOLUT")
 
     result = process_refined_source(SourceType.REVOLUT)
@@ -457,14 +429,12 @@ def test_file_status_promoted_to_refined(tmp_db: Path) -> None:
 
 def test_only_unprocessed_raw_rows_refined(tmp_db: Path) -> None:
     """Pre-marked raw rows are skipped; rows_found counts only unprocessed rows."""
-    # Use distinct references to avoid deduplication masking the count
     raw_id_1 = _seed_raw_row(
         tmp_db, _zkb_row_json(**{"ZKB reference": "L10001"}), "ZKB_DEBIT"
     )
     _seed_raw_row(tmp_db, _zkb_row_json(**{"ZKB reference": "L10002"}), "ZKB_DEBIT")
     _seed_raw_row(tmp_db, _zkb_row_json(**{"ZKB reference": "L10003"}), "ZKB_DEBIT")
 
-    # Pre-mark first raw row as already processed
     with sqlite3.connect(tmp_db) as db:
         db.execute("UPDATE transactions_raw SET processed=1 WHERE id=?", (raw_id_1,))
         db.commit()
@@ -517,18 +487,20 @@ def test_source_type_isolation_stage03(tmp_db: Path) -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_zkb_null_date_stored_as_null_not_crash(tmp_db: Path) -> None:
-    """ZKB row with empty Date and Value date → inserted with NULL date, no crash."""
+def test_null_date_row_skipped_as_pending(tmp_db: Path) -> None:
+    """Row with no date is pending → skipped, not inserted, and marked processed."""
     raw_json = _zkb_row_json(**{"Date": "", "Value date": ""})
     _seed_raw_row(tmp_db, raw_json, "ZKB_DEBIT")
 
     result = process_refined_source(SourceType.ZKB_DEBIT)
 
-    assert result["records_inserted"] == 1
+    assert result["records_inserted"] == 0
+    assert result["pending_skipped"] == 1
+    assert result["rows_processed"] == 1
 
     with sqlite3.connect(tmp_db) as db:
-        date_val = db.execute("SELECT date FROM transactions_rfn LIMIT 1").fetchone()[0]
-    assert date_val is None
+        count = db.execute("SELECT COUNT(*) FROM transactions_rfn").fetchone()[0]
+    assert count == 0
 
 
 def test_zkb_all_amounts_none_produces_zero(tmp_db: Path) -> None:
@@ -575,8 +547,7 @@ def test_revolut_unknown_currency_raises(tmp_db: Path) -> None:
         "State": "COMPLETED",
         "Balance": "90",
     }
-    model = RevolutTransaction.model_validate(invalid_row)
-    raw_json = json.dumps(model.model_dump(mode="json", by_alias=True))
+    raw_json = json.dumps(invalid_row, ensure_ascii=False)
     _seed_raw_row(tmp_db, raw_json, "REVOLUT")
 
     with pytest.raises(ValueError):
@@ -607,8 +578,7 @@ def test_revolut_completed_date_null_uses_started_date(tmp_db: Path) -> None:
         "State": "COMPLETED",
         "Balance": "85",
     }
-    model = RevolutTransaction.model_validate(payment_row)
-    raw_json = json.dumps(model.model_dump(mode="json", by_alias=True))
+    raw_json = json.dumps(payment_row, ensure_ascii=False)
     _seed_raw_row(tmp_db, raw_json, "REVOLUT")
 
     process_refined_source(SourceType.REVOLUT)
