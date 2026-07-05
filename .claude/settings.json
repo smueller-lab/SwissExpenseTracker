@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sqlite3 *)",
+      "Bash(python -m ruff check *)",
+      "Bash(python -m black --check *)",
+      "Bash(python -m mypy *)",
+      "Bash(python -m pytest *)",
+      "Bash(pip show *)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Edit(./.env)",
+      "Write(./.env)",
+      "Read(./.env.*)",
+      "Edit(./.env.*)",
+      "Write(./.env.*)",
+      "Bash(cat *.env*)",
+      "Bash(less *.env*)",
+      "Bash(head *.env*)",
+      "Bash(tail *.env*)",
+      "Bash(grep *.env*)",
+      "Read(./database/*.db)",
+      "Edit(./database/*.db)",
+      "Write(./database/*.db)",
+      "Bash(sqlite3 *database/*.db*)",
+      "Bash(rm *database/*.db*)",
+      "Bash(mv *database/*.db*)",
+      "Bash(cp *database/*.db*)",
+      "Bash(git commit)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(git push:*)",
+      "Bash(git add)",
+      "Bash(git add:*)",
+      "Bash(git tag)",
+      "Bash(git tag:*)",
+      "Bash(git branch)",
+      "Bash(git branch:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(git switch -c:*)"
+    ]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  }
+}
