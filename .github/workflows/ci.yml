@@ -74,6 +74,11 @@ jobs:
           cp .env.example .env
           docker compose config --quiet
 
+      # The default `docker` driver can't export a GHA cache (cache-to below).
+      # Buildx switches to the docker-container driver, which supports it.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       # Builds the image so a broken Dockerfile fails CI instead of merging silently.
       - name: Build image
         uses: docker/build-push-action@v6
