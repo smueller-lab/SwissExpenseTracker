@@ -65,6 +65,7 @@ def create_all_tables() -> None:
         transactions.create_transactions_raw_table(db)
         transactions.create_transactions_rfn_table(db)
         transactions.create_api_usage_table(db)
+        transactions.create_dash_budget_table(db)
 
         refined_columns = {str(col[1]) for col in transactions.get_rfn_column_names(db)}
         if "is_person" not in refined_columns:

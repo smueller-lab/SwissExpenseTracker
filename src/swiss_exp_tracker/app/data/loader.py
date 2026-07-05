@@ -3,16 +3,21 @@ from __future__ import annotations
 import calendar
 import sqlite3
 
+from datetime import datetime
 from pathlib import Path
+from typing import Literal
 
 import pandas as pd
 
 from swiss_exp_tracker.app.config import DB_PATH
 from swiss_exp_tracker.app.config import VIS
+from swiss_exp_tracker.app.data.budget_models import CategoryBudget
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_dash.config import BALANCE_SHEET_MAJOR_CATEGORIES
 from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANT_NORMALIZE
 from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANTS_TRACKED
+
+_FREQ_RULE: dict[str, str] = {"D": "D", "W": "W", "M": "MS"}
 
 
 def _normalize_merchant(merchant: str) -> str:
@@ -245,6 +250,38 @@ class DataLoader:
                 transactions.get_dash_balance_sheet_categories.sql, con
             )
 
+            # Budget (create table defensively for tmp DBs in tests)
+            transactions.create_dash_budget_table(con)
+            self.pdf_Budget = pd.read_sql(transactions.get_dash_budget.sql, con)
+            if self.pdf_Budget.empty:
+                self.pdf_Budget = pd.DataFrame(
+                    columns=["category", "year", "budget_chf", "updated_at"]
+                )
+            else:
+                self.pdf_Budget["year"] = self.pdf_Budget["year"].astype(int)
+                self.pdf_Budget["budget_chf"] = self.pdf_Budget["budget_chf"].astype(
+                    float
+                )
+
+            self.current_year: int = (
+                int(self.pdf_Master["date"].dt.year.max())
+                if not self.pdf_Master.empty
+                else 0
+            )
+            self.budget_categories: list[str] = sorted(
+                self.pdf_Master.loc[
+                    self.pdf_Master["transaction_type"] == "EXPENSE", "category_main"
+                ]
+                .unique()
+                .tolist()
+            )
+            _expense = self.pdf_Master["transaction_type"] == "EXPENSE"
+            _main = self.pdf_Master.loc[_expense, "category_main"].dropna()
+            _second = self.pdf_Master.loc[_expense, "category_second"].dropna()
+            self.budget_categories_all: list[str] = sorted(
+                {str(c) for c in [*_main, *_second] if str(c).strip()}
+            )
+
         # Category labels in the canonical order defined in pipeline config
         _cat_labels = [label for label, _, _ in BALANCE_SHEET_MAJOR_CATEGORIES]
 
@@ -339,3 +376,210 @@ class DataLoader:
 
         s_col = ["Date", "amount_CHF", "Merchant", "category_second"]
         return self.apply_Variable_show(pdf[s_col].copy())
+
+    def get_budgets(self, year: int) -> list[CategoryBudget]:
+        """Return stored budgets for year as CategoryBudget models."""
+        rows = self.pdf_Budget[self.pdf_Budget["year"] == year]
+        return [
+            CategoryBudget.model_validate(
+                {"category": r["category"], "budget_chf": r["budget_chf"]}
+            )
+            for _, r in rows.iterrows()
+        ]
+
+    def _reload_pdf_budget(self, con: sqlite3.Connection) -> None:
+        """Reload self.pdf_Budget from the DB with normalized year/budget dtypes."""
+        self.pdf_Budget = pd.read_sql(transactions.get_dash_budget.sql, con)
+        if not self.pdf_Budget.empty:
+            self.pdf_Budget["year"] = self.pdf_Budget["year"].astype(int)
+            self.pdf_Budget["budget_chf"] = self.pdf_Budget["budget_chf"].astype(float)
+        else:
+            self.pdf_Budget = pd.DataFrame(
+                columns=["category", "year", "budget_chf", "updated_at"]
+            )
+
+    def save_budgets(self, year: int, budgets: list[CategoryBudget]) -> None:
+        """Upsert budgets for year to the DB, then reload self.pdf_Budget."""
+        now = datetime.now().isoformat()
+        with sqlite3.connect(str(self._db_path)) as con:
+            transactions.create_dash_budget_table(con)
+            for b in budgets:
+                transactions.upsert_dash_budget(
+                    con,
+                    category=b.category,
+                    budget_chf=b.budget_chf,
+                    year=year,
+                    updated_at=now,
+                )
+            self._reload_pdf_budget(con)
+
+    def delete_budget(self, year: int, category: str) -> None:
+        """Delete a category's budget for year so re-adding resets it to 0; reloads self.pdf_Budget."""
+        with sqlite3.connect(str(self._db_path)) as con:
+            transactions.create_dash_budget_table(con)
+            transactions.delete_dash_budget(con, year=year, category=category)
+            self._reload_pdf_budget(con)
+
+    def get_category_year_spend(self, year: int) -> pd.DataFrame:
+        """Return per-category EXPENSE totals for year (main and second levels); columns [category, spend_chf]."""
+        mask = (self.pdf_Master["transaction_type"] == "EXPENSE") & (
+            self.pdf_Master["date"].dt.year == year
+        )
+        base = self.pdf_Master[mask]
+        parts: list[pd.DataFrame] = []
+        for level in ("category_main", "category_second"):
+            grouped = (
+                base.dropna(subset=[level])
+                .groupby(level, as_index=False)["amount_CHF"]
+                .sum()
+                .rename(columns={level: "category", "amount_CHF": "spend_chf"})
+            )
+            parts.append(grouped)
+        combined = pd.concat(parts, ignore_index=True)
+        combined = combined[combined["category"].astype(str).str.strip() != ""]
+        return combined.drop_duplicates(subset="category", keep="first").reset_index(
+            drop=True
+        )
+
+    def get_category_cumulative(
+        self,
+        year: int,
+        categories: list[str],
+        freq: Literal["D", "W", "M"],
+    ) -> pd.DataFrame:
+        """Return long-format cumulative EXPENSE spend per category for year at freq.
+        Columns: category, period_end (datetime64), cumulative_chf (non-decreasing within category).
+        """
+        rule = _FREQ_RULE[freq]
+        mask = (
+            (self.pdf_Master["transaction_type"] == "EXPENSE")
+            & (self.pdf_Master["date"].dt.year == year)
+            & (
+                self.pdf_Master["category_main"].isin(categories)
+                | self.pdf_Master["category_second"].isin(categories)
+            )
+        )
+        pdf = self.pdf_Master[mask][
+            ["date", "category_main", "category_second", "amount_CHF"]
+        ].copy()
+
+        results: list[pd.DataFrame] = []
+        for cat in categories:
+            cat_mask = (pdf["category_main"] == cat) | (pdf["category_second"] == cat)
+            cat_series = pdf[cat_mask].set_index("date")["amount_CHF"]
+            if cat_series.empty:
+                continue
+            cumulative = cat_series.resample(rule).sum().cumsum()
+            results.append(
+                pd.DataFrame(
+                    {
+                        "category": cat,
+                        "period_end": cumulative.index.to_numpy(),
+                        "cumulative_chf": cumulative.to_numpy(),
+                    }
+                )
+            )
+
+        if not results:
+            return pd.DataFrame(columns=["category", "period_end", "cumulative_chf"])
+        return pd.concat(results, ignore_index=True)
+
+    def get_category_period_history(
+        self,
+        categories: list[str],
+        exclude_year: int,
+        freq: Literal["D", "W", "M"],
+    ) -> pd.DataFrame:
+        """Return per-category per-period EXPENSE spend for all years before exclude_year.
+        Columns: category, year (int), year_fraction (float in (0,1]), spend_chf.
+        """
+        rule = _FREQ_RULE[freq]
+        mask = (
+            (self.pdf_Master["transaction_type"] == "EXPENSE")
+            & (self.pdf_Master["date"].dt.year < exclude_year)
+            & (
+                self.pdf_Master["category_main"].isin(categories)
+                | self.pdf_Master["category_second"].isin(categories)
+            )
+        )
+        pdf = self.pdf_Master[mask][
+            ["date", "category_main", "category_second", "amount_CHF"]
+        ].copy()
+
+        records: list[dict[str, object]] = []
+        for cat in categories:
+            cat_pdf = pdf[
+                (pdf["category_main"] == cat) | (pdf["category_second"] == cat)
+            ]
+            if cat_pdf.empty:
+                continue
+            year_vals = sorted(cat_pdf["date"].dt.year.unique())
+            for year_raw in year_vals:
+                year_int = int(year_raw)
+                year_series = cat_pdf[cat_pdf["date"].dt.year == year_int].set_index(
+                    "date"
+                )["amount_CHF"]
+                resampled = year_series.resample(rule).sum()
+                # Keep only buckets whose label date falls within the year
+                resampled = resampled[resampled.index.year == year_int]
+                n_days = 366 if calendar.isleap(year_int) else 365
+                for period_dt, spend in resampled.items():
+                    period_ts = pd.Timestamp(period_dt)
+                    records.append(
+                        {
+                            "category": cat,
+                            "year": year_int,
+                            "year_fraction": period_ts.dayofyear / n_days,
+                            "spend_chf": float(spend),
+                        }
+                    )
+
+        if not records:
+            return pd.DataFrame(
+                columns=["category", "year", "year_fraction", "spend_chf"]
+            )
+        return pd.DataFrame(records)
+
+    def get_category_monthly_totals(
+        self,
+        categories: list[str],
+        before_year: int,
+        n_years: int,
+    ) -> dict[str, list[float]]:
+        """Return per-category completed-month EXPENSE totals for the n_years years before before_year.
+        Each included year contributes 12 zero-filled monthly totals, so medians reflect quiet
+        months too; used to gauge a category's lumpiness and its robust monthly spend rate.
+        """
+        start_year = before_year - n_years
+        mask = (
+            (self.pdf_Master["transaction_type"] == "EXPENSE")
+            & (self.pdf_Master["date"].dt.year >= start_year)
+            & (self.pdf_Master["date"].dt.year < before_year)
+            & (
+                self.pdf_Master["category_main"].isin(categories)
+                | self.pdf_Master["category_second"].isin(categories)
+            )
+        )
+        pdf = self.pdf_Master[mask][
+            ["date", "category_main", "category_second", "amount_CHF"]
+        ].copy()
+
+        totals: dict[str, list[float]] = {}
+        for cat in categories:
+            cat_mask = (pdf["category_main"] == cat) | (pdf["category_second"] == cat)
+            cat_series = pdf[cat_mask].set_index("date")["amount_CHF"]
+            if cat_series.empty:
+                totals[cat] = []
+                continue
+            months: list[float] = []
+            for yr in range(start_year, before_year):
+                full = pd.date_range(f"{yr}-01-01", f"{yr}-12-01", freq="MS")
+                monthly = (
+                    cat_series[cat_series.index.year == yr]
+                    .resample("MS")
+                    .sum()
+                    .reindex(full, fill_value=0.0)
+                )
+                months.extend(float(v) for v in monthly.to_numpy())
+            totals[cat] = months
+        return totals

@@ -15,6 +15,7 @@ from swiss_exp_tracker.app.dash_components import GRAPH_CONFIG
 from swiss_exp_tracker.app.dash_components import format_diff
 from swiss_exp_tracker.app.dash_components import get_balance_class
 from swiss_exp_tracker.app.dash_components import make_card_title
+from swiss_exp_tracker.app.data.budget_models import CategoryBudget
 
 vis = VIS()
 
@@ -437,4 +438,185 @@ def make_TopCategory_card(
             html.Div(f"12m avg: {amount_12m_avg:,.0f} CHF", className="kpi-subtext"),
         ],
         className=f"card card-kpi col-{width}",
+    )
+
+
+def make_budget_rows(
+    active_categories: list[str], budget_lookup: dict[str, float]
+) -> list[Any]:
+    """Return one vertical budget input row (label, number input, remove button) per active category."""
+    return [
+        html.Div(
+            [
+                html.Label(cat, className="budget-label"),
+                dcc.Input(
+                    id={"type": "budget-input", "category": cat},
+                    type="number",
+                    min=0,
+                    value=budget_lookup.get(cat, 0.0),
+                    className="budget-number-input",
+                ),
+                html.Button(
+                    "✕",
+                    id={"type": "budget-remove", "category": cat},
+                    className="budget-remove-btn",
+                    title="Remove category",
+                ),
+            ],
+            className="budget-input-row",
+        )
+        for cat in active_categories
+    ]
+
+
+def resolve_active_categories(
+    default_categories: list[str], saved_budgets: list[CategoryBudget]
+) -> list[str]:
+    """Return the initial budget categories: the fixed defaults plus any saved ones, order-preserving and unique."""
+    saved_cats = [b.category for b in saved_budgets]
+    return list(dict.fromkeys([*default_categories, *saved_cats]))
+
+
+def make_budget_input_card(
+    title: str,
+    categories: list[str],
+    saved_budgets: list[CategoryBudget],
+    year: int,
+    default_categories: list[str],
+    width: int = 12,
+) -> Any:
+    """Return a card with a year selector, per-category budget inputs, an add-category control, and a save button."""
+    budget_lookup = {b.category: b.budget_chf for b in saved_budgets}
+    active = resolve_active_categories(default_categories, saved_budgets)
+    year_options = [{"label": str(y), "value": y} for y in range(year - 2, year + 3)]
+    add_options = [{"label": c, "value": c} for c in categories if c not in active]
+
+    return html.Div(
+        [
+            dcc.Store(id="budget-active-categories", data=active),
+            html.Div(
+                [
+                    make_card_title(title),
+                    html.Div(
+                        [
+                            html.Label("Year", className="budget-field-label"),
+                            dcc.Dropdown(
+                                id="budget-year",
+                                className="dropdown-year budget-year-select",
+                                options=year_options,  # type: ignore[arg-type]
+                                value=year,
+                                clearable=False,
+                            ),
+                        ],
+                        className="budget-year-field",
+                    ),
+                ],
+                className="budget-card-header",
+            ),
+            html.Div(
+                make_budget_rows(active, budget_lookup),
+                id="budget-input-rows",
+                className="budget-inputs",
+            ),
+            html.Div(
+                [
+                    dcc.Dropdown(
+                        id="budget-add-select",
+                        className="dropdown-year budget-add-select",
+                        options=add_options,  # type: ignore[arg-type]
+                        placeholder="Add a category…",
+                    ),
+                    html.Button("+ Add", id="budget-add-btn", className="btn-toggle"),
+                ],
+                className="budget-add-row",
+            ),
+            html.Button(
+                "\U0001f4be Save Budgets",
+                id="budget-save-btn",
+                className="btn-toggle budget-save-btn",
+            ),
+            html.Div(id="budget-save-status", className="budget-save-status"),
+        ],
+        className=f"card col-{width}",
+    )
+
+
+def make_budget_forecast_card(
+    title: str,
+    fig_id: str,
+    width: int = 12,
+) -> Any:
+    """Return a card with a title header and a line-plot graph (fixed weekly resolution)."""
+    return html.Div(
+        [
+            make_card_title(title),
+            dcc.Loading(
+                dcc.Graph(id=fig_id, figure={}, config=GRAPH_CONFIG),
+            ),
+        ],
+        className=f"card card-graph col-{width}",
+    )
+
+
+def make_budget_table_card(
+    title: str,
+    columns: list[dict[str, Any]],
+    data: list[dict[str, Any]],
+    width: int = 12,
+) -> Any:
+    """Return a full-width budget results table; delta cells use inverted balance coloring (over=red, under=green)."""
+    header = html.Thead(
+        html.Tr(
+            [
+                html.Th(
+                    col["name"],
+                    className="" if col["fmt"] == "text" else "num",
+                )
+                for col in columns
+            ]
+        )
+    )
+
+    def _render_cell(col: dict[str, Any], row: dict[str, Any]) -> Any:
+        """Return a styled html.Td; invert=True applies over-budget=red / under-budget=green coloring."""
+        val: Any = row.get(col["id"])
+        fmt: str = str(col["fmt"])
+        colored: bool = bool(col.get("color", False))
+        invert: bool = bool(col.get("invert", False))
+        missing: bool = bool(pd.isna(val))
+
+        if fmt == "text":
+            return html.Td(str(val) if not missing else "—", className="")
+
+        if fmt == "chf":
+            text = f"{val:,.0f}" if not missing else "—"
+        else:
+            # pct values are stored as fractions (e.g. -0.68 → -68 %)
+            text = f"{val * 100:.1f} %" if not missing else "—"
+
+        if colored and not missing:
+            if invert:
+                cls = (
+                    "num balance-negative"
+                    if val > 0
+                    else ("num balance-positive" if val < 0 else "num")
+                )
+            else:
+                cls = (
+                    "num balance-positive"
+                    if val > 0
+                    else ("num balance-negative" if val < 0 else "num")
+                )
+        else:
+            cls = "num"
+
+        return html.Td(text, className=cls)
+
+    body = html.Tbody(
+        [html.Tr([_render_cell(col, row) for col in columns]) for row in data]
+    )
+
+    return html.Div(
+        [make_card_title(title), html.Table([header, body], className="simple-table")],
+        className=f"card card-graph col-{width}",
     )

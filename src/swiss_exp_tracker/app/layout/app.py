@@ -36,6 +36,12 @@ def create_app_layout(
                         className="menu-link",
                     ),
                     dcc.Link(
+                        "\U0001f4b0 Budget / Forecasting",
+                        href="/budget-forecast",
+                        id="link-budget-forecast",
+                        className="menu-link",
+                    ),
+                    dcc.Link(
                         "🛒 Groceries",
                         href="/groceries",
                         id="link-groceries",
