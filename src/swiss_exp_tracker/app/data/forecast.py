@@ -10,6 +10,15 @@ import pandas as pd
 
 from swiss_exp_tracker.app.data.budget_models import CategoryBudget
 
+# Fraction the multi-year pacing curve is pulled toward the flat/linear curve. A light
+# pull bounds the run-rate amplification from a sparse or lopsided history without erasing
+# genuine seasonality; a single prior year is regularized harder (0.5, see below).
+# 0.35: with only 2-4 noisy years of personal data, hedge the shape ~a third toward flat.
+_CURVE_LINEAR_REG = 0.35
+# Years whose total is below this fraction of the median year total are ignored when
+# learning the seasonal shape (their within-year timing is noise, not seasonality).
+_CURVE_MIN_YEAR_FRAC = 0.2
+
 
 def _build_freq_grid(freq: Literal["D", "W", "M"]) -> npt.NDArray[np.float64]:
     """Return the canonical year_fraction grid (1-indexed) for the given frequency."""
@@ -26,8 +35,11 @@ def seasonal_pacing_curve(
     freq: Literal["D", "W", "M"],
 ) -> pd.DataFrame:
     """Return (year_fraction, cum_share) pacing curve at freq resolution.
-    Averages prior years' normalized cumulative spend; falls back to linear when no usable history.
-    Applies half-shrink toward linear for exactly one prior year.
+    Drops negligible years (total < _CURVE_MIN_YEAR_FRAC of the median year) so tiny early
+    years don't distort the shape, then takes the median across the remaining years' normalized
+    cumulative curves so a single one-time-purchase year (e.g. a car bought in one month) can't
+    dominate. Falls back to linear when no usable history; regularizes toward linear (fully for
+    one year, lightly otherwise) to bound run-rate blow-up from a sparse or lopsided history.
     """
     grid = _build_freq_grid(freq)
     linear: npt.NDArray[np.float64] = grid.copy()
@@ -36,6 +48,7 @@ def seasonal_pacing_curve(
     years = sorted(cat_hist["year"].unique())
 
     year_curves: list[npt.NDArray[np.float64]] = []
+    year_totals: list[float] = []
     for yr in years:
         yr_data = cat_hist[cat_hist["year"] == yr].sort_values("year_fraction")
         total = float(yr_data["spend_chf"].sum())
@@ -59,26 +72,35 @@ def seasonal_pacing_curve(
             np.interp(grid, xp, fp), dtype=np.float64
         )
         year_curves.append(interpolated)
+        year_totals.append(total)
 
     if not year_curves:
         return pd.DataFrame({"year_fraction": grid, "cum_share": linear})
 
-    stacked: npt.NDArray[np.float64] = np.asarray(
-        np.array(year_curves), dtype=np.float64
-    )
+    # Drop negligible years (their timing is noise); keep all if that would empty the set.
+    totals_arr: npt.NDArray[np.float64] = np.asarray(year_totals, dtype=np.float64)
+    threshold = _CURVE_MIN_YEAR_FRAC * float(np.median(totals_arr))
+    kept = [c for c, t in zip(year_curves, year_totals, strict=False) if t >= threshold]
+    if not kept:
+        kept = year_curves
+
+    stacked: npt.NDArray[np.float64] = np.asarray(np.array(kept), dtype=np.float64)
+    # Median across the kept years: robust to a lone spike year (a one-time purchase
+    # concentrated in one month) that would otherwise skew the seasonal shape.
     learned: npt.NDArray[np.float64] = np.asarray(
-        stacked.mean(axis=0), dtype=np.float64
+        np.median(stacked, axis=0), dtype=np.float64
     )
     learned = np.asarray(np.maximum.accumulate(learned), dtype=np.float64)
-    learned[-1] = 1.0
 
-    if len(year_curves) == 1:
-        blended: npt.NDArray[np.float64] = 0.5 * learned + 0.5 * linear
-        blended = np.asarray(np.maximum.accumulate(blended), dtype=np.float64)
-        blended[-1] = 1.0
-        return pd.DataFrame({"year_fraction": grid, "cum_share": blended})
-
-    return pd.DataFrame({"year_fraction": grid, "cum_share": learned})
+    # Regularize toward the linear (flat) curve: fully for a single year, lightly for
+    # more. This caps the run-rate blow-up when history is sparse or oddly front/back-loaded.
+    lin_weight = 0.5 if len(kept) == 1 else _CURVE_LINEAR_REG
+    blended: npt.NDArray[np.float64] = (
+        1.0 - lin_weight
+    ) * learned + lin_weight * linear
+    blended = np.asarray(np.maximum.accumulate(blended), dtype=np.float64)
+    blended[-1] = 1.0
+    return pd.DataFrame({"year_fraction": grid, "cum_share": blended})
 
 
 def pacing_fraction(curve: pd.DataFrame, as_of: pd.Timestamp) -> float:
@@ -93,17 +115,106 @@ def pacing_fraction(curve: pd.DataFrame, as_of: pd.Timestamp) -> float:
     return max(float(np.interp(fraction, xp, fp)), 1e-9)
 
 
+# Library fallback for the shrinkage constant; the app passes config.forecast_shrinkage_k.
+# With time-based weighting, k=0.1 gives ~80% weight to current-year pace by June.
+DEFAULT_SHRINKAGE_K = 0.1
+# Number of most-recent prior years averaged into the history level anchor.
+_LEVEL_RECENT_YEARS = 2
+# A category is "lumpy" (few big transactions rather than a steady stream) when its mean
+# monthly spend exceeds this multiple of its median monthly spend — i.e. a handful of big
+# months pull the mean well above the typical month. Lumpy categories forecast the remaining
+# year from the spike-resistant median rate instead of extrapolating the run-rate.
+_LUMPY_MEAN_MEDIAN_RATIO = 1.3
+
+
+def is_lumpy_category(monthly_totals: list[float]) -> bool:
+    """Return True if spend is concentrated in a few big months (mean >> median) or mostly empty.
+    Continuous categories (restaurants, groceries) have mean ~= median and return False.
+    """
+    arr = np.asarray([t for t in monthly_totals if t >= 0.0], dtype=np.float64)
+    if arr.size == 0:
+        return False
+    median = float(np.median(arr))
+    if median <= 0.0:  # spend sits in a minority of months → lumpy by definition
+        return True
+    return float(arr.mean()) > _LUMPY_MEAN_MEDIAN_RATIO * median
+
+
+def robust_monthly_rate(monthly_totals: list[float]) -> float:
+    """Return the median monthly spend — the typical month's rate, robust to occasional big months."""
+    arr = np.asarray([t for t in monthly_totals if t >= 0.0], dtype=np.float64)
+    if arr.size == 0:
+        return 0.0
+    return float(np.median(arr))
+
+
+def _months_remaining(as_of: pd.Timestamp) -> float:
+    """Return the fraction of the year still ahead of as_of, expressed in months (0-12)."""
+    days_in_year = 366.0 if calendar.isleap(as_of.year) else 365.0
+    return float(12.0 * (1.0 - as_of.timetuple().tm_yday / days_in_year))
+
+
+def forecast_year_end_lumpy(
+    spend_to_date: float,
+    monthly_rate: float,
+    as_of: pd.Timestamp,
+) -> float:
+    """Return spend-to-date plus the robust monthly rate over the months remaining.
+    Big purchases already made stay counted (they are in spend_to_date), but the rest of the
+    year is projected at the typical rate — so a one-off does not inflate the whole forecast.
+    """
+    return float(spend_to_date) + monthly_rate * _months_remaining(as_of)
+
+
+def historical_annual_level(
+    history: pd.DataFrame,
+    category: str,
+) -> float | None:
+    """Return the expected annual total for category from prior years, or None if no history.
+    Averages the most recent _LEVEL_RECENT_YEARS years so the anchor tracks the current spending
+    level instead of lagging on a long, growing history; ignores zero-spend years.
+    """
+    totals = (
+        history[history["category"] == category]
+        .groupby("year")["spend_chf"]
+        .sum()
+        .sort_index()
+    )
+    totals = totals[totals > 0.0]
+    if totals.empty:
+        return None
+    return float(totals.iloc[-_LEVEL_RECENT_YEARS:].mean())
+
+
 def forecast_year_end(
     spend_to_date: float,
     curve: pd.DataFrame,
     as_of: pd.Timestamp,
+    prior_level: float | None = None,
+    k: float = DEFAULT_SHRINKAGE_K,
 ) -> float:
-    """Return spend_to_date / pacing_fraction(curve, as_of) as the seasonal year-end forecast.
-    Returns spend_to_date on Jan 1 to avoid a meaningless single-day projection.
+    """Return the year-end forecast: the current-year seasonal pace nudged toward history.
+    Geometric blend pace**w * prior_level**(1-w) with w = elapsed_time / (elapsed_time + k),
+    elapsed_time being the calendar fraction of the year observed. The log-space (geometric)
+    blend makes history a mild *proportional* nudge, not an absolute pull, so a genuinely
+    low-spend year is not dragged up toward last year's total. Weighting on elapsed time (not
+    seasonal share) keeps the current-year pace dominant by mid-year even for back-loaded
+    categories; only the first weeks — when little data exists — lean on history for noise
+    control. prior_level=None disables the nudge (pure pace, used by the back-test notebook).
     """
-    if as_of.timetuple().tm_yday <= 1:
-        return spend_to_date
-    return spend_to_date / pacing_fraction(curve, as_of)
+    day_of_year = as_of.timetuple().tm_yday
+    if day_of_year <= 1:
+        return spend_to_date if prior_level is None else prior_level
+    naive_pace = float(spend_to_date) / pacing_fraction(curve, as_of)
+    if prior_level is None:
+        return naive_pace
+    days_in_year = 366.0 if calendar.isleap(as_of.year) else 365.0
+    elapsed_time = day_of_year / days_in_year
+    w = elapsed_time / (elapsed_time + k)
+    if naive_pace <= 0.0:
+        # Nothing spent yet: fall back to history discounted by current confidence.
+        return float((1.0 - w) * prior_level)
+    return float(np.exp(w * np.log(naive_pace) + (1.0 - w) * np.log(prior_level)))
 
 
 def build_forecast_line(
@@ -112,9 +223,15 @@ def build_forecast_line(
     year: int,
     as_of: pd.Timestamp,
     freq: Literal["D", "W", "M"],
+    prior_level: float | None = None,
+    k: float = DEFAULT_SHRINKAGE_K,
+    monthly_rate: float | None = None,
 ) -> pd.DataFrame:
     """Return actual and forecast cumulative series joined at as_of for a continuous line.
     Output columns: period_end (Timestamp), cumulative_chf (float), segment ("actual"/"forecast").
+    prior_level shrinks the year-end target toward the historical annual level (see forecast_year_end).
+    monthly_rate (set for lumpy categories) projects the remainder linearly at that spike-resistant
+    rate instead of following the seasonal curve.
     """
     actual = cumulative[cumulative["period_end"] <= as_of][
         ["period_end", "cumulative_chf"]
@@ -124,7 +241,24 @@ def build_forecast_line(
     spend_to_date = (
         float(actual["cumulative_chf"].iloc[-1]) if not actual.empty else 0.0
     )
-    year_end_fc = forecast_year_end(spend_to_date, curve, as_of)
+
+    # Extend the solid actual line flat to as_of when the last data point predates it
+    # (a category whose most recent bucket is weeks old). Cumulative spend is unchanged
+    # since then, and this makes the actual line meet the forecast start — no visible gap.
+    if not actual.empty and actual["period_end"].iloc[-1] < as_of:
+        actual = pd.concat(
+            [
+                actual,
+                pd.DataFrame(
+                    {
+                        "period_end": [as_of],
+                        "cumulative_chf": [spend_to_date],
+                        "segment": ["actual"],
+                    }
+                ),
+            ],
+            ignore_index=True,
+        )
 
     freq_alias: dict[str, str] = {"D": "D", "W": "W", "M": "ME"}
     all_periods = pd.date_range(
@@ -144,15 +278,28 @@ def build_forecast_line(
     )
 
     days_in_year = 366.0 if calendar.isleap(year) else 365.0
-    xp: npt.NDArray[np.float64] = curve["year_fraction"].to_numpy(dtype=float)
-    fp: npt.NDArray[np.float64] = curve["cum_share"].to_numpy(dtype=float)
-    fc_fracs: npt.NDArray[np.float64] = np.array(
-        [float(p.timetuple().tm_yday) / days_in_year for p in future_periods],
-        dtype=np.float64,
-    )
-    fc_cum: npt.NDArray[np.float64] = np.asarray(
-        year_end_fc * np.interp(fc_fracs, xp, fp), dtype=np.float64
-    )
+    if monthly_rate is not None:
+        # Lumpy category: extend linearly at the median monthly rate from as_of onward.
+        as_of_frac = float(as_of.timetuple().tm_yday) / days_in_year
+        months_ahead: npt.NDArray[np.float64] = np.array(
+            [
+                12.0 * (float(p.timetuple().tm_yday) / days_in_year - as_of_frac)
+                for p in future_periods
+            ],
+            dtype=np.float64,
+        )
+        fc_cum: npt.NDArray[np.float64] = np.asarray(
+            spend_to_date + monthly_rate * months_ahead, dtype=np.float64
+        )
+    else:
+        year_end_fc = forecast_year_end(spend_to_date, curve, as_of, prior_level, k)
+        xp: npt.NDArray[np.float64] = curve["year_fraction"].to_numpy(dtype=float)
+        fp: npt.NDArray[np.float64] = curve["cum_share"].to_numpy(dtype=float)
+        fc_fracs: npt.NDArray[np.float64] = np.array(
+            [float(p.timetuple().tm_yday) / days_in_year for p in future_periods],
+            dtype=np.float64,
+        )
+        fc_cum = np.asarray(year_end_fc * np.interp(fc_fracs, xp, fp), dtype=np.float64)
 
     forecast_rows = pd.DataFrame(
         {
@@ -169,12 +316,19 @@ def build_budget_table(
     spend: pd.DataFrame,
     budgets: list[CategoryBudget],
     curves: dict[str, pd.DataFrame],
+    levels: dict[str, float | None],
     year: int,
     as_of: pd.Timestamp,
+    k: float = DEFAULT_SHRINKAGE_K,
+    lumpy_rates: dict[str, float] | None = None,
 ) -> pd.DataFrame:
     """Return one row per budgeted category with spend, forecast, and over/under columns.
-    Uses year to build a leap-year-aware linear fallback for categories absent from curves.
+    Uses year to build a leap-year-aware linear fallback for categories absent from curves;
+    levels holds each category's historical annual level for the shrinkage blend (None to skip).
+    lumpy_rates maps lumpy categories to their median monthly rate; those forecast from that rate
+    instead of the seasonal pace.
     """
+    rates = lumpy_rates or {}
     n_days = 366 if calendar.isleap(year) else 365
     _grid: npt.NDArray[np.float64] = np.array(
         [d / float(n_days) for d in range(1, n_days + 1)]
@@ -186,6 +340,10 @@ def build_budget_table(
         for k, v in zip(spend["category"], spend["spend_chf"], strict=False)
     }
 
+    # Linear pro-ration of the year elapsed so far: the "Now" pace target assumes even
+    # spending (5/12 of the budget by June 1), independent of any category's seasonality.
+    elapsed_frac = min(as_of.timetuple().tm_yday / n_days, 1.0)
+
     rows: list[dict[str, object]] = []
     for b in budgets:
         cat = b.category
@@ -193,24 +351,33 @@ def build_budget_table(
         spend_chf = spend_lookup.get(cat, 0.0)
         curve = curves.get(cat, linear_fallback)
 
-        pacing_frac = pacing_fraction(curve, as_of)
-        forecast_chf = forecast_year_end(spend_chf, curve, as_of)
-        pace_budget = budget_chf * pacing_frac
-        over_under_now_chf = spend_chf - pace_budget
-        over_under_eoy_chf = forecast_chf - budget_chf
-        over_under_now_pct = (
-            0.0 if budget_chf == 0.0 else over_under_now_chf / budget_chf
-        )
-        over_under_eoy_pct = (
-            0.0 if budget_chf == 0.0 else over_under_eoy_chf / budget_chf
-        )
+        if cat in rates:
+            forecast_chf = forecast_year_end_lumpy(spend_chf, rates[cat], as_of)
+        else:
+            forecast_chf = forecast_year_end(
+                spend_chf, curve, as_of, levels.get(cat), k
+            )
+        # Round each magnitude to whole CHF (the table shows no decimals) and derive the
+        # deltas from the rounded values, so the displayed columns stay internally
+        # consistent: Spent minus Budget-used-Now equals Now delta exactly, no rounding drift.
+        spend_r = round(spend_chf)
+        budget_r = round(budget_chf)
+        forecast_r = round(forecast_chf)
+        pace_r = round(budget_chf * elapsed_frac)  # spent at an even pace by now
+        over_under_now_chf = spend_r - pace_r
+        over_under_eoy_chf = forecast_r - budget_r
+        # Now Δ % is relative to the pro-rated pace target (how far off pace right now);
+        # EOY Δ % is relative to the full annual budget (forecast vs budget).
+        over_under_now_pct = 0.0 if pace_r == 0 else over_under_now_chf / pace_r
+        over_under_eoy_pct = 0.0 if budget_r == 0 else over_under_eoy_chf / budget_r
 
         rows.append(
             {
                 "category": cat,
-                "spend_chf": spend_chf,
-                "budget_chf": budget_chf,
-                "forecast_chf": forecast_chf,
+                "spend_chf": spend_r,
+                "budget_chf": budget_r,
+                "forecast_chf": forecast_r,
+                "pace_budget_chf": pace_r,
                 "over_under_now_chf": over_under_now_chf,
                 "over_under_now_pct": over_under_now_pct,
                 "over_under_eoy_chf": over_under_eoy_chf,

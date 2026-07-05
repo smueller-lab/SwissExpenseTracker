@@ -1,4 +1,5 @@
 {
+  "extraPaths": ["src"],
   "ignore": ["src/swiss_exp_tracker/app/vis/figure.py"],
   "reportUnusedFunction": "none",
   "reportMissingTypeStubs": "none",

@@ -544,31 +544,12 @@ def make_budget_input_card(
 def make_budget_forecast_card(
     title: str,
     fig_id: str,
-    freq_options: list[dict[str, Any]],
-    freq_default: str,
     width: int = 12,
 ) -> Any:
-    """Return a card with a frequency dropdown in the header and a line-plot graph."""
+    """Return a card with a title header and a line-plot graph (fixed weekly resolution)."""
     return html.Div(
         [
-            html.Div(
-                [
-                    make_card_title(title),
-                    html.Div(
-                        [
-                            dcc.Dropdown(
-                                id="budget-freq",
-                                className="dropdown-year",
-                                options=freq_options,  # type: ignore[arg-type]
-                                value=freq_default,
-                                clearable=False,
-                            ),
-                        ],
-                        className="card-header-buttons",
-                    ),
-                ],
-                className="card-header-with-buttons",
-            ),
+            make_card_title(title),
             dcc.Loading(
                 dcc.Graph(id=fig_id, figure={}, config=GRAPH_CONFIG),
             ),
@@ -610,7 +591,8 @@ def make_budget_table_card(
         if fmt == "chf":
             text = f"{val:,.0f}" if not missing else "—"
         else:
-            text = f"{val:.1f} %" if not missing else "—"
+            # pct values are stored as fractions (e.g. -0.68 → -68 %)
+            text = f"{val * 100:.1f} %" if not missing else "—"
 
         if colored and not missing:
             if invert:

@@ -436,6 +436,7 @@ Detailed technical documentation lives in `.dev-docs/`:
 | [`02-ingestion-pipeline.md`](.dev-docs/02-ingestion-pipeline.md) | All ingestion stages, supported sources, DB schema                |
 | [`03-dashboard.md`](.dev-docs/03-dashboard.md)                   | Every dashboard page, KPI cards, chart specs                      |
 | [`04-pipeline-dash.md`](.dev-docs/04-pipeline-dash.md)           | Pre-aggregation pipeline that feeds the dashboard                 |
+| [`05-budget-forecasting.md`](.dev-docs/05-budget-forecasting.md) | Year-end forecast model, seasonal pacing, lumpy-category handling |
 
 ---
 

@@ -13,9 +13,10 @@ cfg = config()
 
 BUDGET_TABLE_COLUMNS: list[dict[str, Any]] = [
     {"id": "category", "name": "Category", "fmt": "text"},
-    {"id": "spend_chf", "name": "Spent", "fmt": "chf"},
     {"id": "budget_chf", "name": "Budget", "fmt": "chf"},
-    {"id": "forecast_chf", "name": "Forecast", "fmt": "chf"},
+    {"id": "spend_chf", "name": "Spent", "fmt": "chf"},
+    {"id": "forecast_chf", "name": "Forecast EOY", "fmt": "chf"},
+    {"id": "pace_budget_chf", "name": "Budget used Now", "fmt": "chf"},
     {
         "id": "over_under_now_chf",
         "name": "Now Δ CHF",
@@ -65,8 +66,6 @@ def layout(data: Any) -> Any:
                     make_budget_forecast_card(
                         title="\U0001f4c8 Spend Progression & Year-End Forecast",
                         fig_id="budget-forecast-fig",
-                        freq_options=cfg.forecast_freq_options,
-                        freq_default=cfg.forecast_freq_default,
                         width=12,
                     ),
                     html.Div(id="budget-table-container", className="col-12"),

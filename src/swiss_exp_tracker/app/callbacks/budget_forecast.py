@@ -101,29 +101,31 @@ def register_callbacks(app: Any, data: Any) -> None:
         Output("budget-active-categories", "data", allow_duplicate=True),
         Input({"type": "budget-remove", "category": ALL}, "n_clicks"),
         State("budget-active-categories", "data"),
+        State("budget-year", "value"),
         prevent_initial_call=True,
     )
     def remove_category(  # pyright: ignore[reportUnusedFunction]
         n_clicks: list[int | None],
         active: list[str] | None,
+        year: int | None,
     ) -> Any:
-        """Drop the category whose remove button was clicked from the active budget set."""
+        """Drop the category whose remove button was clicked and clear its saved budget from the DB."""
         triggered = ctx.triggered_id
         if not any(n_clicks) or not isinstance(triggered, dict):
             return no_update
         removed = triggered["category"]
+        if year is not None:
+            data.delete_budget(int(year), removed)
         return [c for c in (active or []) if c != removed]
 
     @app.callback(  # type: ignore[untyped-decorator]
         Output("budget-forecast-fig", "figure"),
         Output("budget-table-container", "children"),
-        Input("budget-freq", "value"),
         Input("budget-year", "value"),
         Input("budget-active-categories", "data"),
         Input("budget-save-btn", "n_clicks"),
     )
     def refresh_forecast(  # pyright: ignore[reportUnusedFunction]
-        freq: str | None,
         year: int | None,
         selected_cats: list[str] | None,
         _n_clicks: int | None,
@@ -137,11 +139,11 @@ def register_callbacks(app: Any, data: Any) -> None:
             width=12,
         )
 
-        if not cats or year is None or freq is None:
+        if not cats or year is None:
             return go.Figure(), empty_table
 
         year_int = int(year)
-        freq_lit = cast("Literal['D', 'W', 'M']", str(freq))
+        freq_lit = cast("Literal['D', 'W', 'M']", cfg.forecast_freq_default)
         as_of = min(
             pd.Timestamp.today().normalize(),
             pd.Timestamp(year=year_int, month=12, day=31),
@@ -149,15 +151,32 @@ def register_callbacks(app: Any, data: Any) -> None:
 
         actual = data.get_category_cumulative(year_int, cats, freq_lit)
         history = data.get_category_period_history(cats, year_int, freq_lit)
+        monthly_totals = data.get_category_monthly_totals(
+            cats, year_int, cfg.forecast_lumpy_lookback_years
+        )
 
         parts: list[pd.DataFrame] = []
         curves: dict[str, pd.DataFrame] = {}
+        levels: dict[str, float | None] = {}
+        lumpy_rates: dict[str, float] = {}
         for cat in cats:
             curve = forecast.seasonal_pacing_curve(history, cat, freq_lit)
             curves[cat] = curve
+            levels[cat] = forecast.historical_annual_level(history, cat)
+            months = monthly_totals.get(cat, [])
+            is_lumpy = forecast.is_lumpy_category(months)
+            if is_lumpy:
+                lumpy_rates[cat] = forecast.robust_monthly_rate(months)
             cat_actual = actual[actual["category"] == cat]
             line = forecast.build_forecast_line(
-                cat_actual, curve, year_int, as_of, freq_lit
+                cat_actual,
+                curve,
+                year_int,
+                as_of,
+                freq_lit,
+                prior_level=levels[cat],
+                k=cfg.forecast_shrinkage_k,
+                monthly_rate=lumpy_rates.get(cat),
             )
             line = line.copy()
             line["category"] = cat
@@ -177,7 +196,14 @@ def register_callbacks(app: Any, data: Any) -> None:
         table_rows: list[dict[str, Any]] = []
         if budgets_filtered and not spend.empty:
             table_df = forecast.build_budget_table(
-                spend, budgets_filtered, curves, year_int, as_of
+                spend,
+                budgets_filtered,
+                curves,
+                levels,
+                year_int,
+                as_of,
+                k=cfg.forecast_shrinkage_k,
+                lumpy_rates=lumpy_rates,
             )
             table_rows = table_df.to_dict("records")
 

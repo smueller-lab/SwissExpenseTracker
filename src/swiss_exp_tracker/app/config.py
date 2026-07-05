@@ -96,17 +96,15 @@ class config:
             "Retail",
         ]
     )
-    forecast_freq_rule: dict[str, str] = field(
-        default_factory=lambda: {"D": "D", "W": "W", "M": "MS"}
-    )
-    forecast_freq_options: list[dict[str, str]] = field(
-        default_factory=lambda: [
-            {"label": "Daily", "value": "D"},
-            {"label": "Weekly", "value": "W"},
-            {"label": "Monthly", "value": "M"},
-        ]
-    )
+    # Fixed resolution for the budget/forecast page (the UI selector was removed).
     forecast_freq_default: str = "W"
+    # Shrinkage constant k for the year-end blend: forecast = w*pace + (1-w)*history,
+    # with w = elapsed_year_fraction / (elapsed_year_fraction + k). Current-year pace is
+    # the main driver; history only anchors the first weeks. Lower k trusts the current
+    # year even sooner (raise it if early-year forecasts feel too jumpy).
+    forecast_shrinkage_k: float = 0.1
+    # Years of monthly history used to detect lumpy categories and their median monthly rate.
+    forecast_lumpy_lookback_years: int = 2
 
     # in-chart text-label fonts
     font_no_data = {"color": "white", "size": 16}

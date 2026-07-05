@@ -330,6 +330,10 @@ ON CONFLICT(year, category) DO UPDATE SET
     budget_chf = excluded.budget_chf,
     updated_at = excluded.updated_at
 
+-- name: delete_dash_budget!
+-- Remove the budget row for a category and year so re-adding it resets to 0.
+DELETE FROM dash_budget WHERE year = :year AND category = :category
+
 -- name: get_dash_budget
 -- Select all rows from dash_budget.
 SELECT category, year, budget_chf, updated_at FROM dash_budget

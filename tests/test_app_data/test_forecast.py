@@ -346,17 +346,18 @@ def test_build_forecast_line_boundary_point_joins_segments(freq: str) -> None:
 
 
 def test_build_budget_table_output_columns() -> None:
-    """Output DataFrame has exactly the eight expected columns."""
+    """Output DataFrame has exactly the nine expected columns."""
     curve = _make_linear_curve("M")
     spend = _make_spend("Groceries", 300.0)
     budgets = [CategoryBudget(category="Groceries", budget_chf=500.0)]
     as_of = pd.Timestamp("2024-06-15")
-    table = build_budget_table(spend, budgets, {"Groceries": curve}, 2024, as_of)
+    table = build_budget_table(spend, budgets, {"Groceries": curve}, {}, 2024, as_of)
     expected = {
         "category",
         "spend_chf",
         "budget_chf",
         "forecast_chf",
+        "pace_budget_chf",
         "over_under_now_chf",
         "over_under_now_pct",
         "over_under_eoy_chf",
@@ -372,7 +373,7 @@ def test_build_budget_table_over_budget_positive_over_under_eoy() -> None:
     spend = _make_spend("Groceries", 800.0)
     budgets = [CategoryBudget(category="Groceries", budget_chf=500.0)]
     as_of = pd.Timestamp("2024-06-15")
-    table = build_budget_table(spend, budgets, {"Groceries": curve}, 2024, as_of)
+    table = build_budget_table(spend, budgets, {"Groceries": curve}, {}, 2024, as_of)
     assert not table.empty
     assert float(table.iloc[0]["over_under_eoy_chf"]) > 0
 
@@ -383,7 +384,7 @@ def test_build_budget_table_zero_budget_no_zero_division() -> None:
     spend = _make_spend("Groceries", 300.0)
     budgets = [CategoryBudget(category="Groceries", budget_chf=0.0)]
     as_of = pd.Timestamp("2024-06-15")
-    table = build_budget_table(spend, budgets, {"Groceries": curve}, 2024, as_of)
+    table = build_budget_table(spend, budgets, {"Groceries": curve}, {}, 2024, as_of)
     assert table.iloc[0]["over_under_now_pct"] == pytest.approx(0.0)
     assert table.iloc[0]["over_under_eoy_pct"] == pytest.approx(0.0)
 
@@ -394,7 +395,7 @@ def test_build_budget_table_over_under_eoy_equals_forecast_minus_budget() -> Non
     spend = _make_spend("Groceries", 600.0)
     budgets = [CategoryBudget(category="Groceries", budget_chf=800.0)]
     as_of = pd.Timestamp("2024-06-15")
-    table = build_budget_table(spend, budgets, {"Groceries": curve}, 2024, as_of)
+    table = build_budget_table(spend, budgets, {"Groceries": curve}, {}, 2024, as_of)
     row = table.iloc[0]
     assert float(row["over_under_eoy_chf"]) == pytest.approx(
         float(row["forecast_chf"]) - 800.0
@@ -407,7 +408,7 @@ def test_build_budget_table_no_spend_category_defaults_to_zero() -> None:
     spend = pd.DataFrame({"category": ["Housing"], "spend_chf": [1000.0]})
     budgets = [CategoryBudget(category="Groceries", budget_chf=500.0)]
     as_of = pd.Timestamp("2024-06-15")
-    table = build_budget_table(spend, budgets, {"Groceries": curve}, 2024, as_of)
+    table = build_budget_table(spend, budgets, {"Groceries": curve}, {}, 2024, as_of)
     assert table.iloc[0]["spend_chf"] == pytest.approx(0.0)
 
 
@@ -426,6 +427,7 @@ def test_build_budget_table_multiple_categories_one_row_each() -> None:
         spend,
         budgets,
         {"Groceries": curve, "Housing": curve},
+        {},
         2024,
         as_of,
     )
