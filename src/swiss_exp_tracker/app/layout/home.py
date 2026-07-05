@@ -13,6 +13,7 @@ from swiss_exp_tracker.app.components.cards import make_table_card
 from swiss_exp_tracker.app.components.cards import make_TopCategory_card
 from swiss_exp_tracker.app.dash_components import make_page_title
 from swiss_exp_tracker.app.vis.figure import Fig
+from swiss_exp_tracker.pipeline_dash.config import TOP_CATEGORY_MIN_TRANSACTIONS
 
 F = Fig()
 
@@ -27,9 +28,11 @@ def layout(data: Any, pos: Any) -> Any:
         diff_prev_pct: float = 0.0
         diff_12m_pct: float = 0.0
     else:
-        _row = data.pdf_TopCat.sort_values(by="amount_MonthLast", ascending=False).iloc[
-            0
+        _ranked = data.pdf_TopCat.sort_values(by="amount_MonthLast", ascending=False)
+        _eligible = _ranked[
+            _ranked["n_transactions_MonthLast"] >= TOP_CATEGORY_MIN_TRANSACTIONS
         ]
+        _row = (_eligible if not _eligible.empty else _ranked).iloc[0]
         top_category = str(_row["category_main"])
         month_last = _row["MonthLast"].to_timestamp()
         amount_month_last = float(_row["amount_MonthLast"])

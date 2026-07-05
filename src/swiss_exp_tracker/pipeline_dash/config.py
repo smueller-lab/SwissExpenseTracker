@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+# Debit-account sources that carry a running balance (balance_chf).
+# Used to derive the current-balance KPI and the balance-over-time chart.
+BALANCE_SOURCE_TYPES: tuple[str, ...] = ("ZKB_DEBIT", "UBS_DEBIT")
+
 # Substring → canonical brand name (applied in order; first match wins)
 GROCERY_MERCHANT_NORMALIZE: list[tuple[str, str]] = [
     ("migrolino", "Migrolino"),
@@ -60,6 +64,10 @@ NET_BALANCE_EXPENSE_EXCLUDE_MAIN: list[str] = [
     "Investing",
     "Salary",
 ]
+
+# Minimum transactions in the last month for a category to qualify as Top Category;
+# below this it is skipped in favour of the next-highest-spend eligible category.
+TOP_CATEGORY_MIN_TRANSACTIONS: int = 4
 
 TOP_EXPENSES_EXCLUDE_MAIN: list[str] = [
     "Government",

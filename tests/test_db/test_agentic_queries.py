@@ -364,6 +364,39 @@ def test_insert_transactions_use_batch(tmp_agentic_db: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# delete_transactions_use_orphans
+# ---------------------------------------------------------------------------
+
+
+def test_delete_transactions_use_orphans_removes_rows_absent_from_rfn(
+    tmp_agentic_db: Path,
+) -> None:
+    """Only transactions_use rows whose reference is missing from rfn are deleted."""
+    with sqlite3.connect(tmp_agentic_db) as db:
+        # rfn keeps REF-KEEP; REF-ORPHAN was dropped from rfn (e.g. a credit-card payment).
+        _insert_rfn(db, reference="REF-KEEP", enrichment_status="enriched")
+        agentic.insert_transactions_use(
+            db,
+            [
+                _make_use_row(transaction_id=1, reference="REF-KEEP"),
+                _make_use_row(transaction_id=2, reference="REF-ORPHAN"),
+            ],
+        )
+        db.commit()
+
+        removed = agentic.delete_transactions_use_orphans(db)
+        db.commit()
+
+        remaining = [
+            r[0]
+            for r in db.execute("SELECT reference FROM transactions_use").fetchall()
+        ]
+
+    assert removed == 1
+    assert remaining == ["REF-KEEP"]
+
+
+# ---------------------------------------------------------------------------
 # backfill_transactions_use_balance_chf
 # ---------------------------------------------------------------------------
 

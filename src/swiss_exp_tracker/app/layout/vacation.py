@@ -57,7 +57,7 @@ def layout(data: Any) -> Any:
                     ),
                     make_number_card(
                         "Top Category",
-                        top_category,  # type: ignore[arg-type]
+                        top_category,
                         width=4,
                         fmt="",
                         unit="",

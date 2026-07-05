@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from swiss_exp_tracker.pipeline_ingestion.adapters.adapters import RevolutAdapter
-from swiss_exp_tracker.pipeline_ingestion.adapters.adapters import VisecaAdapter
-from swiss_exp_tracker.pipeline_ingestion.adapters.adapters import ZKBDebitAdapter
+from swiss_exp_tracker.pipeline_ingestion.adapters.generic_adapter import to_unified
 
-__all__ = ["RevolutAdapter", "VisecaAdapter", "ZKBDebitAdapter"]
+__all__ = [
+    "to_unified",
+]

@@ -22,6 +22,28 @@ HEALTH_WEIGHTS: dict[str, float] = {
 }
 
 
+# Output table → column order, used to emit empty tables when there is no
+# item-level Cumulus data so downstream loader reads still find each table.
+_EMPTY_TABLE_COLUMNS: dict[str, list[str]] = {
+    "dash_groceries_cat": [
+        "category_main",
+        "total_CHF",
+        "totalPeriod_CHF",
+        "pct",
+        "Freq",
+        "Period",
+    ],
+    "dash_groceries_health": ["Period", "score"],
+    "dash_groceries_top_articles": [
+        "article",
+        "category_main",
+        "count",
+        "total_chf",
+        "avg_chf",
+    ],
+}
+
+
 def _health_score(sub: pd.DataFrame) -> float:
     total = sub["price_chf"].sum()
     if total == 0:
@@ -33,10 +55,36 @@ def _health_score(sub: pd.DataFrame) -> float:
     return float(np.clip(score, 0.0, 100.0))
 
 
+def _table_exists(con: sqlite3.Connection, name: str) -> bool:
+    """Return True if a table named `name` exists in the database."""
+    row = con.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?", (name,)
+    ).fetchone()
+    return row is not None
+
+
+def _write_empty_grocery_tables(con: sqlite3.Connection) -> None:
+    """Replace the three grocery-detail dash tables with empty, correctly-typed tables."""
+    for table_name, columns in _EMPTY_TABLE_COLUMNS.items():
+        pd.DataFrame(columns=columns).to_sql(
+            table_name, con, if_exists="replace", index=False
+        )
+
+
 def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
+    # Cumulus receipt data is optional; with none present, emit empty tables so
+    # the dashboard loader still finds each dash_groceries_* table.
+    if not _table_exists(con, "groceries_use"):
+        _write_empty_grocery_tables(con)
+        return
+
     items = pd.read_sql("SELECT * FROM groceries_use", con)
     items["date"] = pd.to_datetime(items["date"])
     items = items[items["date"].notna()].copy()
+    if items.empty:
+        _write_empty_grocery_tables(con)
+        return
+
     items["MonthYear"] = items["date"].dt.to_period("M").dt.to_timestamp()
     items["Year"] = items["date"].dt.year.astype(int)
 

@@ -13,7 +13,10 @@ def layout(data: Any) -> Any:
     pdf = data.pdf_Master
     pdf_expense = pdf[pdf["transaction_type"] == "EXPENSE"]
 
-    s_years = sorted(pdf_expense["date"].dt.year.unique().tolist(), reverse=True)
+    s_years = sorted(
+        pdf_expense["date"].dropna().dt.year.astype(int).unique().tolist(),
+        reverse=True,
+    )
     year_options = [{"label": str(y), "value": y} for y in s_years]
 
     cat_main_options = [

@@ -184,7 +184,7 @@ Place the file in `lnd/viseca/`.
 
 Place the file in `lnd/revolut/`.
 
-> If a currency in your statement is not yet listed under `Currency` in `pipeline_ingestion/data_models/transactions.py`, you need to add it first.
+> If a currency in your statement is not yet listed under `Currency` in `pipeline_ingestion/data_models/transaction.py`, you need to add it first.
 
 #### 📈 Swissquote (investment positions)
 
@@ -229,6 +229,8 @@ EXA_API_KEY=...
 $DATA_DIR/
 └── lnd/
     ├── zkb/
+    ├── ubs_debit/
+    ├── ubs_credit/
     ├── viseca/
     ├── revolut/
     ├── swissquote/

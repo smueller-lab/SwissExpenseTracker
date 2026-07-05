@@ -42,6 +42,22 @@ def _load_detected_rules(path: Path) -> DetectedRules:
     return DetectedRules.model_validate(data)
 
 
+def load_credit_card_payment_texts(
+    detected_path: Path = _CONFIG_DIR / "detected_rules.yaml",
+) -> list[str]:
+    """Return booking texts for detected credit-card payments from detected_rules.yaml.
+    Returns [] when the file is absent or the section is empty.
+    """
+    return _load_detected_rules(detected_path).credit_card_payments.booking_texts
+
+
+def load_rent_exclude(
+    user_config_path: Path = _CONFIG_DIR / "user_config.yaml",
+) -> list[str]:
+    """Return the housing.rent_exclude merchant list from user_config.yaml; [] if absent."""
+    return _load_user_config(user_config_path).housing.rent_exclude
+
+
 def _merge(user: UserConfig, detected: DetectedRules) -> MergedConfig:
     """Merge user and detected configs: detected provides defaults, user overrides."""
     employers = _merge_employers(user, detected)

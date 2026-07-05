@@ -7,11 +7,12 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from swiss_exp_tracker.pipeline_ingestion.adapters.generic_adapter import to_unified
+from swiss_exp_tracker.pipeline_ingestion.data_models.data_sources import get_profile
 from swiss_exp_tracker.pipeline_ingestion.data_models.source_type import SourceType
 from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import (
-    VisecaTransaction,
+    UnifiedTransaction,
 )
-from swiss_exp_tracker.pipeline_ingestion.data_models.transaction import ZKBTransaction
 from swiss_exp_tracker.pipeline_ingestion.stages.transactions.stage_02_raw import (
     process_raw_source,
 )
@@ -61,23 +62,21 @@ def _insert_landing_row(
 
 
 def _load_zkb_row_json() -> str:
-    """Load first ZKB row from test CSV as a JSON string."""
+    """Load first ZKB row from test CSV as a raw canonical-keyed JSON string."""
     with (TEST_DATA_DIR / "zkb_test.csv").open(encoding="utf-8-sig", newline="") as fh:
         reader = csv.DictReader(fh)
-        first_row = next(reader)
-    model = ZKBTransaction.model_validate(first_row)
-    return json.dumps(model.model_dump(mode="json", by_alias=True))
+        first_row = dict(next(reader))
+    return json.dumps(first_row, ensure_ascii=False)
 
 
 def _load_viseca_row_json() -> str:
-    """Load first Viseca row from test CSV as a JSON string."""
+    """Load first Viseca row from test CSV as a raw canonical-keyed JSON string."""
     with (TEST_DATA_DIR / "viseca_test.csv").open(
         encoding="utf-8-sig", newline=""
     ) as fh:
         reader = csv.DictReader(fh)
-        first_row = next(reader)
-    model = VisecaTransaction.model_validate(first_row)
-    return json.dumps(model.model_dump(mode="json", by_alias=True))
+        first_row = dict(next(reader))
+    return json.dumps(first_row, ensure_ascii=False)
 
 
 # ---------------------------------------------------------------------------
@@ -159,7 +158,7 @@ def test_file_status_promoted_only_when_all_lnd_rows_done(tmp_db: Path) -> None:
 
 
 def test_raw_json_re_validated(tmp_db: Path) -> None:
-    """raw_json stored in transactions_raw is valid and re-parses as ZKBTransaction."""
+    """raw_json stored in transactions_raw is parseable by the generic adapter."""
     zkb_json = _load_zkb_row_json()
     file_id = _insert_ingested_file(tmp_db, "test.csv", "ZKB_DEBIT")
     _insert_landing_row(tmp_db, zkb_json, file_id, "ZKB_DEBIT")
@@ -172,8 +171,9 @@ def test_raw_json_re_validated(tmp_db: Path) -> None:
         ).fetchone()[0]
 
     parsed = json.loads(raw_json_stored)
-    # Should not raise
-    ZKBTransaction.model_validate(parsed)
+    profile = get_profile(SourceType.ZKB_DEBIT)
+    unified = to_unified(parsed, profile, "test.csv")
+    assert isinstance(unified, UnifiedTransaction)
 
 
 # ---------------------------------------------------------------------------

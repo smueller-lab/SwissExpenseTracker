@@ -342,12 +342,14 @@ def test_get_api_usage_returns_none_when_absent(tmp_db: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# get_zkb_credit_card_payment_rows
+# get_rfn_rows_by_source_and_type
 # ---------------------------------------------------------------------------
 
 
-def test_get_zkb_credit_card_payment_rows_filters_correctly(tmp_db: Path) -> None:
-    """Only rows with 'Viseca Payment' in booking_text are returned."""
+def test_get_rfn_rows_by_source_and_type_filters_by_source_and_type(
+    tmp_db: Path,
+) -> None:
+    """Only rows of the requested source_type AND transaction_type are returned."""
     with sqlite3.connect(tmp_db) as db:
         _insert_file(db)
         file_id = transactions.get_latest_ingested_file_id(
@@ -358,34 +360,86 @@ def test_get_zkb_credit_card_payment_rows_filters_correctly(tmp_db: Path) -> Non
         _insert_raw(db, landing_id=lnd_id)
         raw_id = db.execute("SELECT id FROM transactions_raw LIMIT 1").fetchone()[0]
 
-        # Matching row
+        # Wanted: ZKB_DEBIT EXPENSE
         _insert_rfn(
             db,
             raw_id=raw_id,
-            booking_text="Viseca Payment 2026-01",
+            booking_text="UBS Card Center",
             transaction_type="EXPENSE",
-            reference="REF-VIS",
+            reference="REF-WANT",
             amount=200.00,
         )
-        # Non-matching row
+        # Wrong transaction_type
         _insert_rfn(
             db,
             raw_id=raw_id,
-            booking_text='"Freshmart" purchase',
-            transaction_type="EXPENSE",
-            reference="REF-MIG",
+            booking_text="Refund",
+            transaction_type="INCOME",
+            reference="REF-INCOME",
             amount=25.00,
+        )
+        # Wrong source_type
+        _insert_rfn(
+            db,
+            raw_id=raw_id,
+            source_type="UBS_CREDIT",
+            booking_text="Purchase",
+            transaction_type="EXPENSE",
+            reference="REF-OTHER",
+            amount=30.00,
         )
         db.commit()
 
         rows = list(
-            transactions.get_zkb_credit_card_payment_rows(
+            transactions.get_rfn_rows_by_source_and_type(
                 db, source_type="ZKB_DEBIT", transaction_type="EXPENSE"
             )
         )
 
+    # id, amount, date, booking_text
     assert len(rows) == 1
     assert rows[0][1] == pytest.approx(200.00)
+    assert rows[0][3] == "UBS Card Center"
+
+
+def test_get_rfn_rows_by_source_and_type_ignores_booking_text(tmp_db: Path) -> None:
+    """All matching rows are returned regardless of booking_text content."""
+    with sqlite3.connect(tmp_db) as db:
+        _insert_file(db)
+        file_id = transactions.get_latest_ingested_file_id(
+            db, filename="export_2026.csv", source_type="ZKB_DEBIT"
+        )
+        _insert_lnd(db, file_id=file_id)
+        lnd_id = db.execute("SELECT id FROM transactions_lnd LIMIT 1").fetchone()[0]
+        _insert_raw(db, landing_id=lnd_id)
+        raw_id = db.execute("SELECT id FROM transactions_raw LIMIT 1").fetchone()[0]
+
+        # An LSV-flavoured row and a plain-text row: both must be returned.
+        _insert_rfn(
+            db,
+            raw_id=raw_id,
+            booking_text="Debit from LSV",
+            transaction_type="EXPENSE",
+            reference="REF-LSV",
+            amount=300.00,
+        )
+        _insert_rfn(
+            db,
+            raw_id=raw_id,
+            booking_text="Regular transfer",
+            transaction_type="EXPENSE",
+            reference="REF-REG",
+            amount=50.00,
+        )
+        db.commit()
+
+        rows = list(
+            transactions.get_rfn_rows_by_source_and_type(
+                db, source_type="ZKB_DEBIT", transaction_type="EXPENSE"
+            )
+        )
+
+    assert sorted(r[1] for r in rows) == pytest.approx([50.00, 300.00])
 
 
 # ---------------------------------------------------------------------------
