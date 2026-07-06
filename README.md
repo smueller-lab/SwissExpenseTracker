@@ -13,7 +13,7 @@ Ever reach the end of the month, open your banking app, and you are asking yours
 
 **Swiss Expense Tracker** turns that monthly existential crisis into actual answers. Drop your bank exports in a folder 📂, run one command ⚡, and an AI agent pipeline 🤖 labels every transaction, breaks down your spending by merchant and category 🏷️, tracks your investments 📈, and serves it all up in a slick interactive dashboard ✨. You'll know exactly why you're broke 💸. Which is somehow better than not knowing 🙃
 
-> 🏦 Built for ZKB, Viseca, Revolut, Swissquote, and Migros.
+> 🏦 Built for ZKB, UBS, Viseca, Revolut, Swissquote, and Migros.
 
 ---
 
@@ -28,6 +28,7 @@ Ever reach the end of the month, open your banking app, and you are asking yours
   - [📁 Download your bank data](#-download-your-bank-data)
   - [🔑 Configure API keys](#-configure-api-keys)
   - [📦 Install](#-install)
+  - [🧑‍💻 Develop in a container](#-develop-in-a-container)
   - [🐳 Run with Docker](#-run-with-docker)
   - [▶️ Run the pipeline](#-run-the-pipeline)
   - [🖥️ Launch the dashboard](#-launch-the-dashboard)
@@ -257,6 +258,45 @@ cd SwissExpenseTracker
 python3 -m venv venv && source venv/bin/activate
 pip install poetry && poetry install
 ```
+
+---
+
+### 🧑‍💻 Develop in a container
+
+Prefer a ready-made, reproducible development environment over installing Python,
+Poetry, and the toolchain by hand? The repo ships a **[Dev Container](https://containers.dev/)**
+(`.devcontainer/`). It gives every contributor the exact same setup — the pinned
+Python 3.12, Poetry, and the full dev toolchain (ruff, black, mypy, pytest) — with
+zero host setup beyond Docker and an editor that speaks Dev Containers.
+
+> ℹ️ This is the **contributor** path (editing the code). If you just want to run the
+> app on your own data, use [🐳 Run with Docker](#-run-with-docker) instead.
+
+**Prerequisites:** [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+and [VS Code](https://code.visualstudio.com/) with the
+[Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+(or any editor that supports the [Dev Container spec](https://containers.dev/supporting), and GitHub Codespaces works too).
+
+**Open it:**
+
+1. Open the cloned folder in VS Code.
+2. Run **Dev Containers: Reopen in Container** from the command palette (`F1`).
+3. The first build installs dependencies into a persistent volume (~2 min); later
+   starts are near-instant because the volume is reused.
+
+Once inside, the usual commands work — the container mirrors the project conventions
+(ruff format-on-save, the `mypy` config from `pyproject.toml`), and port `8050` is
+forwarded automatically:
+
+```bash
+poetry run python src/swiss_exp_tracker/app/app.py   # dashboard → http://localhost:8050
+poetry run pytest                                    # tests
+poetry run python -m ruff check src                  # lint
+```
+
+> ℹ️ The container is code-only. To run the pipeline or see real data in the dashboard
+> you still need your `.env` keys and bank exports — see the two steps in
+> [🐳 Run with Docker](#-run-with-docker) for `.env` and `bank_data/`.
 
 ---
 
