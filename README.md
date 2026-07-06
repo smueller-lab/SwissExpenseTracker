@@ -68,6 +68,12 @@ Year-by-year income, spending, investing and net gain with savings & YoY rates, 
 
 ![Balance Sheet](assets/balance-sheet.png)
 
+#### 💰 Budget / Forecasting
+
+Set a per-category budget for the year, then let the model project your end-of-year spend. It uses seasonal pacing (so a mid-year snapshot isn't naively doubled) and handles lumpy categories, and shows you at a glance where you stand now (Budget used Now) and where you'll likely land (Forecast EOY), with a per-category table flagging over/under budget.
+
+![Budget / Forecasting](assets/budget-forecast.png)
+
 #### 🛍️ Retail
 
 Typical category based page with expenses by category and you can change the view by month or year.
@@ -81,10 +87,6 @@ Retail spending broken down by subcategory, an annual spend donut, and your larg
 Detected any suspicious transaction or exceptional big spike in the data? The fully filterable transaction browser helps you to find any transaction and you can slice it by date range, category, subcategory, merchant and amount. Sort the table to see the biggest transactions at the top.
 
 ![Smart Table](assets/smarttable.png)
-
-#### 💰 Budget / Forecasting
-
-Set a per-category budget for the year, then let the model project your end-of-year spend. It uses seasonal pacing (so a mid-year snapshot isn't naively doubled) and handles lumpy categories, and shows you at a glance where you stand now (Budget used Now) and where you'll likely land (Forecast EOY), with a per-category table flagging over/under budget.
 
 > _Screenshots use synthetic demo data, so no real data or figures are shown._
 
@@ -546,8 +548,8 @@ Detailed technical documentation lives in `.dev-docs/`:
 | [`03-dashboard.md`](.dev-docs/03-dashboard.md)                   | Every dashboard page, KPI cards, chart specs                      |
 | [`04-pipeline-dash.md`](.dev-docs/04-pipeline-dash.md)           | Pre-aggregation pipeline that feeds the dashboard                 |
 | [`05-budget-forecasting.md`](.dev-docs/05-budget-forecasting.md) | Year-end forecast model, seasonal pacing, lumpy-category handling |
-| [`05-running-and-deployment.md`](.dev-docs/05-running-and-deployment.md) | Pipeline entry point, local + Docker run, config, versioning      |
 | [`06-database-and-sql.md`](.dev-docs/06-database-and-sql.md)     | aiosql query layer, connection helpers, table creation/migrations |
+| [`07-running-and-deployment.md`](.dev-docs/07-running-and-deployment.md) | Pipeline entry point, local + Docker run, config, versioning      |
 
 ---
 

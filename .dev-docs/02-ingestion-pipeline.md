@@ -269,7 +269,7 @@ sign of a single column via `expense_sign`.
 `user_config.py` reads the `DATA_DIR` environment variable (via `python-dotenv`,
 so a `.env` file works) and exposes it as `DIR_DATA` — the root of the local data
 folder where bank exports are dropped. It raises `RuntimeError` if `DATA_DIR` is
-unset. See [`05-running-and-deployment.md`](05-running-and-deployment.md) for the
+unset. See [`07-running-and-deployment.md`](07-running-and-deployment.md) for the
 full configuration and how `DATA_DIR` is wired in Docker.
 
 ---
