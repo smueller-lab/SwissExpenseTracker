@@ -1,0 +1,58 @@
+{
+  "name": "Swiss Expense Tracker (dev)",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {},
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+  "remoteEnv": {
+    "CLAUDE_CODE_OAUTH_TOKEN": "${localEnv:CLAUDE_CODE_OAUTH_TOKEN}"
+  },
+  "mounts": [
+    "source=set-venv,target=${containerWorkspaceFolder}/.venv,type=volume",
+    // Persist Claude Code's auth/config across rebuilds, keyed to this container
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+  ],
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"
+  },
+  "postCreateCommand": "poetry install --no-ansi",
+  "updateContentCommand": "sudo chown -R vscode:vscode ${containerWorkspaceFolder}/.venv /home/vscode/.claude",
+  "remoteUser": "vscode",
+  "forwardPorts": [8050],
+  "portsAttributes": {
+    "8050": {
+      "label": "Dashboard",
+      "onAutoForward": "notify"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "ms-python.mypy-type-checker"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
+        "ruff.enable": true,
+        "ruff.importStrategy": "fromEnvironment",
+        "ruff.configurationPreference": "filesystemFirst",
+        "mypy-type-checker.importStrategy": "fromEnvironment",
+        "mypy-type-checker.args": ["--config-file", "pyproject.toml"],
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+          }
+        }
+      }
+    }
+  }
+}
