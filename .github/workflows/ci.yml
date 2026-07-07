@@ -58,7 +58,14 @@ jobs:
           EXA_API_KEY: dummy
           BRAVE_SEARCH_API_KEY: dummy
           SCRAPE_DO_API_KEY: dummy
-        run: poetry run pytest tests --ignore=tests/test_claude_chrome --tb=short
+        run: poetry run pytest tests --ignore=tests/test_claude_chrome --tb=short --cov --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          fail_ci_if_error: false
 
   docker:
     name: Docker build

@@ -4,6 +4,7 @@
 ![Dash](https://img.shields.io/badge/Dashboard-Plotly_Dash-informational)
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
 ![License](https://img.shields.io/badge/license-GPL--v3-blue)
+[![codecov](https://codecov.io/gh/smueller-lab/SwissExpenseTracker/branch/main/graph/badge.svg)](https://codecov.io/gh/smueller-lab/SwissExpenseTracker)
 
 👤 **Author**: _Sebastian Müller – Data Scientist & AI Engineer_
 
@@ -36,6 +37,7 @@ Ever reach the end of the month, open your banking app, and you are asking yours
   - [✏️ Post-processing](#️-post-processing)
   - [🗄️ Databases &amp; Vector stores](#️-databases--vector-stores)
 - [📚 Dev Docs](#-dev-docs)
+- [🧪 Testing](#-testing)
 - [🛠️ Tech Stack](#-tech-stack)
 - [📄 Licence](#-licence)
 
@@ -550,6 +552,18 @@ Detailed technical documentation lives in `.dev-docs/`:
 | [`05-budget-forecasting.md`](.dev-docs/05-budget-forecasting.md) | Year-end forecast model, seasonal pacing, lumpy-category handling |
 | [`06-database-and-sql.md`](.dev-docs/06-database-and-sql.md)     | aiosql query layer, connection helpers, table creation/migrations |
 | [`07-running-and-deployment.md`](.dev-docs/07-running-and-deployment.md) | Pipeline entry point, local + Docker run, config, versioning      |
+
+---
+
+## 🧪 Testing
+
+```bash
+poetry run pytest                                   # run the full test suite
+poetry run pytest --cov --cov-report=term-missing   # with a coverage summary
+poetry run pytest --cov --cov-report=html && open htmlcov/index.html  # browsable report
+```
+
+Every push and PR to `main` runs the suite in CI and uploads the coverage report to [Codecov](https://codecov.io/gh/smueller-lab/SwissExpenseTracker) — see the badge at the top of this README for the current number. See [Testing Rules](.claude/rules/testing.md) for test conventions (factory pattern, DB isolation, async tests).
 
 ---
 
