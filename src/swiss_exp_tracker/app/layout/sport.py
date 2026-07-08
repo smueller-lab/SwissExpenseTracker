@@ -20,7 +20,7 @@ def layout(data: Any) -> Any:
     )
     return html.Div(
         [
-            make_page_title("⛳ Sport Analytics"),
+            make_page_title("⚽ Sport Analytics"),
             html.Div(
                 [
                     make_number_card(

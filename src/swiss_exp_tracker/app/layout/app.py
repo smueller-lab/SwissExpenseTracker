@@ -75,7 +75,7 @@ def create_app_layout(
                         className="menu-link",
                     ),
                     dcc.Link(
-                        "⛳ Sport",
+                        "⚽ Sport",
                         href="/sport",
                         id="link-sport",
                         className="menu-link",
