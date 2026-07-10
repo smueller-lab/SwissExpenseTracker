@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Mobile-responsive dashboard layout: sidebar collapses to a top bar, grid cards
+  and filter/budget rows stack to a single column, and chart legends move below
+  the plot below the 768px breakpoint.
 - Budget and forecasting dashboard page with a basic forecasting model.
 - Docker support for the app, including a dev container.
 - End-to-end test pipeline coverage.

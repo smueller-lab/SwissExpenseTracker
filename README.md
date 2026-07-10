@@ -3,6 +3,7 @@
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![Dash](https://img.shields.io/badge/Dashboard-Plotly_Dash-informational)
 ![Status](https://img.shields.io/badge/status-active-brightgreen)
+[![CI](https://github.com/smueller-lab/SwissExpenseTracker/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/smueller-lab/SwissExpenseTracker/actions/workflows/ci.yml)
 ![License](https://img.shields.io/badge/license-GPL--v3-blue)
 [![codecov](https://codecov.io/gh/smueller-lab/SwissExpenseTracker/branch/main/graph/badge.svg)](https://codecov.io/gh/smueller-lab/SwissExpenseTracker)
 
