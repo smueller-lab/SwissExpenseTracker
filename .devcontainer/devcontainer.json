@@ -14,7 +14,9 @@
   "mounts": [
     "source=set-venv,target=${containerWorkspaceFolder}/.venv,type=volume",
     // Persist Claude Code's auth/config across rebuilds, keyed to this container
-    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
+    "source=claude-code-config-${devcontainerId},target=/home/vscode/.claude,type=volume",
+    // Bind-mount the host data folder so DATA_DIR stays valid inside the container
+    "source=${localEnv:HOME}/Documents/box,target=/workspaces/data,type=bind"
   ],
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/vscode/.claude"

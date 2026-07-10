@@ -100,10 +100,13 @@ class config:
     forecast_freq_default: str = "W"
     # Shrinkage constant k for the year-end blend: forecast = w*pace + (1-w)*history,
     # with w = elapsed_year_fraction / (elapsed_year_fraction + k). Current-year pace is
-    # the main driver; history only anchors the first weeks. Lower k trusts the current
-    # year even sooner (raise it if early-year forecasts feel too jumpy).
-    forecast_shrinkage_k: float = 0.1
-    # Years of monthly history used to detect lumpy categories and their median monthly rate.
+    # the main driver; history anchors more of the blend for longer. Lower k trusts the
+    # current year even sooner; raise it to lean on the (calmer, averaged) historical
+    # level for longer when current-year pace is the volatile side of the blend (e.g. a
+    # spiky category's pace still runs high after flattening one-off months).
+    forecast_shrinkage_k: float = 0.3
+    # Prior years of monthly history used to detect lumpy categories and their median monthly
+    # rate; the current year's completed months are always included on top of this.
     forecast_lumpy_lookback_years: int = 2
 
     # in-chart text-label fonts

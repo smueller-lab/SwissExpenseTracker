@@ -298,9 +298,24 @@ poetry run pytest                                    # tests
 poetry run python -m ruff check src                  # lint
 ```
 
-> ℹ️ The container is code-only. To run the pipeline or see real data in the dashboard
-> you still need your `.env` keys and bank exports — see the two steps in
-> [🐳 Run with Docker](#-run-with-docker) for `.env` and `bank_data/`.
+> ℹ️ You still need your `.env` keys — see [🔑 Configure API keys](#-configure-api-keys).
+
+**Mount your data folder.** The dev container only sees files under the repo unless a
+host folder is bind-mounted in. `.devcontainer/devcontainer.json` mounts one via:
+
+```jsonc
+"mounts": [
+  // ...
+  "source=${localEnv:HOME}/Documents/box,target=/workspaces/data,type=bind"
+]
+```
+
+That default source path (`~/Documents/box`) is a personal path from whoever last edited
+the file — before rebuilding, either put your bank exports there or change `source` to
+point at your own data folder, then set `DATA_DIR=/workspaces/data` in `.env` so it
+resolves to the mounted path *inside* the container. Without this mount (or with a
+`source` path that doesn't exist on your host), the container still builds, but the
+pipeline and dashboard have no data to read.
 
 ---
 

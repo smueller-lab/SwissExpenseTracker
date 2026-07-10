@@ -152,13 +152,17 @@ def register_callbacks(app: Any, data: Any) -> None:
         actual = data.get_category_cumulative(year_int, cats, freq_lit)
         history = data.get_category_period_history(cats, year_int, freq_lit)
         monthly_totals = data.get_category_monthly_totals(
-            cats, year_int, cfg.forecast_lumpy_lookback_years
+            cats, as_of, cfg.forecast_lumpy_lookback_years
         )
+
+        n_completed_this_year = as_of.month - 1
 
         parts: list[pd.DataFrame] = []
         curves: dict[str, pd.DataFrame] = {}
         levels: dict[str, float | None] = {}
         lumpy_rates: dict[str, float] = {}
+        lumpy_deviations: dict[str, float] = {}
+        spike_excess: dict[str, float] = {}
         for cat in cats:
             curve = forecast.seasonal_pacing_curve(history, cat, freq_lit)
             curves[cat] = curve
@@ -167,6 +171,14 @@ def register_callbacks(app: Any, data: Any) -> None:
             is_lumpy = forecast.is_lumpy_category(months)
             if is_lumpy:
                 lumpy_rates[cat] = forecast.robust_monthly_rate(months)
+                lumpy_deviations[cat] = forecast.robust_monthly_deviation(months)
+            else:
+                this_year_months = (
+                    months[-n_completed_this_year:] if n_completed_this_year > 0 else []
+                )
+                spike_excess[cat] = forecast.spike_excess_this_year(
+                    this_year_months, forecast.robust_monthly_rate(months)
+                )
             cat_actual = actual[actual["category"] == cat]
             line = forecast.build_forecast_line(
                 cat_actual,
@@ -177,6 +189,9 @@ def register_callbacks(app: Any, data: Any) -> None:
                 prior_level=levels[cat],
                 k=cfg.forecast_shrinkage_k,
                 monthly_rate=lumpy_rates.get(cat),
+                monthly_deviation=lumpy_deviations.get(cat),
+                seed_key=f"{cat}-{year_int}",
+                spike_excess=spike_excess.get(cat, 0.0),
             )
             line = line.copy()
             line["category"] = cat
@@ -204,6 +219,7 @@ def register_callbacks(app: Any, data: Any) -> None:
                 as_of,
                 k=cfg.forecast_shrinkage_k,
                 lumpy_rates=lumpy_rates,
+                spike_excess=spike_excess,
             )
             table_rows = table_df.to_dict("records")
 

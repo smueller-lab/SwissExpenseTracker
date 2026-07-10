@@ -543,18 +543,21 @@ class DataLoader:
     def get_category_monthly_totals(
         self,
         categories: list[str],
-        before_year: int,
+        as_of: pd.Timestamp,
         n_years: int,
     ) -> dict[str, list[float]]:
-        """Return per-category completed-month EXPENSE totals for the n_years years before before_year.
-        Each included year contributes 12 zero-filled monthly totals, so medians reflect quiet
-        months too; used to gauge a category's lumpiness and its robust monthly spend rate.
+        """Return per-category completed-month EXPENSE totals for the n_years years before
+        as_of's year, plus as_of's year through its last fully completed month. Prior years are
+        zero-filled across all 12 months; the current year stops at the last completed month so
+        medians aren't dragged toward zero by months that haven't happened yet. Used to gauge a
+        category's lumpiness and its robust monthly spend rate.
         """
-        start_year = before_year - n_years
+        current_year = as_of.year
+        start_year = current_year - n_years
         mask = (
             (self.pdf_Master["transaction_type"] == "EXPENSE")
             & (self.pdf_Master["date"].dt.year >= start_year)
-            & (self.pdf_Master["date"].dt.year < before_year)
+            & (self.pdf_Master["date"].dt.year <= current_year)
             & (
                 self.pdf_Master["category_main"].isin(categories)
                 | self.pdf_Master["category_second"].isin(categories)
@@ -564,6 +567,8 @@ class DataLoader:
             ["date", "category_main", "category_second", "amount_CHF"]
         ].copy()
 
+        last_complete_month = as_of.month - 1  # current month may still be in progress
+
         totals: dict[str, list[float]] = {}
         for cat in categories:
             cat_mask = (pdf["category_main"] == cat) | (pdf["category_second"] == cat)
@@ -572,8 +577,11 @@ class DataLoader:
                 totals[cat] = []
                 continue
             months: list[float] = []
-            for yr in range(start_year, before_year):
-                full = pd.date_range(f"{yr}-01-01", f"{yr}-12-01", freq="MS")
+            for yr in range(start_year, current_year + 1):
+                n_months = 12 if yr < current_year else last_complete_month
+                if n_months <= 0:
+                    continue
+                full = pd.date_range(f"{yr}-01-01", periods=n_months, freq="MS")
                 monthly = (
                     cat_series[cat_series.index.year == yr]
                     .resample("MS")

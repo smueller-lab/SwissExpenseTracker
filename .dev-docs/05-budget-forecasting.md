@@ -33,13 +33,14 @@ All coefficients are collected here. Curve/level/lumpiness constants live in
 
 | Constant                          | Value    | Where           | Meaning                                                                                                                        |
 | --------------------------------- | -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `forecast_shrinkage_k`          | `0.1`  | `config`      | Shrinkage`k` in the year-end blend `w = elapsed / (elapsed + k)`. Lower ⇒ current-year pace takes over sooner.            |
-| `forecast_lumpy_lookback_years` | `2`    | `config`      | Years of monthly history used to detect lumpiness and compute the median rate.                                                 |
-| `DEFAULT_SHRINKAGE_K`           | `0.1`  | `forecast.py` | Library fallback for`k` when a caller doesn't pass the config value.                                                         |
+| `forecast_shrinkage_k`          | `0.3`  | `config`      | Shrinkage`k` in the year-end blend `w = elapsed / (elapsed + k)`. Lower ⇒ current-year pace takes over sooner; raise it to lean on the calmer historical level for longer.            |
+| `forecast_lumpy_lookback_years` | `2`    | `config`      | **Prior** years of monthly history used to detect lumpiness and compute the median rate. The current year's completed months are always added on top of this.                                                 |
+| `DEFAULT_SHRINKAGE_K`           | `0.1`  | `forecast.py` | Library fallback for`k` when a caller doesn't pass the config value (used by the back-test notebook, not the app).                                                         |
 | `_CURVE_LINEAR_REG`             | `0.35` | `forecast.py` | How far the multi-year pacing curve is pulled toward a flat/linear curve. A single prior year is regularized harder (`0.5`). |
 | `_CURVE_MIN_YEAR_FRAC`          | `0.2`  | `forecast.py` | Years whose total is below this fraction of the median year total are ignored when learning the seasonal shape.                |
 | `_LEVEL_RECENT_YEARS`           | `2`    | `forecast.py` | Number of most-recent prior years averaged into the history level anchor.                                                      |
 | `_LUMPY_MEAN_MEDIAN_RATIO`      | `1.3`  | `forecast.py` | A category is lumpy when its mean monthly spend exceeds this multiple of its median monthly spend.                             |
+| `_CONTINUOUS_MONTH_SPIKE_CAP_MULTIPLE` | `2.0` | `forecast.py` | For a *continuous* category, a completed month this year spending over this multiple of the median month is a one-off; the excess is held out of the pace calc (see [Spike flattening](#spike-flattening-for-continuous-categories)). |
 
 ---
 
@@ -49,11 +50,7 @@ All coefficients are collected here. Curve/level/lumpiness constants live in
 
 Learns *when* in the year a category's spending typically happens, as a cumulative-share
 curve `cum_share(year_fraction)` on a grid. The resolution is fixed to **weekly**
-(`config.forecast_freq_default`; the daily/weekly/monthly selector was removed), though the
-curve functions still accept `"D" | "W" | "M"`. For each prior year it normalizes its
-cumulative spend to
-its own total (so magnitude drops out and only the shape remains), then combines years
-with three robustness guards:
+(`config.forecast_freq_default`), though the curve functions still accept `"D" | "W" | "M"`. For each prior year it normalizes its cumulative spend to its own total (so magnitude drops out and only the shape remains), then combines years with three robustness guards:
 
 - **Drop negligible years.** Years whose total is below `_CURVE_MIN_YEAR_FRAC` (0.2) of
   the median year total are discarded — a year where you spent 346 CHF total has a
@@ -79,6 +76,26 @@ The pure seasonal projection is `naive_pace = spend_to_date / seasonal_share`. T
 already beats a flat run-rate because it knows, e.g., that only ~30 % of annual Retail
 spend happens by June, not 50 %.
 
+### Spike flattening for continuous categories — `spike_excess_this_year`
+
+A category can be historically *continuous* (mean ≈ median over 1–4 years) and still take
+one unusually large transaction in the current year — a new sofa in an otherwise-steady
+Retail habit. Dividing that inflated `spend_to_date` by a small seasonal share (early in
+the year, `seasonal_share` can be ~0.35) extrapolates the one-off as if it recurred every
+remaining period, blowing the forecast up far past both the naive run-rate and history.
+
+`spike_excess_this_year(this_year_months, median_rate)` sums, over the current year's
+*completed* months, how much each exceeds `_CONTINUOUS_MONTH_SPIKE_CAP_MULTIPLE` (2.0)
+times the category's own median monthly rate (`robust_monthly_rate`, the same statistic
+`is_lumpy_category` uses — already robust to the very spikes being flagged). This total is
+`spike_excess`.
+
+`forecast_year_end` (below) holds `spike_excess` out of `spend_to_date` before dividing by
+the seasonal share — so the one-off isn't treated as a recurring rate — then adds it back
+once, unshrunk, at the end, since that money was still genuinely spent. Only applied to
+non-lumpy categories; a lumpy category already forecasts off the median rate (Method 2),
+which doesn't have this failure mode.
+
 ### Step 3: shrinkage toward the historical level — `forecast_year_end`
 
 Early in the year `naive_pace` divides by a small number and is noisy; one big January
@@ -90,11 +107,14 @@ history) keeps the anchor tracking the *current* spending level rather than lagg
 long, growing history. Zero-spend years are ignored; returns `None` (no shrinkage) for a
 brand-new category with no history.
 
-**The blend** is *geometric* (log-space) and weighted by *elapsed calendar time*:
+**The blend** is *geometric* (log-space) and weighted by *elapsed calendar time*, computed
+on `naive_pace` after `spike_excess` has been held out (see above), then `spike_excess` is
+added back to the result:
 
 ```
-forecast = pace ** w  *  prior_level ** (1 - w)
-w        = elapsed_time / (elapsed_time + k)          # elapsed_time = day_of_year / days_in_year
+baseline_pace = (spend_to_date - spike_excess) / seasonal_share
+forecast      = baseline_pace ** w  *  prior_level ** (1 - w)  +  spike_excess
+w             = elapsed_time / (elapsed_time + k)          # elapsed_time = day_of_year / days_in_year
 ```
 
 Two deliberate choices here:
@@ -103,8 +123,12 @@ Two deliberate choices here:
   share stays tiny until its season arrives; weighting on it would keep history dominant
   through exactly the months where you want the model to notice you're spending little
   this year. Elapsed calendar time decays history's influence steadily for *every*
-  category — by ~June `w ≈ 0.8` (with `k = 0.1`), so the current-year pace dominates.
-  Only the first weeks lean on history, for noise control.
+  category — by ~June `w ≈ 0.64` (with `k = 0.3`, the app default), so the current-year
+  pace still dominates the blend but history has more say than a smaller `k` would give it.
+  `k` is deliberately not tiny: `baseline_pace` is the more volatile side of the blend (a
+  seasonal-share division, sensitive to *this* year's timing) while `prior_level` is a
+  calmer multi-year average, so leaning on history for longer damps categories whose
+  current-year pace is running unusually high even after spike flattening.
 - **Geometric (multiplicative) blend, not additive.** Spending levels are multiplicative,
   so history should be a mild *proportional* nudge, not an absolute pull. An additive
   blend with even a small weight on a large historical level adds a big absolute chunk
@@ -113,8 +137,41 @@ Two deliberate choices here:
   untouched.
 
 Edge cases: on Jan 1 (`day_of_year <= 1`) the forecast is `prior_level` (or
-`spend_to_date` if there is no history); with nothing spent yet (`naive_pace <= 0`) it
-falls back to `(1 - w) * prior_level`.
+`spend_to_date` if there is no history); with nothing spent yet (`baseline_pace <= 0`) it
+falls back to `(1 - w) * prior_level + spike_excess`.
+
+Raising `k` is a global knob, not a per-category one: for a category currently running
+*below* its historical level (e.g. a quiet Restaurant year), the same increase pulls the
+forecast *up* toward history rather than down. There's no signal in `forecast_year_end`
+distinguishing "pace is inflated by a spike" from "pace is genuinely lower this year" —
+both just look like "current pace disagrees with history."
+
+### Anchoring the forecast line — `build_forecast_line`
+
+The year-end scalar from `forecast_year_end` only tells you the *total*; the chart needs a
+full trajectory. The naive approach — scale the raw curve by the total,
+`fc_cum(t) = year_end_fc * cum_share(t)` — only lands exactly on `spend_to_date` at `as_of`
+when `year_end_fc` equals the unshrunk `naive_pace` (because `cum_share(as_of) *
+naive_pace == spend_to_date` by construction). As soon as `year_end_fc` is pulled off that
+value — by the history blend, or by adding `spike_excess` back — the scaled curve no longer
+passes through the real `spend_to_date` at the seam, which can produce a **visible jump at
+the boundary, including downward** for cumulative spend, which is otherwise never supposed
+to decrease.
+
+Instead the forecast segment is anchored explicitly: it starts at `spend_to_date` and
+distributes `year_end_fc - spend_to_date` across the remaining periods in proportion to the
+curve's *remaining* share:
+
+```
+progress(t) = (cum_share(t) - cum_share(as_of)) / (1 - cum_share(as_of))   # clipped to >= 0
+fc_cum(t)   = spend_to_date + (year_end_fc - spend_to_date) * progress(t)
+```
+
+This guarantees `fc_cum(as_of) == spend_to_date` (no seam jump) and
+`fc_cum(year_end) == year_end_fc` exactly, and is monotonic whenever `year_end_fc >=
+spend_to_date` — which is enforced with a floor (`year_end_fc = max(year_end_fc,
+spend_to_date)`), since a forecast can't imply the year ends with less spend than has
+already happened.
 
 ---
 
@@ -127,9 +184,13 @@ seasonal share, extrapolates into a phantom year-end blow-up. The fix is to proj
 
 ### Lumpiness detection — `is_lumpy_category`
 
-Uses `loader.get_category_monthly_totals`, which returns per-category **zero-filled
-monthly totals** for the last `forecast_lumpy_lookback_years` (2) years (every month of
-each included year contributes, so medians reflect quiet months too).
+Uses `loader.get_category_monthly_totals(categories, as_of, n_years)`, which returns
+per-category monthly totals for the `n_years` (`forecast_lumpy_lookback_years`, 2) prior
+years — each **zero-filled** across all 12 months, so medians reflect quiet months too —
+**plus the current year through its last fully completed month** (the in-progress month is
+excluded so it can't drag the median toward zero before it's actually over). Including the
+current year means a category's classification and median rate reflect what's actually
+happening this year, not just history.
 
 A category is lumpy when:
 
@@ -156,41 +217,62 @@ the whole forecast. This is symmetric: a category running *below* its typical ra
 (e.g. a quiet Healthcare year) reverts *up* toward the median rate for the remaining
 months, which is the honest behavior for unpredictable bills.
 
-On the chart, lumpy categories draw a **straight forecast line** at the median rate from
-`as_of` onward (`build_forecast_line` with `monthly_rate` set), instead of following the
-seasonal curve.
+### Wobble, not a straight ramp — `_jitter_monthly_path`
+
+A dead-straight line from `as_of` to the year-end total looked artificial next to the
+jagged actual line, so lumpy categories now draw a **wobbled** forecast instead of a flat
+ramp:
+
+- `robust_monthly_deviation` — the median absolute deviation of the lookback monthly
+  totals, scaled to std-equivalent units (`* 1.4826`), i.e. the same outlier-resistant
+  statistic as `robust_monthly_rate` applied to spread instead of center.
+- Each future period's increment gets **lognormal noise** sized by the coefficient of
+  variation `monthly_deviation / monthly_rate` (capped at `1.5` so a noisy/near-zero rate
+  can't produce wild swings), then all increments are **rescaled** so they still sum to
+  exactly the `forecast_year_end_lumpy` total — the wobble changes the *path*, never the
+  *year-end number* shown in the budget table.
+- Increments are never negative, so the cumulative line still never dips.
+- Noise is seeded from `f"{category}-{year}"` (`_deterministic_seed`, via
+  `hashlib.blake2b`) — reproducible across reloads of the same category/year instead of
+  reshuffling on every refresh.
+
+On the chart, lumpy categories draw this wobbled line from `as_of` onward
+(`build_forecast_line` with `monthly_rate`, `monthly_deviation`, and `seed_key` set),
+instead of following the seasonal curve.
 
 ---
 
-## Category classification (real data, 2-year lookback)
+## Category classification (real data, 2-year lookback + current year)
 
 Lumpiness ratio = mean ÷ median of monthly totals. Threshold `1.3`.
 
 > This table is a **snapshot of current real data**, not a hardcoded mapping. The class
-> is computed on the fly for *any* selected category from its own last-2-years monthly
-> history (`is_lumpy_category`) — no category names appear in the code. A new category is
-> classified the moment it's selected, and a category is re-classified automatically as
-> its recent history shifts. Ratios below will drift as more data arrives.
+> is computed on the fly for *any* selected category from its own monthly history
+> (`is_lumpy_category`, now 2 prior years + the current year's completed months) — no
+> category names appear in the code. A new category is classified the moment it's
+> selected, and a category is re-classified automatically as its recent history shifts.
+> Ratios below will drift as more data arrives.
 
 | Category   | ratio         | Class           | Method          |
 | ---------- | ------------- | --------------- | --------------- |
-| Sport      | 0.98          | continuous      | seasonal pacing |
-| Groceries  | 1.05          | continuous      | seasonal pacing |
-| Restaurant | 1.11          | continuous      | seasonal pacing |
-| Retail     | 1.14          | continuous      | seasonal pacing |
-| Bar        | 1.17          | continuous      | seasonal pacing |
-| Car        | 1.36          | **lumpy** | median rate     |
-| Healthcare | 1.36          | **lumpy** | median rate     |
-| Transport  | 1.76          | **lumpy** | median rate     |
-| Clothing   | 2.43          | **lumpy** | median rate     |
-| Travel     | 3.35          | **lumpy** | median rate     |
+| Sport      | 1.04          | continuous      | seasonal pacing |
+| Groceries  | 1.06          | continuous      | seasonal pacing |
+| Restaurant | 1.08          | continuous      | seasonal pacing |
+| Bar        | 1.16          | continuous      | seasonal pacing |
+| Retail     | 1.20          | continuous      | seasonal pacing |
+| Healthcare | 1.41          | **lumpy** | median rate     |
+| Car        | 1.72          | **lumpy** | median rate     |
+| Transport  | 2.06          | **lumpy** | median rate     |
+| Travel     | 6.39          | **lumpy** | median rate     |
+| Clothing   | ∞ (median 0) | **lumpy** | median rate     |
 | Car Rental | ∞ (median 0) | **lumpy** | median rate     |
 
-**Note on Retail (ratio 1.14 ⇒ continuous):** Retail *is* historically regular, so it uses seasonal pacing. Its occasional big purchases (a new
-sofa) are *within-year* events, and the detector reads *historical* lumpiness — so a
-one-off in an otherwise-steady category is not caught. Handling that would require
-dampening spikes in the **current** year's run-rate (winsorizing this year's monthly
-spend), which is not currently implemented.
+**Note on Retail (ratio 1.20 ⇒ continuous):** Retail *is* historically regular enough to
+stay under the `1.3` threshold, so it uses seasonal pacing. It still takes occasional big
+purchases (a new sofa) within an otherwise-steady year; those are now caught by
+[spike flattening](#spike-flattening-for-continuous-categories) instead of by reclassifying
+the whole category as lumpy — which would also flatten its normal, non-spike months to a
+median-rate ramp and lose the seasonal shape.
 
 ---
 
@@ -201,7 +283,7 @@ spend), which is not currently implemented.
 | `get_category_year_spend(year)`                           | per-category YTD EXPENSE total                                                      | current spend-to-date in the budget table       |
 | `get_category_cumulative(year, cats, freq)`               | long-format cumulative spend per category at`freq`                                | the "actual" segment of each chart line         |
 | `get_category_period_history(cats, before_year, freq)`    | per-period spend for all prior years (`category, year, year_fraction, spend_chf`) | building the pacing curve and the history level |
-| `get_category_monthly_totals(cats, before_year, n_years)` | per-category list of zero-filled monthly totals for the last`n_years`             | lumpiness detection + median rate               |
+| `get_category_monthly_totals(cats, as_of, n_years)` | per-category list of monthly totals: `n_years` prior years (zero-filled, 12 months each) plus `as_of`'s year through its last completed month             | lumpiness detection, median rate, spike flattening               |
 
 All amounts are EXPENSE-only and cover both `category_main` and `category_second` levels.
 
@@ -214,11 +296,15 @@ All amounts are EXPENSE-only and cover both `category_main` and `category_second
 
 1. builds the seasonal pacing curve (`seasonal_pacing_curve`),
 2. computes the history level anchor (`historical_annual_level`),
-3. fetches monthly totals and, if the category `is_lumpy_category`, computes its
-   `robust_monthly_rate`,
-4. builds the chart line (`build_forecast_line`) — passing `monthly_rate` for lumpy
-   categories so the forecast segment is linear, or `prior_level` + `k` for continuous
-   ones so it follows the pacing curve and shrinks toward history.
+3. fetches monthly totals (now including the current year's completed months) and, if the
+   category `is_lumpy_category`, computes its `robust_monthly_rate` and
+   `robust_monthly_deviation` (for the wobble); otherwise computes `spike_excess_this_year`
+   from this year's completed months,
+4. builds the chart line (`build_forecast_line`) — passing `monthly_rate` +
+   `monthly_deviation` + a `seed_key` (`f"{category}-{year}"`) for lumpy categories so the
+   forecast segment wobbles around the median rate, or `prior_level` + `k` +
+   `spike_excess` for continuous ones so it follows the pacing curve, shrinks toward
+   history, and flattens any one-off month.
 
 It then builds the **budget vs forecast table** (`build_budget_table`). Columns, in order:
 `Category | Budget | Spent | Forecast EOY | Budget used Now | Now Δ CHF | Now Δ % | EOY Δ CHF | EOY Δ %` — the three magnitudes (target, spent-so-far, projected year-end) sit
