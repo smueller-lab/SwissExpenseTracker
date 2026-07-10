@@ -116,11 +116,25 @@ lnd/neon/   ← drop CSV/XLSX exports here before running the pipeline
 
 ## Step 6 — Cross-source dedup (only if needed)
 
-File: `pipeline_ingestion/stages/transactions/stage_04_postprocess.py`
+**Credit-card settlement pairs are declarative too.** If the new source is a
+credit-card statement whose payments already appear as a debit on an existing
+account source (the debit shows a payment-to-card-issuer debit, the card
+statement shows the matching settlement credit), add the pair to
+`CREDIT_CARD_SOURCE_PAIRS` in `pipeline_ingestion/data_models/source_type.py`:
+```python
+CREDIT_CARD_SOURCE_PAIRS: list[tuple[SourceType, SourceType]] = [
+    (SourceType.ZKB_DEBIT, SourceType.VISECA),
+    (SourceType.UBS_DEBIT, SourceType.UBS_CREDIT),
+    (SourceType.<NEW_DEBIT>, SourceType.<NEW_CREDIT>),  # add here
+]
+```
+`_clean_credit_card_payments` (`stage_04_postprocess.py`) and
+`find_credit_card_payment_pairs` (`credit_card_matcher.py`) already iterate
+every registered pair generically — no edits needed in either file for this case.
 
-Add logic only if the new source creates transactions that duplicate entries from
-another source (e.g. a credit-card payment appearing on both the card statement
-and the linked bank account). Otherwise state explicitly that no dedup is needed.
+For any other kind of duplication that isn't a debit/credit settlement pair,
+add logic to `pipeline_ingestion/stages/transactions/stage_04_postprocess.py`
+directly. Otherwise state explicitly that no dedup is needed.
 
 ## Step 7 — Tests
 

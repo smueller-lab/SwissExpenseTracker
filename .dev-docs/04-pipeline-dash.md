@@ -29,6 +29,7 @@ run_dashboard_pipeline()          pipeline.py
               sport           → dash_sport
               car             → dash_car
               retail          → dash_retail, dash_retail_donut, dash_retail_top
+              balance_sheet   → dash_balance_sheet, dash_balance_sheet_categories
 ```
 
 **Entry point:** `run_dashboard_pipeline()` in `pipeline.py`. Called after the ingestion pipeline completes. Defaults to the project database path from `pipeline_ingestion.config.INGESTION_DB_PATH`.
@@ -241,19 +242,23 @@ This makes the pipeline safe to run on older databases without manual migration.
 
 ---
 
-### `sport` → `dash_sport`
+### `sport` → `dash_sport`, `dash_sport_activities`
 
 **Input filter:** `category_main == Sport`, `transaction_type == EXPENSE`.
 
-**Exclusions:** `SPORT_EXCLUDE_SECOND = ["Sports Facility", "Unknown", "Sports Administration", "Sports services"]` — administrative and facility overhead, not personal sport activity costs.
+**Exclusions:** `SPORT_EXCLUDE_SECOND = ["Sports Facility", "Unknown", "Sports Administration", "Sports services"]` — administrative and facility overhead, not personal sport activity costs. Applied to `dash_sport` only; `dash_sport_activities` uses its own per-sport filters below.
 
-**Logic:**
+**`dash_sport` logic:**
 - Groups by `category_second` (Tennis, Golf, Padel, Bike, Fitness, Running, Swimming).
 - Produces both yearly and monthly aggregates with `Freq` and `Period` columns.
+- Output columns: `category_sport`, `Total`, `Freq`, `Period`.
 
-**Output columns:** `category_sport`, `Total`, `Freq`, `Period`.
+**`dash_sport_activities` logic** (`build_activities`, called at the end of `build`):
+- Counts qualifying activity transactions per year for Golf, Tennis, Padel.
+- Golf transactions are further filtered to CHF 70–160 (`_GOLF_MIN`/`_GOLF_MAX`) to isolate single green-fee payments from memberships/equipment purchases.
+- Output columns: `year`, `sport`, `activity_count`.
 
-**Used by:** Sport page — switchable yearly/monthly bar chart.
+**Used by:** Sport page — switchable yearly/monthly bar chart (`dash_sport`) and yearly activity-count bar chart (`dash_sport_activities`).
 
 ---
 
@@ -295,12 +300,29 @@ This makes the pipeline safe to run on older databases without manual migration.
 
 ---
 
+### `balance_sheet` → `dash_balance_sheet`, `dash_balance_sheet_categories`
+
+**Input:** All transaction types (no upfront filter).
+
+**`dash_balance_sheet` logic:**
+- Aggregates `income` (INCOME), `expense` (EXPENSE, excluding `NET_BALANCE_EXPENSE_EXCLUDE_MAIN` = `Investing`, `Salary`), and `invested` (EXPENSE, `category_main == Investing`) per year.
+- Derives `saved = income - expense - invested`, `total_plus = saved + invested`, `savings_rate_pct`, `invested_rate_pct`, `expense_rate_pct` (all ÷ income, guarded against zero income), `cumulative_saved` (running total across years, computed ascending then re-sorted descending), and `yoy_saved_pct`.
+- Output columns: `year`, `income`, `expense`, `invested`, `saved`, `total_plus`, `savings_rate_pct`, `invested_rate_pct`, `expense_rate_pct`, `cumulative_saved`, `yoy_saved_pct`, `in_plus`. Sorted by year descending.
+
+**`dash_balance_sheet_categories` logic:**
+- Long-format yearly EXPENSE totals for each label in `BALANCE_SHEET_MAJOR_CATEGORIES` (Rent, Groceries, Car, Transport, Travel, Sport, Restaurant, Retail, Healthcare) — each label maps to a `(category_main, category_second | None)` pair.
+- Output columns: `year`, `category`, `amount`.
+
+**Used by:** Balance Sheet page — KPI cards, Yearly Balance Sheet table, Major Category Spend by Year table.
+
+---
+
 ## Config reference (`config.py`)
 
 | Constant | Type | Purpose |
 |---|---|---|
 | `GLOBAL_EXCLUDE` | `list[tuple[str, str, str \| None]]` | Rows dropped before all builders run |
-| `NET_BALANCE_EXPENSE_EXCLUDE_MAIN` | `list[str]` | Excluded from stats and net-balance month (`Investing`, `Salary`) |
+| `NET_BALANCE_EXPENSE_EXCLUDE_MAIN` | `list[str]` | Excluded from stats, net-balance month, and the balance sheet builder (`Investing`, `Salary`) |
 | `TOP_EXPENSES_EXCLUDE_MAIN` | `list[str]` | Excluded from top-20 expenses table |
 | `TRANSPORT_MAIN_CATEGORIES` | `list[str]` | `["Car", "Transport"]` |
 | `TRANSPORT_EXCLUDE_SECOND` | `list[str]` | Excluded from transport bar chart |
@@ -308,6 +330,7 @@ This makes the pipeline safe to run on older databases without manual migration.
 | `SPORT_EXCLUDE_SECOND` | `list[str]` | Excluded from sport chart |
 | `GROCERY_MERCHANT_NORMALIZE` | `list[tuple[str, str]]` | Substring → canonical name mapping |
 | `GROCERY_MERCHANTS_TRACKED` | `list[str]` | Allowlist of grocery chains shown in charts |
+| `BALANCE_SHEET_MAJOR_CATEGORIES` | `list[tuple[str, str, str \| None]]` | `(label, category_main, category_second)` rows shown in the Major Category Spend table |
 
 ---
 

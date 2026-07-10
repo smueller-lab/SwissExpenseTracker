@@ -32,7 +32,7 @@ Landing Zone (filesystem)
         │
         ▼
   Stage 4 — Postprocess
-  remove credit-card double-bookings, fill missing texts
+  remove credit-card double-bookings, drop ZKB↔Revolut top-ups, fill missing texts
 ```
 
 The positions pipeline runs as Stage 5 inside `run_ingestion()` and writes to a
@@ -65,7 +65,7 @@ See [Migros Grocery Pipeline](#migros-grocery-pipeline).
 
 ## Supported Data Sources
 
-Defined as `SourceType` (`StrEnum`) in `data_models/source_type.py`.
+Defined as `SourceType` (`Enum`) in `data_models/source_type.py`.
 
 | SourceType | Bank / Export format |
 |------------|---------------------|
@@ -74,6 +74,10 @@ Defined as `SourceType` (`StrEnum`) in `data_models/source_type.py`.
 | `REVOLUT` | Revolut account statement CSV |
 | `SWISSQUOTE` | Swissquote positions XLS snapshot |
 | `MIGROS_GROCERY` | Migros receipt CSV export |
+| `UBS_DEBIT` | UBS current account CSV (French headers) |
+| `UBS_CREDIT` | UBS credit card CSV (French headers) |
+
+`SourceType.py` also defines `CREDIT_CARD_SOURCE_PAIRS` — a list of `(debit, credit)` `SourceType` pairs used to match a credit-card settlement against its originating debit-account transaction so the pair can be de-duplicated (see Stage 4 below). Currently `(ZKB_DEBIT, VISECA)` and `(UBS_DEBIT, UBS_CREDIT)`; `get_credit_card_source_pairs()` returns it.
 
 Each transaction source is described **declaratively** by a `SourceProfile`
 (`data_models/source_profiles.yaml`, loaded by `data_models/profile_loader.py`).
@@ -156,13 +160,26 @@ The heaviest stage. For each unprocessed `transactions_raw` row:
 Cleans up known data quality issues in `transactions_rfn`:
 
 1. **Credit-card double-booking removal** (`_clean_credit_card_payments`):
-   ZKB debit account shows a "Viseca Payment" debit, and the Viseca CSV shows
-   the matching settlement credit. Both represent the same money movement.
-   Matched by amount and deleted to avoid double-counting.
+   a debit account shows a card-payment debit, and the matching credit-card
+   CSV shows the matching settlement credit. Both represent the same money
+   movement. `find_credit_card_payment_pairs` (`credit_card_matcher.py`)
+   matches by amount across every `(debit, credit)` pair registered in
+   `SourceType.CREDIT_CARD_SOURCE_PAIRS` — currently `(ZKB_DEBIT, VISECA)`
+   and `(UBS_DEBIT, UBS_CREDIT)` — and both matched legs are deleted to avoid
+   double-counting. Matched booking texts are also persisted into
+   `detected_rules.yaml` (`_record_credit_card_payments`).
 
-2. **Viseca fee text fill** (`_fill_viseca_credit_card_fee_text`):
+2. **Revolut transfer removal** (`_clean_revolut_transfers`):
+   drops ZKB Debit EXPENSE rows whose merchant matches `%revolut%`
+   (case-insensitive) — these are internal top-ups to a Revolut account, not
+   real spending.
+
+3. **Viseca fee text fill** (`_fill_viseca_credit_card_fee_text`):
    Viseca rows with blank `booking_text` / `merchant_normalized` for credit
    card annual fees get a canonical label injected.
+
+`run_postprocess()` returns a dict with `credit_card_pairs_removed`,
+`revolut_transfers_removed`, and `viseca_fee_rows_updated` counts.
 
 ---
 
@@ -219,8 +236,9 @@ Canonical, analysis-ready transaction rows. Input to the agentic pipeline.
 | `merchant_normalized` | Cleaned merchant name (see Stage 3) |
 | `is_person` | 1 if detected as person-to-person (TWINT + phone number) |
 | `currency` | Original transaction currency |
-| `reference` | ZKB reference number — used to JOIN with merchant metadata |
+| `reference` | Source reference number (`UnifiedTransaction.reference_id`) — used to JOIN with merchant metadata |
 | `enrichment_status` | `pending` → `enriched` (set by agentic pipeline) |
+| `balance_chf` | Account balance after the transaction, CHF (ZKB Debit only; `NULL` for other sources) |
 
 ---
 

@@ -34,6 +34,7 @@ htmlcov/
 .tox/
 .nox/
 coverage.*
+.coverage
 .cache
 nosetests.xml
 *.cover
@@ -53,3 +54,7 @@ src/swiss_exp_tracker/config.py
 src/swiss_exp_tracker/pipeline_agentic/config
 
 .claude/settings.local.json
+
+# script files to create demo data + screenshots
+scripts/run_demo.py
+scripts/take_screenshots.py

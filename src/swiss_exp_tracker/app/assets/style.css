@@ -245,7 +245,7 @@ a {
 .col-12 { grid-column: span 12; }
 
 @media (max-width: 1024px) {
-    .col-3, .col-4, .col-6, .col-9 {
+    .col-2, .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-9 {
         grid-column: span 12;
     }
 }
@@ -886,4 +886,81 @@ button#budget-save-btn:hover {
     margin-top: 10px;
     font-size: 13px;
     color: var(--color-text-card-muted);
+}
+
+/* ===== Mobile (phones) ===== */
+@media (max-width: 768px) {
+    .sidebar {
+        position: static;
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 12px 16px;
+        border-right: none;
+        border-bottom: 1px solid var(--color-accent-border);
+    }
+
+    .sidebar .logo {
+        width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .sidebar .menu-link {
+        padding: 6px 10px;
+        font-size: 14px;
+    }
+
+    .sidebar .menu-link:hover {
+        transform: none;
+    }
+
+    .sidebar-footer {
+        display: none;
+    }
+
+    .content {
+        margin-left: 0;
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .page-title-center {
+        font-size: 24px;
+        margin: 12px 0;
+    }
+
+    .card {
+        overflow-x: auto;
+    }
+
+    .card-header-with-buttons {
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
+
+    .filter-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-date-range,
+    .filter-year-month {
+        flex-wrap: wrap;
+    }
+
+    .filter-checkbox {
+        margin-left: 0;
+    }
+
+    .budget-card-header {
+        grid-template-columns: 1fr;
+        row-gap: 8px;
+        text-align: center;
+    }
+
+    .budget-inputs {
+        grid-template-columns: 1fr;
+    }
 }

@@ -7,7 +7,7 @@ from dash import html
 
 # Shared dcc.Graph config: hide the Plotly modebar (camera/zoom/pan toolbar) on
 # every chart for a cleaner dashboard look.
-GRAPH_CONFIG: dcc.Graph.Config = {"displayModeBar": False}
+GRAPH_CONFIG: dcc.Graph.Config = {"displayModeBar": False, "responsive": True}
 
 
 def make_page_title(title: str) -> Any:
