@@ -1,6 +1,6 @@
 # Budget Forecasting
 
-The Budget / Forecast page (`/budget`) projects each budgeted category's **year-end
+The Budget / Forecast page (`/budget-forecast`) projects each budgeted category's **year-end
 total** from the spend accrued so far, so it can be compared against the yearly budget
 before the year is over. The forecasting logic lives in `app/data/forecast.py`; the data
 it needs is prepared in `app/data/loader.py`; the page wires them together in
@@ -35,7 +35,7 @@ All coefficients are collected here. Curve/level/lumpiness constants live in
 | --------------------------------- | -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `forecast_shrinkage_k`          | `0.3`  | `config`      | Shrinkage`k` in the year-end blend `w = elapsed / (elapsed + k)`. Lower ⇒ current-year pace takes over sooner; raise it to lean on the calmer historical level for longer.            |
 | `forecast_lumpy_lookback_years` | `2`    | `config`      | **Prior** years of monthly history used to detect lumpiness and compute the median rate. The current year's completed months are always added on top of this.                                                 |
-| `DEFAULT_SHRINKAGE_K`           | `0.1`  | `forecast.py` | Library fallback for`k` when a caller doesn't pass the config value (used by the back-test notebook, not the app).                                                         |
+| `DEFAULT_SHRINKAGE_K`           | `0.1`  | `forecast.py` | Library default for`k` when a caller doesn't pass the config value; the app always passes `cfg.forecast_shrinkage_k` explicitly, so this only applies to direct callers of the forecasting functions.                                                         |
 | `_CURVE_LINEAR_REG`             | `0.35` | `forecast.py` | How far the multi-year pacing curve is pulled toward a flat/linear curve. A single prior year is regularized harder (`0.5`). |
 | `_CURVE_MIN_YEAR_FRAC`          | `0.2`  | `forecast.py` | Years whose total is below this fraction of the median year total are ignored when learning the seasonal shape.                |
 | `_LEVEL_RECENT_YEARS`           | `2`    | `forecast.py` | Number of most-recent prior years averaged into the history level anchor.                                                      |
@@ -282,7 +282,7 @@ median-rate ramp and lose the seasonal shape.
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------- |
 | `get_category_year_spend(year)`                           | per-category YTD EXPENSE total                                                      | current spend-to-date in the budget table       |
 | `get_category_cumulative(year, cats, freq)`               | long-format cumulative spend per category at`freq`                                | the "actual" segment of each chart line         |
-| `get_category_period_history(cats, before_year, freq)`    | per-period spend for all prior years (`category, year, year_fraction, spend_chf`) | building the pacing curve and the history level |
+| `get_category_period_history(cats, exclude_year, freq)`    | per-period spend for all prior years (`category, year, year_fraction, spend_chf`) | building the pacing curve and the history level |
 | `get_category_monthly_totals(cats, as_of, n_years)` | per-category list of monthly totals: `n_years` prior years (zero-filled, 12 months each) plus `as_of`'s year through its last completed month             | lumpiness detection, median rate, spike flattening               |
 
 All amounts are EXPENSE-only and cover both `category_main` and `category_second` levels.
@@ -323,14 +323,3 @@ Two comparisons per category, against different references:
 - **End of year** — will you land over budget? `EOY Δ CHF = forecast − budget` and `EOY Δ % = over_under_eoy_chf / budget` (relative to the full annual budget).
 
 Both `Δ %` columns divide by zero safely (a zero budget / pace target yields `0.0`).
-
----
-
-## Back-testing
-
-`scripts/forecast_model_analysis.py` (a jupytext *percent* notebook) back-tests the
-production model against candidate baselines (flat run-rate, last-year ratio,
-Holt-Winters) by projecting the year-end total from partial-year data at several
-checkpoints and scoring absolute percentage error. It imports the production functions
-directly, so it always reflects the live model; `forecast_year_end` with `prior_level = None` gives the pure pace forecast used as one of the baselines. Open it as a notebook and
-change `CATEGORY` / `FREQ` to explore a category.

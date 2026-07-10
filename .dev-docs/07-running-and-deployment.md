@@ -22,23 +22,25 @@ pipeline first, then launch the dashboard.
 
 **File:** `src/swiss_exp_tracker/pipeline.py → main()`
 
-Runs the whole data flow in five sequential stages. Each underlying stage is
+Runs the whole data flow in six sequential stages. Each underlying stage is
 idempotent, so re-running the whole pipeline only processes new data.
 
 ```
 python -m swiss_exp_tracker.pipeline
         │
-        ├─ Stage 1  run_ingestion()            landing → raw → refined → postprocess
-        │                                       (+ positions + groceries sub-pipelines)
-        ├─ Stage 2  run_all_transactions(...)   agentic web-search + metadata enrichment
-        │              (skipped if load_pending_transactions() returns nothing)
-        ├─ Stage 3  run_post_clean()            manual corrections → merchant_metadata_rfn
-        ├─ Stage 4  run_transactions_use()      final analysis join → transactions_use
-        └─ Stage 5  run_dashboard_pipeline()    pre-aggregated dash_* tables
+        ├─ Stage 1    run_ingestion()            landing → raw → refined → postprocess
+        │                                         (+ positions + groceries sub-pipelines)
+        ├─ Stage 2    run_all_transactions(...)   agentic web-search + metadata enrichment
+        │                (skipped if load_pending_transactions() returns nothing)
+        ├─ Stage 2.5  run_detection_from_db()     auto-detect salary/rent rules → detected_rules.yaml
+        │                (must run before Stage 3/4 imports — they read detected_rules.yaml at import time)
+        ├─ Stage 3    run_post_clean()            manual corrections → merchant_metadata_rfn
+        ├─ Stage 4    run_transactions_use()      final analysis join → transactions_use
+        └─ Stage 5    run_dashboard_pipeline()    pre-aggregated dash_* tables
 ```
 
 - Stage 1 detail → [`02-ingestion-pipeline.md`](02-ingestion-pipeline.md)
-- Stage 2/3 detail → [`01-agentic-pipeline.md`](01-agentic-pipeline.md)
+- Stage 2/2.5/3 detail → [`01-agentic-pipeline.md`](01-agentic-pipeline.md)
 - Stage 5 detail → [`04-pipeline-dash.md`](04-pipeline-dash.md)
 
 Stage 2 wraps the async enrichment in a single `asyncio.run(...)`. Logging is
@@ -166,7 +168,7 @@ metadata, not a hardcoded string.
 - `app/app.py → _app_version()` calls `importlib.metadata.version("swiss_exp_tracker")`
   and returns `""` on `PackageNotFoundError`.
 - It resolves to the `version` in `[tool.poetry]` of `pyproject.toml` (currently
-  `0.1.0`) **only when the package is installed**. This is why the Dockerfile runs a
+  `0.2.0`) **only when the package is installed**. This is why the Dockerfile runs a
   final `poetry install --only main` for the root package — without it the metadata
   is missing and the version renders empty.
 - `_app_version()` is passed into `create_app_layout(app_version=...)`.

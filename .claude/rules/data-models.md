@@ -36,14 +36,12 @@ metadata:
 
 ## Source registration
 
-When a new `SourceType` enum value is added, it must appear in **both**:
-1. `SOURCE_MODEL_MAP` in `data_models/data_sources.py`
-2. `get_source_adapter_map()` in `data_models/data_sources.py`
+When a new `SourceType` enum value is added, it must have a registered `SourceProfile` (loaded via `load_profiles()` into `SUPPORTED_SOURCES` in `data_models/data_sources.py`).
 
-Missing either registration causes a silent data gap or a runtime `NotImplementedError`.
+Missing registration causes a runtime `NotImplementedError` from `get_profile()`.
 
 ## Adapter contract
 
-- `adapter.to_unified()` must always set `amount = abs(value)` — amounts in `UnifiedTransaction` are always positive.
+- `adapters/generic_adapter.py::to_unified()` must always set `amount = abs(value)` — amounts in `UnifiedTransaction` are always positive.
 - `transaction_type` is derived from the sign of the original value, not from the absolute amount.
-- `zkb_reference` must be a stable unique ID; fall back to `f"NOID-{uuid.uuid4()}"` only if the source provides none.
+- `reference_id` must be a stable unique ID; fall back to `f"NOID-{uuid.uuid4()}"` only if the source provides none.

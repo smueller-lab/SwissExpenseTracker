@@ -7,11 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
-
-- GitHub issue templates (bug report, feature request) and a pull request template.
-- Codecov integration for coverage reporting.
-
 ## [0.2.0] - 2026-07-06
 
 ### Added
@@ -19,10 +14,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Budget and forecasting dashboard page with a basic forecasting model.
 - Docker support for the app, including a dev container.
 - End-to-end test pipeline coverage.
+- GitHub issue templates (bug report, feature request) and a pull request template.
+- Codecov integration for coverage reporting.
+- Dev container bind mount for a host data folder, so `DATA_DIR` resolves inside the
+  container without a separate Docker Compose run.
+- Forecast chart wobble for lumpy categories, so the projection reads as plausible
+  month-to-month variation instead of a dead-straight ramp.
 
 ### Changed
 
 - Refreshed README screenshots and dev setup instructions.
+- Lumpy-category detection and the median monthly rate now include the current year's
+  completed months, not just prior years.
+- Continuous categories flatten a one-off large transaction out of the pace calculation
+  instead of letting it blow up the year-end forecast.
+- Raised the forecast shrinkage constant so the year-end blend leans on the historical
+  annual level for longer relative to the current-year pace.
+
+### Fixed
+
+- Forecast chart could show cumulative spend dipping downward at the actual/forecast
+  seam; the forecast segment is now anchored to continue exactly from spend-to-date.
 
 ## [0.1.1] - 2026-06-20
 

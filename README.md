@@ -10,6 +10,8 @@
 
 💡 **Status:** This project is under active development. Features may change, and some components may not be fully stable yet. Feedback is welcome!
 
+🚀 **[Live Demo](https://22254010-4e9f-4d70-8f48-7dda22b4ffb7.plotly.app)** — check out the dashboard in action.
+
 Ever reach the end of the month, open your banking app, and you are asking yourself: where did all my money go? I'm so glad you ask and congrats for finding this page because the pain is finally over! 🎉
 
 **Swiss Expense Tracker** turns that monthly existential crisis into actual answers. Drop your bank exports in a folder 📂, run one command ⚡, and an AI agent pipeline 🤖 labels every transaction, breaks down your spending by merchant and category 🏷️, tracks your investments 📈, and serves it all up in a slick interactive dashboard ✨. You'll know exactly why you're broke 💸. Which is somehow better than not knowing 🙃
@@ -94,20 +96,20 @@ Detected any suspicious transaction or exceptional big spike in the data? The fu
 
 ### Pages
 
-| Page                          | What you see                                                                                                                                                                           |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🏠**Home**              | Balance progression, net balance per month, top spending category, expense distribution                                                                                                |
-| 📊**Balance Sheet**     | Yearly income / spent / invested / net gain with gain & YoY rates, all-time KPIs (lifetime net gain, total invested, avg gain rate, avg annual net gain), major-category spend by year |
-| 💰**Budget / Forecasting** | Per-category yearly budgets, seasonally-paced end-of-year forecast, lumpy-category handling, budget-used-now KPIs, over/under table                                                   |
-| 🛒**Groceries**         | Store breakdown (Migros, Coop, Lidl, Aldi, ...), spend distribution                                                                                                                    |
-| **M Cumulus Analytics** | Item-level grocery analysis: categories, health score, top articles                                                                                                                    |
-| 🍽️**Dining & Bars**   | Restaurant & grocery spend by frequency, per-visit box plots                                                                                                                           |
-| 🏖️**Vacation**        | Annual travel spend by type (flights, hotels, car rental)                                                                                                                              |
-| 🚄**Transport**         | Yearly transport costs by subcategory, monthly heatmap, car expenses                                                                                                                   |
-| ⛳**Sport**             | Sport spending by activity type over time                                                                                                                                              |
-| 🛍️**Retail**          | Retail breakdown by subcategory, spend donut, top purchases                                                                                                                            |
-| 🔍**Smart Table**       | Fully filterable transaction browser                                                                                                                                                   |
-| 📈**Investing**         | Portfolio value vs. invested, P&L, per-position progression                                                                                                                            |
+| Page                             | What you see                                                                                                                                                                           |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🏠**Home**                 | Balance progression, net balance per month, top spending category, expense distribution                                                                                                |
+| 📊**Balance Sheet**        | Yearly income / spent / invested / net gain with gain & YoY rates, all-time KPIs (lifetime net gain, total invested, avg gain rate, avg annual net gain), major-category spend by year |
+| 💰**Budget / Forecasting** | Per-category yearly budgets, seasonally-paced end-of-year forecast, lumpy-category handling, budget-used-now KPIs, over/under table                                                    |
+| 🛒**Groceries**            | Grocery store breakdown, spend distribution                                                                                                                                            |
+| **M Cumulus Analytics**    | Item-level grocery analysis: categories, health score, top articles                                                                                                                    |
+| 🍽️**Dining & Bars**      | Restaurant & Bar spend by frequency, per-visit box plots                                                                                                                              |
+| 🏖️**Vacation**           | Annual travel spend by type (flights, hotels, car rental)                                                                                                                              |
+| 🚄**Transport**            | Yearly transport costs by subcategory, monthly heatmap, car expenses                                                                                                                   |
+| ⚽**Sport**                | Sport spending by activity type over time                                                                                                                                              |
+| 🛍️**Retail**             | Retail breakdown by subcategory, spend donut, top purchases                                                                                                                            |
+| 🔍**Smart Table**          | Fully filterable transaction browser                                                                                                                                                   |
+| 📈**Investing**            | Portfolio value vs. invested, P&L, per-position progression                                                                                                                            |
 
 ---
 
@@ -251,6 +253,8 @@ $DATA_DIR/
 You only need keys for the providers you want to use — the pipeline tries them in order and skips any that are unconfigured. **Tavily** has a generous free tier and is the recommended starting point.
 
 For OpenAI, `gpt-4o-mini` is used by default — inexpensive and accurate enough for categorisation. Check [OpenAI pricing](https://platform.openai.com/docs/pricing) before running.
+
+The goal was to keep the costs as low as possible but feel free to choose a better model for better transactions categorization.
 
 ---
 
@@ -418,16 +422,16 @@ Open [http://localhost:8050](http://localhost:8050) in your browser.
 
 After the pipeline runs, **you need to review and edit one file** before the dashboard data is accurate. The agent does a great job on ordinary merchants, but some transactions require rules that only you can define:
 
-| Situation                                                        | What to do                                                                              |
-| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Salary deposits or other predictable income                      | Add your employer name(s) under `salary.employers`                                    |
-| Rent transfers with a known amount history                       | Add the landlord under `housing.rent` with the amounts list                           |
-| Shared rent with a flatmate                                      | Add a `shared_housing` entry with the roommate's monthly offset                       |
-| A one-off deposit (e.g. rental deposit)                          | Add a `housing.deposits` entry with a minimum amount threshold                        |
-| Recurring self-transfers to a brokerage                          | Add an `investing.transfers` entry with the exact transaction dates                   |
-| A travel package booked through a person                         | Add a `travel.all_inclusive` entry with the merchant and year                         |
-| A merchant always put in the wrong category                      | Add a `custom_rules` entry with the correct `category_main` and `category_second` |
-| One specific transaction got the wrong merchant name or category | Add a `reference_id_corrections` entry with the reference ID from the DB              |
+| Situation                                                        | What to do                                                                             |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Salary deposits or other predictable income                      | Add your employer name(s) under`salary.employers`                                    |
+| Rent transfers with a known amount history                       | Add the landlord under`housing.rent` with the amounts list                           |
+| Shared rent with a flatmate                                      | Add a`shared_housing` entry with the roommate's monthly offset                       |
+| A one-off deposit (e.g. rental deposit)                          | Add a`housing.deposits` entry with a minimum amount threshold                        |
+| Recurring self-transfers to a brokerage                          | Add an`investing.transfers` entry with the exact transaction dates                   |
+| A travel package booked through a person                         | Add a`travel.all_inclusive` entry with the merchant and year                         |
+| A merchant always put in the wrong category                      | Add a`custom_rules` entry with the correct `category_main` and `category_second` |
+| One specific transaction got the wrong merchant name or category | Add a`reference_id_corrections` entry with the reference ID from the DB              |
 
 **Auto-detection** runs as part of the pipeline and writes `pipeline_agentic/config/detected_rules.yaml` automatically — it picks up salary employers and recurring rent merchants from your transaction history without any manual input. Review that file after the first run; if the detected values look correct you do not need to add anything to `user_config.yaml` for those fields.
 
@@ -461,7 +465,7 @@ housing:
   # If a merchant appears in both detected_rules.yaml and here, your entry wins.
   rent:
     - merchant: "landlord name"
-      amounts: [1200.0, 1150.0, 1100.0]
+      amounts: [1800.0, 1950.0, 1700.0]
 
   # Merchant names to remove from the auto-detected rent list (false positives).
   rent_exclude:
@@ -558,14 +562,14 @@ The table to inspect inside each ChromaDB SQLite file is **`embeddings_queue`**.
 
 Detailed technical documentation lives in `.dev-docs/`:
 
-| Doc                                                             | Contents                                                          |
-| --------------------------------------------------------------- | ----------------------------------------------------------------- |
-| [`01-agentic-pipeline.md`](.dev-docs/01-agentic-pipeline.md)     | Agent architecture, ChromaDB cache, web search chain, data models |
-| [`02-ingestion-pipeline.md`](.dev-docs/02-ingestion-pipeline.md) | All ingestion stages, supported sources, DB schema                |
-| [`03-dashboard.md`](.dev-docs/03-dashboard.md)                   | Every dashboard page, KPI cards, chart specs                      |
-| [`04-pipeline-dash.md`](.dev-docs/04-pipeline-dash.md)           | Pre-aggregation pipeline that feeds the dashboard                 |
-| [`05-budget-forecasting.md`](.dev-docs/05-budget-forecasting.md) | Year-end forecast model, seasonal pacing, lumpy-category handling |
-| [`06-database-and-sql.md`](.dev-docs/06-database-and-sql.md)     | aiosql query layer, connection helpers, table creation/migrations |
+| Doc                                                                       | Contents                                                          |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| [`01-agentic-pipeline.md`](.dev-docs/01-agentic-pipeline.md)             | Agent architecture, ChromaDB cache, web search chain, data models |
+| [`02-ingestion-pipeline.md`](.dev-docs/02-ingestion-pipeline.md)         | All ingestion stages, supported sources, DB schema                |
+| [`03-dashboard.md`](.dev-docs/03-dashboard.md)                           | Every dashboard page, KPI cards, chart specs                      |
+| [`04-pipeline-dash.md`](.dev-docs/04-pipeline-dash.md)                   | Pre-aggregation pipeline that feeds the dashboard                 |
+| [`05-budget-forecasting.md`](.dev-docs/05-budget-forecasting.md)         | Year-end forecast model, seasonal pacing, lumpy-category handling |
+| [`06-database-and-sql.md`](.dev-docs/06-database-and-sql.md)             | aiosql query layer, connection helpers, table creation/migrations |
 | [`07-running-and-deployment.md`](.dev-docs/07-running-and-deployment.md) | Pipeline entry point, local + Docker run, config, versioning      |
 
 ---

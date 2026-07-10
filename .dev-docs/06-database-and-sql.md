@@ -40,10 +40,10 @@ agentic      = aiosql.from_path(_QUERIES_DIR / "agentic.sql",      "sqlite3")
 
 | Module | Query file | Count | Used by |
 |--------|-----------|-------|---------|
-| `transactions` | `queries/transactions.sql` | ~61 | transaction stages, `dash_*` builders, `loader.py` |
+| `transactions` | `queries/transactions.sql` | ~67 | transaction stages, `dash_*` builders, `loader.py` |
 | `groceries` | `queries/groceries.sql` | ~28 | grocery stages, grocery enrichment |
 | `positions` | `queries/positions.sql` | ~25 | positions stages, `loader_positions.py` |
-| `agentic` | `queries/agentic.sql` | ~31 | merchant enrichment, post-clean |
+| `agentic` | `queries/agentic.sql` | ~33 | merchant enrichment, post-clean |
 
 Import them as `from swiss_exp_tracker.db.sql import transactions` (etc.).
 

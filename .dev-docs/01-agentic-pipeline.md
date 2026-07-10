@@ -52,7 +52,7 @@ transactions_rfn (status=pending)
 Searches the web for information about a merchant and returns a plain-text summary.
 It is given a `search_web` function tool that handles the full provider fallback chain.
 
-**Model:** `gpt-4.1-mini`
+**Model:** `gpt-4o-mini`
 
 **Output:** `SearchToolResult` (Pydantic `BaseModel`)
 ```python
@@ -70,7 +70,7 @@ Receives the merchant name, booking text, and web-search summary. Returns a
 structured `MerchantMetaData` object with canonical name, `CategoryMain`,
 `CategorySecond`, and city.
 
-**Model:** `gpt-4.1-mini`
+**Model:** `gpt-4o-mini`
 
 **Output guardrail:** rejects results where `category_main` is `None` (forces
 the agent to retry rather than return an uncategorised result).
@@ -115,8 +115,8 @@ Defined as `StrEnum` in `pipeline_agentic/data_models/merchant.py`.
 
 ### CategorySecond (selected)
 Sub-categories refine `CategoryMain`. Examples:
-- Sport → `Tennis | Golf | Padel | Bike | Fitness | Running | Swimming`
-- Entertainment → `Music Streaming | Events & Concerts | Cinema | Theatre | TV & Streaming | Dating | Amusement Park`
+- Sport → `Tennis | Golf | Padel | Bike | Fitness | Running | Swimming | Skiing`
+- Entertainment → `Music Streaming | Events & Concerts | Sports | Cinema | Theatre | TV & Streaming | Dating | Amusement Park | Game Hall | Gambling`
 - Restaurant → `Dining | Fast Food | Cafe | Bar | Food Delivery`
 - Transport → `Train | Bus | Tram | Taxi | E-Scooter`
 - Car → `Fueling | Parking | Car Washing | Car Service | Car Rental`
@@ -136,12 +136,12 @@ Priority order (free tiers exhausted before moving to pay-per-use):
 | 1 | **Tavily** free tier | 1 000 requests/month |
 | 2 | **Brave Search** free tier | 1 000 requests/month |
 | 3 | **Scrape.do** free tier | 1 000 requests/month |
-| 4 | **Exa** free tier | 500 credits/month (10 credits/result) |
-| 5 | Tavily pay-per-use | per request |
+| 4 | **Exa** free tier | 1 000 credits/month (10 credits/result) |
+| 5 | Brave Search pay-per-use | per request |
 | 6 | Exa pay-per-use | 10 credits/result (last resort) |
 
 Credit consumption is persisted per-provider per-month in `api_usage` (SQLite).
-Load/save helpers live in `pipeline_agentic/libs.py`.
+Load/save helpers live in `pipeline_agentic/web_search.py`.
 
 ---
 
@@ -164,13 +164,13 @@ All tables live in `database/transactions.db`.
 
 ### `merchant_metadata_raw`
 Raw output of the agentic pipeline — one row per enrichment run per transaction
-(multiple rows possible for the same `zkb_reference` if re-enriched).
+(multiple rows possible for the same `reference_id` if re-enriched).
 
 | Column | Type | Notes |
 |--------|------|-------|
 | `id` | INTEGER PK | |
 | `created_at` | TEXT | ISO timestamp |
-| `zkb_reference` | TEXT | FK to `transactions_rfn.reference` |
+| `reference_id` | TEXT | FK to `transactions_rfn.reference` |
 | `matched_merchant` | TEXT | canonical merchant name |
 | `cache_hit` | INTEGER | 1 = vector-store hit, 0 = web search |
 | `similarity` | REAL | cosine similarity score (cache hit only) |
@@ -180,7 +180,7 @@ Raw output of the agentic pipeline — one row per enrichment run per transactio
 | `city` | TEXT | city extracted by metadata_agent |
 
 ### `merchant_metadata_rfn`
-Cleaned/corrected copy of the latest raw row per `zkb_reference`.
+Cleaned/corrected copy of the latest raw row per `reference_id`.
 Written by `run_post_clean()` (`clean_pipeline_output.py`).
 
 Upsert logic: if a newer raw row exists for an already-present reference, the
@@ -192,7 +192,7 @@ Manual corrections are defined at the top of `clean_pipeline_output.py`:
 
 ### `transactions_use`
 Final analysis-ready table. JOIN of `transactions_rfn` + `merchant_metadata_rfn`
-on `reference = zkb_reference`. Only `enrichment_status = 'enriched'` rows are
+on `reference = reference_id`. Only `enrichment_status = 'enriched'` rows are
 included. Incremental — skips references already present.
 
 Safe to drop and rebuild at any time; no source data is stored here.

@@ -9,8 +9,10 @@ The dashboard is a Plotly Dash application (`app/`). Each page has a `layout/` m
 | Page | Route | Layout file | Callbacks file |
 |---|---|---|---|
 | Home | `/` | `layout/home.py` | `callbacks/home.py` |
+| Balance Sheet | `/balance-sheet` | `layout/balance_sheet.py` | — |
+| Budget / Forecasting | `/budget-forecast` | `layout/budget_forecast.py` | `callbacks/budget_forecast.py` |
 | Transport | `/transport` | `layout/transport.py` | `callbacks/transport.py` |
-| Dining | `/food` | `layout/food.py` | — |
+| Dining | `/food` | `layout/food.py` | `callbacks/food.py` |
 | Groceries | `/groceries` | `layout/groceries.py` | `callbacks/groceries.py` |
 | M Cumulus Analytics | `/m-cumulus` | `layout/groceries_detail.py` | `callbacks/groceries_detail.py` |
 | Sport | `/sport` | `layout/sport.py` | `callbacks/sport.py` |
@@ -62,6 +64,56 @@ The dashboard is a Plotly Dash application (`app/`). Each page has a `layout/` m
 - Excluded `category_main` values (non-discretionary noise): `Government`, `Finance`, `Friend`, `Housing`, `Financial Services`, `Healthcare`, `Investing`, `Insurance`, `Payment Services`.
 - Defined in `config.TOP_EXPENSES_EXCLUDE_MAIN`.
 - Source: `dash_top_expenses`.
+
+---
+
+## Balance Sheet
+
+Pipeline table: `pipeline_dash/tables/balance_sheet.py` → `dash_balance_sheet`, `dash_balance_sheet_categories`
+
+**KPI cards (top row)**
+
+| Card | Value | Source |
+|---|---|---|
+| Lifetime Net Gain | Cumulative `total_plus` (saved + invested) across all years | `data.v_BS_LifetimeNetGain` |
+| Total Invested (All-Time) | Sum of yearly `invested` (EXPENSE, `category_main == Investing`) | `data.v_BS_TotalInvestedAllTime` |
+| Avg Gain Rate | Mean of yearly `savings_rate_pct` (`total_plus / income × 100`) | `data.v_BS_SavingsRateAvg` |
+| Avg Annual Net Gain | Mean of yearly `total_plus` | `data.v_BS_AvgAnnualNetGain` |
+
+Same `Investing` + `Salary`-style exclusion as Home: `expense` excludes `NET_BALANCE_EXPENSE_EXCLUDE_MAIN` categories before `saved` is computed.
+
+**Yearly Balance Sheet table** (`make_balance_sheet_card`, static, col-12)
+- One row per year (newest first): Income, Spent, Invested, Net Gain, Gain %, Exp %, NetGain YoY %, Result (in-the-black / in-the-red).
+- `Net Gain`, `Gain %`, `NetGain YoY %` use balance coloring (green ≥ 0, red < 0).
+- Source: `data.pdf_BalanceSheet`.
+
+**Major Category Spend by Year table** (`make_category_spend_card`, static, col-12)
+- Pivot: years (rows, newest first) × major spend categories (`BALANCE_SHEET_MAJOR_CATEGORIES`, columns).
+- Each cell shows the yearly CHF spend plus a YoY % delta, colored inverted (spend increase = red, decrease = green).
+- Source: `data.pdf_CategorySpendPivot` / `data.pdf_CategorySpendYoY`.
+
+---
+
+## Budget / Forecasting
+
+Route: `/budget-forecast` | Layout: `layout/budget_forecast.py` | Callbacks: `callbacks/budget_forecast.py`
+
+See [`05-budget-forecasting.md`](05-budget-forecasting.md) for the forecasting model itself (seasonal pacing vs. lumpy median-rate routing, shrinkage). This section covers the page structure only.
+
+**Set Yearly Budgets card** (`make_budget_input_card`, col-12)
+- Year `dcc.Dropdown` (current year ± 2).
+- One input row per active category (`make_budget_rows`): label, numeric CHF input, remove button. Active set starts from `cfg.budget_default_categories`, merged with any categories that already have a saved budget for the selected year (`resolve_active_categories`).
+- Add-category dropdown + button appends a category to the active set (`dcc.Store(id="budget-active-categories")`).
+- Save button persists all active rows via `data.save_budgets(year, budgets)`; status message shown in `"budget-save-status"`.
+
+**Spend Progression & Year-End Forecast chart** (`budget-forecast-fig`, `get_fig_BudgetForecast`)
+- One cumulative-spend line per active category: solid actual-to-date segment, dashed forecast segment to year-end.
+- Rebuilt by `refresh_forecast` whenever the year, active categories, or save button changes.
+
+**Budget vs Forecast by Category table** (`budget-table-container`, `make_budget_table_card`)
+- Columns: Category, Budget, Spent, Forecast EOY, Budget used Now, Now Δ CHF/%, EOY Δ CHF/% (`BUDGET_TABLE_COLUMNS` in `layout/budget_forecast.py`).
+- Δ columns use inverted balance coloring (over-budget = red, under-budget = green).
+- Built by `forecast.build_budget_table` from `data.get_category_year_spend`, saved budgets, and the per-category forecast curves.
 
 ---
 
@@ -166,12 +218,25 @@ Pipeline table: `src/.../tables/groceries.py` → `dash_groceries`
 
 ## Sport
 
-Pipeline table: `src/.../tables/sport.py` → `dash_sport`
+Pipeline table: `src/.../tables/sport.py` → `dash_sport`, `dash_sport_activities`
+
+**KPI cards (top row)**
+
+| Card | Value | Source |
+|---|---|---|
+| Avg / Year | All-time yearly sport spend averaged over distinct years | `data.v_SportAvgPerYear` |
+| YTD *(label e.g. "YTD Jun 2026")* | Sum of monthly sport spend for the current year, up to the latest completed month | `data.v_SportCurrentYtd` / `data.s_SportYtdLabel` |
+| vs Last Year (YTD) | % change vs. the same Jan–latest-month window last year (`None` → shown as `0.0`) | `data.v_SportPctVsLastYtd` |
 
 **Sport expenses chart** (`fig-Sport`, dynamic via callback)
 - Bar chart of sport spending by subcategory, switchable between Yearly / Monthly frequency.
 - Scope: `category_main == Sport`, `transaction_type == EXPENSE`.
 - Excluded subcategories (administrative / facility costs that are not personal sport activity): `Sports Facility`, `Unknown`, `Sports Administration`, `Sports services`. Defined in `config.SPORT_EXCLUDE_SECOND`.
+
+**Activities per Year chart** (`fig_BarSportActivities`, static)
+- Bar chart of yearly activity *counts* (not CHF) for Golf, Tennis, Padel.
+- Golf counts only transactions priced between CHF 70–160 (`_GOLF_MIN`/`_GOLF_MAX` in `tables/sport.py`) to approximate a single green fee and exclude memberships/equipment.
+- Source: `dash_sport_activities` (`data.pdf_SportActivities`).
 
 ---
 
