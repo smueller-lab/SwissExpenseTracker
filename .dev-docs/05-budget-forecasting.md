@@ -31,16 +31,16 @@ All coefficients are collected here. Curve/level/lumpiness constants live in
 `app/data/forecast.py`; the two that a user might plausibly want to change live in the
 `config` dataclass (`app/config.py`).
 
-| Constant                          | Value    | Where           | Meaning                                                                                                                        |
-| --------------------------------- | -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| `forecast_shrinkage_k`          | `0.3`  | `config`      | Shrinkage`k` in the year-end blend `w = elapsed / (elapsed + k)`. Lower ⇒ current-year pace takes over sooner; raise it to lean on the calmer historical level for longer.            |
-| `forecast_lumpy_lookback_years` | `2`    | `config`      | **Prior** years of monthly history used to detect lumpiness and compute the median rate. The current year's completed months are always added on top of this.                                                 |
-| `DEFAULT_SHRINKAGE_K`           | `0.1`  | `forecast.py` | Library default for`k` when a caller doesn't pass the config value; the app always passes `cfg.forecast_shrinkage_k` explicitly, so this only applies to direct callers of the forecasting functions.                                                         |
-| `_CURVE_LINEAR_REG`             | `0.35` | `forecast.py` | How far the multi-year pacing curve is pulled toward a flat/linear curve. A single prior year is regularized harder (`0.5`). |
-| `_CURVE_MIN_YEAR_FRAC`          | `0.2`  | `forecast.py` | Years whose total is below this fraction of the median year total are ignored when learning the seasonal shape.                |
-| `_LEVEL_RECENT_YEARS`           | `2`    | `forecast.py` | Number of most-recent prior years averaged into the history level anchor.                                                      |
-| `_LUMPY_MEAN_MEDIAN_RATIO`      | `1.3`  | `forecast.py` | A category is lumpy when its mean monthly spend exceeds this multiple of its median monthly spend.                             |
-| `_CONTINUOUS_MONTH_SPIKE_CAP_MULTIPLE` | `2.0` | `forecast.py` | For a *continuous* category, a completed month this year spending over this multiple of the median month is a one-off; the excess is held out of the pace calc (see [Spike flattening](#spike-flattening-for-continuous-categories)). |
+| Constant                                 | Value    | Where           | Meaning                                                                                                                                                                                                                               |
+| ---------------------------------------- | -------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `forecast_shrinkage_k`                 | `0.3`  | `config`      | Shrinkage`k` in the year-end blend `w = elapsed / (elapsed + k)`. Lower ⇒ current-year pace takes over sooner; raise it to lean on the calmer historical level for longer.                                                       |
+| `forecast_lumpy_lookback_years`        | `2`    | `config`      | **Prior** years of monthly history used to detect lumpiness and compute the median rate. The current year's completed months are always added on top of this.                                                                   |
+| `DEFAULT_SHRINKAGE_K`                  | `0.1`  | `forecast.py` | Library default for`k` when a caller doesn't pass the config value; the app always passes `cfg.forecast_shrinkage_k` explicitly, so this only applies to direct callers of the forecasting functions.                             |
+| `_CURVE_LINEAR_REG`                    | `0.35` | `forecast.py` | How far the multi-year pacing curve is pulled toward a flat/linear curve. A single prior year is regularized harder (`0.5`).                                                                                                        |
+| `_CURVE_MIN_YEAR_FRAC`                 | `0.2`  | `forecast.py` | Years whose total is below this fraction of the median year total are ignored when learning the seasonal shape.                                                                                                                       |
+| `_LEVEL_RECENT_YEARS`                  | `2`    | `forecast.py` | Number of most-recent prior years averaged into the history level anchor.                                                                                                                                                             |
+| `_LUMPY_MEAN_MEDIAN_RATIO`             | `1.3`  | `forecast.py` | A category is lumpy when its mean monthly spend exceeds this multiple of its median monthly spend.                                                                                                                                    |
+| `_CONTINUOUS_MONTH_SPIKE_CAP_MULTIPLE` | `2.0`  | `forecast.py` | For a*continuous* category, a completed month this year spending over this multiple of the median month is a one-off; the excess is held out of the pace calc (see [Spike flattening](#spike-flattening-for-continuous-categories)). |
 
 ---
 
@@ -53,7 +53,7 @@ curve `cum_share(year_fraction)` on a grid. The resolution is fixed to **weekly*
 (`config.forecast_freq_default`), though the curve functions still accept `"D" | "W" | "M"`. For each prior year it normalizes its cumulative spend to its own total (so magnitude drops out and only the shape remains), then combines years with three robustness guards:
 
 - **Drop negligible years.** Years whose total is below `_CURVE_MIN_YEAR_FRAC` (0.2) of
-  the median year total are discarded — a year where you spent 346 CHF total has a
+  the median year total are discarded — a year where you spent 300 CHF total has a
   meaningless "shape" that would otherwise distort the curve. (If dropping would empty
   the set, all years are kept.)
 - **Median across the kept years** (not mean). Median is robust to a lone spike year: a
@@ -151,8 +151,7 @@ both just look like "current pace disagrees with history."
 The year-end scalar from `forecast_year_end` only tells you the *total*; the chart needs a
 full trajectory. The naive approach — scale the raw curve by the total,
 `fc_cum(t) = year_end_fc * cum_share(t)` — only lands exactly on `spend_to_date` at `as_of`
-when `year_end_fc` equals the unshrunk `naive_pace` (because `cum_share(as_of) *
-naive_pace == spend_to_date` by construction). As soon as `year_end_fc` is pulled off that
+when `year_end_fc` equals the unshrunk `naive_pace` (because `cum_share(as_of) * naive_pace == spend_to_date` by construction). As soon as `year_end_fc` is pulled off that
 value — by the history blend, or by adding `spike_excess` back — the scaled curve no longer
 passes through the real `spend_to_date` at the seam, which can produce a **visible jump at
 the boundary, including downward** for cumulative spend, which is otherwise never supposed
@@ -168,9 +167,7 @@ fc_cum(t)   = spend_to_date + (year_end_fc - spend_to_date) * progress(t)
 ```
 
 This guarantees `fc_cum(as_of) == spend_to_date` (no seam jump) and
-`fc_cum(year_end) == year_end_fc` exactly, and is monotonic whenever `year_end_fc >=
-spend_to_date` — which is enforced with a floor (`year_end_fc = max(year_end_fc,
-spend_to_date)`), since a forecast can't imply the year ends with less spend than has
+`fc_cum(year_end) == year_end_fc` exactly, and is monotonic whenever `year_end_fc >= spend_to_date` — which is enforced with a floor (`year_end_fc = max(year_end_fc, spend_to_date)`), since a forecast can't imply the year ends with less spend than has
 already happened.
 
 ---
@@ -278,12 +275,12 @@ median-rate ramp and lose the seasonal shape.
 
 ## Data layer — `loader.py`
 
-| Method                                                      | Returns                                                                             | Used for                                        |
-| ----------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------- |
-| `get_category_year_spend(year)`                           | per-category YTD EXPENSE total                                                      | current spend-to-date in the budget table       |
-| `get_category_cumulative(year, cats, freq)`               | long-format cumulative spend per category at`freq`                                | the "actual" segment of each chart line         |
-| `get_category_period_history(cats, exclude_year, freq)`    | per-period spend for all prior years (`category, year, year_fraction, spend_chf`) | building the pacing curve and the history level |
-| `get_category_monthly_totals(cats, as_of, n_years)` | per-category list of monthly totals: `n_years` prior years (zero-filled, 12 months each) plus `as_of`'s year through its last completed month             | lumpiness detection, median rate, spike flattening               |
+| Method                                                    | Returns                                                                                                                                          | Used for                                           |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| `get_category_year_spend(year)`                         | per-category YTD EXPENSE total                                                                                                                   | current spend-to-date in the budget table          |
+| `get_category_cumulative(year, cats, freq)`             | long-format cumulative spend per category at`freq`                                                                                             | the "actual" segment of each chart line            |
+| `get_category_period_history(cats, exclude_year, freq)` | per-period spend for all prior years (`category, year, year_fraction, spend_chf`)                                                              | building the pacing curve and the history level    |
+| `get_category_monthly_totals(cats, as_of, n_years)`     | per-category list of monthly totals:`n_years` prior years (zero-filled, 12 months each) plus `as_of`'s year through its last completed month | lumpiness detection, median rate, spike flattening |
 
 All amounts are EXPENSE-only and cover both `category_main` and `category_second` levels.
 

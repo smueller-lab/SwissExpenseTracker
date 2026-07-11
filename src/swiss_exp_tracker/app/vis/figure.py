@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 from typing import Literal
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go  # pyright: ignore[reportMissingTypeStubs]
 import plotly.io as pio  # pyright: ignore[reportMissingTypeStubs]
@@ -756,9 +755,9 @@ class Fig:
         for i in range(n):
             t = 1.0 - 0.6 * (i / max(n - 1, 1))
             shades.append(
-                f"#{round(r*t + 255*(1-t)):02x}"
-                f"{round(g*t + 255*(1-t)):02x}"
-                f"{round(b*t + 255*(1-t)):02x}"
+                f"#{round(r * t + 255 * (1 - t)):02x}"
+                f"{round(g * t + 255 * (1 - t)):02x}"
+                f"{round(b * t + 255 * (1 - t)):02x}"
             )
         return shades
 
@@ -1032,74 +1031,6 @@ class Fig:
             },
             yaxis={"dtick": dTick, "range": ry_Axis, "showline": True},
             height=cfg.height_Sport,
-        )
-
-        return fig
-
-    def fig_CategoryCorrelation(
-        self,
-        pdf: pd.DataFrame,
-        col_category: str,
-        Period: Literal["Month", "Week"],
-        Year: int | None = None,
-    ) -> go.Figure:
-        """Return a correlation heatmap of spending across categories, pivoted by Period."""
-        if pdf.empty:
-            return _make_no_data_fig("category correlation")
-        df = pdf.copy()
-
-        if Year is not None:
-            df = df[df["Year"] == Year].reset_index(drop=True)
-
-        if df[Period].nunique() < 2:
-            return _make_no_data_fig("category correlation")
-
-        df_pivot = df.pivot_table(
-            index=Period,
-            columns=col_category,
-            values="amount_CHF",
-            aggfunc="sum",
-            fill_value=0,
-        ).reset_index(drop=True)
-
-        df_pivot = df_pivot.loc[(df_pivot != 0).any(axis=1)]
-        corr = df_pivot.corr()
-        np.fill_diagonal(corr.values, 0)
-
-        # add text in cells where |corr| meets the labelling threshold
-        text = corr.copy().values.astype(str)
-        text_mask = np.abs(corr.values) < cfg.corr_text_threshold
-        text[text_mask] = ""
-        text = np.where(text != "", np.round(corr.values, 2).astype(str), "")
-
-        fig = go.Figure(
-            go.Heatmap(
-                z=corr.values,
-                x=corr.columns,
-                y=corr.index,
-                colorscale=vis.vk_heatmap_colorscale["correlation"],
-                showscale=False,
-                zmin=cfg.corr_zmin,
-                zmax=cfg.corr_zmax,
-                text=text,
-                texttemplate="%{text}",
-                textfont=cfg.textfont_heatmap_corr,
-            )
-        )
-
-        # set height based on n_categories
-        n_categories = len(corr.index)
-        height_figure = min(
-            max(n_categories * cfg.heatmap_row_px, cfg.corr_min_height),
-            cfg.corr_max_height,
-        )
-
-        fig.update_layout(
-            margin={
-                "l": self.vk_Margin["l"] + cfg.corr_label_margin["l"],
-                "b": self.vk_Margin["b"] + cfg.corr_label_margin["b"],
-            },
-            height=height_figure,
         )
 
         return fig
