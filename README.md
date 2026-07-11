@@ -9,7 +9,7 @@
 
 👤 **Author**: _Sebastian Müller – Data Scientist & AI Engineer_
 
-💡 **Status:** This project is under active development. Features may change, and some components may not be fully stable yet. Feedback is welcome!
+💡 **Status:** This project is under active development, but the **core pipeline** and **Dashboard** are both stable and safe to rely on day-to-day. Feedback is welcome!
 
 🚀 **[Live Demo](https://22254010-4e9f-4d70-8f48-7dda22b4ffb7.plotly.app)** — check out the dashboard in action.
 
@@ -58,6 +58,8 @@ Ever reach the end of the month, open your banking app, and you are asking yours
 ---
 
 ## 📊 Dashboard
+
+✅ **Stable** — the dashboard pages and layouts below are considered done and won't see breaking changes; ongoing development is focused on the pipeline and data sources.
 
 A dark-themed, fully interactive Plotly Dash app. A few highlights:
 
@@ -115,6 +117,8 @@ Detected any suspicious transaction or exceptional big spike in the data? The fu
 ---
 
 ## 🤖 The Agentic Pipeline
+
+✅ **Stable** — the pipeline stages and flow below are considered done and won't see breaking changes.
 
 The heart of this project. A web search finds the actual merchant description, and an LLM structures it into clean categories.
 
@@ -255,7 +259,20 @@ You only need keys for the providers you want to use — the pipeline tries them
 
 For OpenAI, `gpt-4o-mini` is used by default — inexpensive and accurate enough for categorisation. Check [OpenAI pricing](https://platform.openai.com/docs/pricing) before running.
 
-The goal was to keep the costs as low as possible but feel free to choose a better model for better transactions categorization.
+#### 💰 Estimated OpenAI costs
+
+The pipeline caches every merchant (and grocery article) it has already categorised in a vector store, so the LLM is only ever called again for genuinely new merchants — repeat transactions to Migros, your landlord, or your usual gas station cost nothing after the first hit.
+
+Based on a real production database of 5,392 transactions, only 1,068 of them (≈20%) triggered a new merchant lookup (web search summary + categorisation, both on `gpt-4o-mini`); the remaining ≈80% were free cache hits. Grocery line items behave similarly. At current `gpt-4o-mini` pricing that works out to roughly **$0.00075 per new merchant** categorised.
+
+Applying that same ~20% cache-miss rate to other transaction volumes:
+
+| Total transactions | Estimated unique LLM calls (~20%) | Estimated OpenAI cost |
+|---|---|---|
+| 1,000 | ~200 | ~$0.15 |
+| 5,000 | ~1,000 | ~$0.75 |
+
+In practice the miss rate keeps dropping the longer you run the pipeline, since most spending repeats across the same small set of merchants. The goal was to keep the costs as low as possible, but feel free to choose a better model for better transaction categorisation.
 
 ---
 

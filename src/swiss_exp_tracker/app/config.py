@@ -12,15 +12,7 @@ DB_PATH = Path(__file__).resolve().parents[3] / "database" / "transactions.db"
 @dataclass
 class config:
     # dTick
-    vk_dTick_Grocery = {"Monthly": 100, "Yearly": 1000, "Visit": 20}
-    vk_dTick_GroceryCat = {"Monthly": 20, "Yearly": 100}
-    vk_dTick_Food = {"Monthly": 100, "Yearly": 1000, "Visit": 20}
-    dTick_Balance: int = 5000
-    dTick_IncomeExpense: int = 2000
     dTick_Pct: int = 20
-    dTick_Vacation: int = 1000
-    dTick_Transport: int = 1000
-    vk_dTick_Sport = {"Monthly": 500, "Yearly": 1000}
 
     # npixel — pixels per gridline step. With the fixed-height formula
     # (PLOT_TARGET_STEPS x npixel + margins) this pins every value-axis plot to a
@@ -29,21 +21,16 @@ class config:
     vk_npixel_Food = {"Monthly": 50, "Yearly": 50, "Visit": 50}
     vk_npixel_Grocery = {"Monthly": 50, "Yearly": 50, "Visit": 50}
     vk_npixel_GroceryCat = {"Monthly": 50, "Yearly": 50}
-    npixel_Balance: int = 50
     npixel_IncomeExpense: int = 50
     npixel_Pct: int = 50
     npixel_Vacation: int = 50
     npixel_Transport: int = 50
-    vk_npixel_Sport = {"Monthly": 50, "Yearly": 50}
 
     # default ry_Axis
     ry_Axis_Pct = [0, 100]
 
     # fixed height shared by all sport page charts (expenses + activities)
     height_Sport: int = 450
-
-    # max figure height for box plots — prevents outliers from stretching the plot
-    max_height_BoxPlot: int = 700
 
     # fixed heights for charts that do not use the adaptive-height formula
     height_Food: int = 600

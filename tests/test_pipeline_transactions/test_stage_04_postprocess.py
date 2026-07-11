@@ -340,14 +340,14 @@ def test_zkb_revolut_topup_removed_and_counter_correct(tmp_db: Path) -> None:
 
 
 def test_revolut_source_expense_is_not_dropped(tmp_db: Path) -> None:
-    """A REVOLUT-source EXPENSE ('To Sebastian') is never dropped by the ZKB top-up cleanup."""
+    """A REVOLUT-source EXPENSE ('To David') is never dropped by the ZKB top-up cleanup."""
     _insert_rfn_row(
         tmp_db,
         source_type="REVOLUT",
-        amount=936.13,
+        amount=980.00,
         transaction_type="EXPENSE",
-        booking_text="To Sebastian Mueller",
-        merchant_normalized="to sebastian mueller",
+        booking_text="To David Uso",
+        merchant_normalized="to david uso",
     )
 
     result = run_postprocess()
