@@ -76,7 +76,8 @@ Charts that can show many categories (multi-category stacked bars, donuts) must 
 - Primary color: `"#19D3F3"` (cyan).
 - Area fill: `fill="tonexty"`, `fillcolor="rgba(25, 211, 243, 0.15)"`.
 - Reference / zero line: `add_hline(..., line={"color": "rgba(255,255,255,0.3)", "dash": "dot", "width": 1})`.
-- Legend when shown: `{"orientation": "h", "yanchor": "bottom", "y": 1.02, "xanchor": "left", "x": 0}`.
+- Legend when shown: set it in Python as `{"orientation": "v", "yanchor": "middle", "y": 0.5, "xanchor": "left", "x": 1.02}` (vertical, right of the plot, vertically centered). Centered rather than top-anchored because tall/full-width charts (e.g. long monthly time series) with only a few legend entries otherwise strand the legend at the top with a large empty gutter below it. This must match `assets/mobile_legend.js`'s desktop default exactly — the JS only repositions the legend below the ≤1024px breakpoint (same breakpoint `style.css` uses to stack cards to full width — below it a card has no spare side width for a legend without crushing the plot), moving it horizontal-below the plot; above that breakpoint it's already correct on first paint, so there's no client-side reposition and no flash. Top-of-plot is *not* a supported position — don't add a width- or item-count-based fallback to it; that was tried and was fragile (races, flicker, inconsistent behavior across pages). If a legend has too many entries to fit vertically, Plotly's own scrollbar handles it.
+- Plotly has no `legend.automargin` — a legend that wraps to multiple rows/columns (many categories, or a tall vertical list) does not push the plot area out of the way on its own. `assets/mobile_legend.js` handles this globally by measuring the rendered legend's actual size and setting `margin.b` or `margin.r` to fit; don't hand-roll margin for legend clearance in figure code.
 
 ## Heatmaps
 

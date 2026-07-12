@@ -187,11 +187,11 @@ class Fig:
             height=height_Figure,
             showlegend=True,
             legend={
-                "orientation": "h",
-                "yanchor": "bottom",
-                "y": 1.02,
+                "orientation": "v",
+                "yanchor": "middle",
+                "y": 0.5,
                 "xanchor": "left",
-                "x": 0,
+                "x": 1.02,
             },
         )
 
@@ -1113,11 +1113,11 @@ def get_fig_BudgetForecast(
         height=height_figure,
         showlegend=True,
         legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
+            "orientation": "v",
+            "yanchor": "middle",
+            "y": 0.5,
             "xanchor": "left",
-            "x": 0,
+            "x": 1.02,
         },
     )
 

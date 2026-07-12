@@ -25,6 +25,9 @@ class config:
     npixel_Pct: int = 50
     npixel_Vacation: int = 50
     npixel_Transport: int = 50
+    npixel_Car: int = 60
+    npixel_Sport: int = 60
+    npixel_Retail: int = 60
 
     # default ry_Axis
     ry_Axis_Pct = [0, 100]

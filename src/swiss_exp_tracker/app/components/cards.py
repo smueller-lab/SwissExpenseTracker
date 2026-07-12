@@ -15,6 +15,7 @@ from swiss_exp_tracker.app.dash_components import GRAPH_CONFIG
 from swiss_exp_tracker.app.dash_components import format_diff
 from swiss_exp_tracker.app.dash_components import get_balance_class
 from swiss_exp_tracker.app.dash_components import make_card_title
+from swiss_exp_tracker.app.dash_components import make_empty_figure
 from swiss_exp_tracker.app.data.budget_models import CategoryBudget
 
 vis = VIS()
@@ -62,7 +63,15 @@ def make_figure_card(title: str, fig: go.Figure, width: int = 6) -> Any:
     )
 
 
-def make_figure_card_MonthYear(title: str, fig_id: str, width: int = 6) -> Any:
+def make_figure_card_MonthYear(
+    title: str, fig_id: str, width: int = 6, height: float | None = None
+) -> Any:
+    """Return a card with Month/Year toggle buttons and a callback-filled graph.
+
+    `height` should match the real figure's eventual height (see
+    `make_empty_figure`) so the card doesn't need a manual resize to reflow
+    once the callback swaps the placeholder for the real figure.
+    """
     return html.Div(
         [
             html.Div(
@@ -89,15 +98,27 @@ def make_figure_card_MonthYear(title: str, fig_id: str, width: int = 6) -> Any:
                 className="card-header-with-buttons",
             ),
             # Graph
-            dcc.Graph(id=fig_id, config=GRAPH_CONFIG),
+            dcc.Graph(id=fig_id, figure=make_empty_figure(height), config=GRAPH_CONFIG),
         ],
         className=f"card card-graph col-{width}",
     )
 
 
 def make_double_figure_card_MonthYear(
-    title_abs: str, fig_id_abs: str, title_pct: str, fig_id_pct: str, width: int = 6
+    title_abs: str,
+    fig_id_abs: str,
+    title_pct: str,
+    fig_id_pct: str,
+    width: int = 6,
+    height_abs: float | None = None,
+    height_pct: float | None = None,
 ) -> Any:
+    """Return a card with Month/Year toggle buttons and two stacked callback-filled graphs.
+
+    `height_abs`/`height_pct` should match each real figure's eventual height
+    (see `make_empty_figure`) so the card doesn't need a manual resize to
+    reflow once the callback swaps the placeholders for the real figures.
+    """
     return html.Div(
         [
             html.Div(
@@ -124,9 +145,18 @@ def make_double_figure_card_MonthYear(
                 className="card-header-with-buttons",
             ),
             # Plots
-            dcc.Graph(id=fig_id_abs, className="subplot-spacing", config=GRAPH_CONFIG),
+            dcc.Graph(
+                id=fig_id_abs,
+                className="subplot-spacing",
+                figure=make_empty_figure(height_abs),
+                config=GRAPH_CONFIG,
+            ),
             make_card_title(title_pct),
-            dcc.Graph(id=fig_id_pct, config=GRAPH_CONFIG),
+            dcc.Graph(
+                id=fig_id_pct,
+                figure=make_empty_figure(height_pct),
+                config=GRAPH_CONFIG,
+            ),
         ],
         className=f"card card-graph col-{width}",
     )
@@ -160,7 +190,12 @@ def make_CategoryDonut_card(
                     ),
                 ],
             ),
-            dcc.Graph(id="fig-Donut", className="graph-flex", config=GRAPH_CONFIG),
+            dcc.Graph(
+                id="fig-Donut",
+                className="graph-flex",
+                figure=make_empty_figure(),
+                config=GRAPH_CONFIG,
+            ),
         ],
         className=f"card card-graph col-{width}",
     )
@@ -545,13 +580,21 @@ def make_budget_forecast_card(
     title: str,
     fig_id: str,
     width: int = 12,
+    height: float | None = None,
 ) -> Any:
-    """Return a card with a title header and a line-plot graph (fixed weekly resolution)."""
+    """Return a card with a title header and a line-plot graph (fixed weekly resolution).
+
+    `height` should match the real figure's eventual height (see
+    `make_empty_figure`) so the card doesn't need a manual resize to reflow
+    once the callback swaps the placeholder for the real figure.
+    """
     return html.Div(
         [
             make_card_title(title),
             dcc.Loading(
-                dcc.Graph(id=fig_id, figure={}, config=GRAPH_CONFIG),
+                dcc.Graph(
+                    id=fig_id, figure=make_empty_figure(height), config=GRAPH_CONFIG
+                ),
             ),
         ],
         className=f"card card-graph col-{width}",

@@ -9,6 +9,7 @@ from swiss_exp_tracker.app.components.cards import make_figure_card_MonthYear
 from swiss_exp_tracker.app.config import VIS
 from swiss_exp_tracker.app.config import config
 from swiss_exp_tracker.app.dash_components import make_page_title
+from swiss_exp_tracker.app.libs import get_heightFigure
 from swiss_exp_tracker.app.vis.figure import Fig
 
 F = Fig()
@@ -39,7 +40,10 @@ def layout(data: Any) -> Any:
                         width=12,
                     ),
                     make_figure_card_MonthYear(
-                        "Car expenses [CHF]", "fig-Car", width=12
+                        "Car expenses [CHF]",
+                        "fig-Car",
+                        width=12,
+                        height=get_heightFigure(cfg.npixel_Car, F.vk_Margin),
                     ),
                 ],
                 className="grid",

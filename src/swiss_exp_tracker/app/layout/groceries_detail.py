@@ -9,11 +9,14 @@ from swiss_exp_tracker.app.components.cards import make_figure_card
 from swiss_exp_tracker.app.components.cards import make_figure_card_MonthYear
 from swiss_exp_tracker.app.components.cards import make_number_card
 from swiss_exp_tracker.app.components.cards import make_table_card
+from swiss_exp_tracker.app.config import config
 from swiss_exp_tracker.app.dash_components import GRAPH_CONFIG
 from swiss_exp_tracker.app.dash_components import make_card_title
+from swiss_exp_tracker.app.libs import get_heightFigure
 from swiss_exp_tracker.app.vis.figure import Fig
 
 F = Fig()
+cfg = config()
 
 _TOP_ARTICLES_COLS = [
     {"name": "Article", "id": "article"},
@@ -84,6 +87,9 @@ def layout(data: Any) -> Any:
                         "Category Spend Over Time [CHF]",
                         fig_id="gd-fig-cat",
                         width=12,
+                        height=get_heightFigure(
+                            cfg.vk_npixel_GroceryCat["Monthly"], F.vk_Margin
+                        ),
                     ),
                     # ── Heatmap (full width) ──────────────────────────────
                     make_figure_card(

@@ -8,9 +8,16 @@ from dash import html
 from swiss_exp_tracker.app.components.cards import make_figure_card_MonthYear
 from swiss_exp_tracker.app.components.cards import make_number_card
 from swiss_exp_tracker.app.components.cards import make_table_card
+from swiss_exp_tracker.app.config import config
 from swiss_exp_tracker.app.dash_components import GRAPH_CONFIG
 from swiss_exp_tracker.app.dash_components import make_card_title
+from swiss_exp_tracker.app.dash_components import make_empty_figure
 from swiss_exp_tracker.app.dash_components import make_page_title
+from swiss_exp_tracker.app.libs import get_heightFigure
+from swiss_exp_tracker.app.vis.figure import Fig
+
+F = Fig()
+cfg = config()
 
 
 def layout(data: Any) -> Any:
@@ -59,7 +66,10 @@ def layout(data: Any) -> Any:
                         unit="",
                     ),
                     make_figure_card_MonthYear(
-                        "Retail spend by subcategory [CHF]", "fig-Retail", width=12
+                        "Retail spend by subcategory [CHF]",
+                        "fig-Retail",
+                        width=12,
+                        height=get_heightFigure(cfg.npixel_Retail, F.vk_Margin),
                     ),
                     html.Div(
                         [
@@ -82,6 +92,7 @@ def layout(data: Any) -> Any:
                             dcc.Graph(
                                 id="fig-Retail-Donut",
                                 className="graph-flex",
+                                figure=make_empty_figure(),
                                 config=GRAPH_CONFIG,
                             ),
                         ],

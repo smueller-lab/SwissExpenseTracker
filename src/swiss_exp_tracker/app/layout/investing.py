@@ -9,6 +9,7 @@ from swiss_exp_tracker.app.components.cards import make_figure_card
 from swiss_exp_tracker.app.components.cards import make_number_card
 from swiss_exp_tracker.app.dash_components import GRAPH_CONFIG
 from swiss_exp_tracker.app.dash_components import make_card_title
+from swiss_exp_tracker.app.dash_components import make_empty_figure
 from swiss_exp_tracker.app.dash_components import make_page_title
 from swiss_exp_tracker.app.vis.figure_investing import fig_allocation_donut
 from swiss_exp_tracker.app.vis.figure_investing import fig_portfolio_progression
@@ -86,12 +87,14 @@ def layout(data: Any, pos: Any) -> Any:
                             dcc.Graph(
                                 id="investing-pos-value",
                                 className="pos-graph",
+                                figure=make_empty_figure(),
                                 config=GRAPH_CONFIG,
                             ),
                             make_card_title("P&L (%)"),
                             dcc.Graph(
                                 id="investing-pos-pct",
                                 className="pos-graph",
+                                figure=make_empty_figure(),
                                 config=GRAPH_CONFIG,
                             ),
                         ],

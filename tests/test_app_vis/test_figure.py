@@ -256,12 +256,12 @@ def test_fig_income_expense_monthly_trace_names() -> None:
     assert names == {"Expenses", "Income"}
 
 
-def test_fig_income_expense_monthly_legend_shown_horizontal() -> None:
+def test_fig_income_expense_monthly_legend_shown_vertical() -> None:
     df = _make_net_balance_month_df()
     fig = F.fig_IncomeExpenseMonthly(df)
     layout: Any = fig.layout
     assert layout.showlegend is True
-    assert layout.legend.orientation == "h"
+    assert layout.legend.orientation == "v"
 
 
 def test_fig_income_expense_monthly_xaxis_date_ticklabels() -> None:
