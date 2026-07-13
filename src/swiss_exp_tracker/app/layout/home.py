@@ -67,6 +67,7 @@ def layout(data: Any, pos: Any) -> Any:
                     make_figure_card(
                         "Income vs Expenses",
                         F.fig_IncomeExpenseMonthly(data.get_IncomeExpenseMonthly()),
+                        fig_id="fig-IncomeExpense",
                         width=8,
                     ),
                     make_table_card(

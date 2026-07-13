@@ -85,7 +85,10 @@ def test_donut_year_dropdown_updates_figure(dash_duo: Any, real_app: Any) -> Non
     graph container and dropdown exist is a reliable proxy for a working page.
     """
     dash_duo.start_server(real_app)
-    dash_duo.wait_for_element("#fig-Donut", timeout=15)
+    # fig-Donut uses a pattern-matching id ({"type": "chart-graph", "index":
+    # "fig-Donut"}), which Dash renders as a JSON-stringified DOM id — match
+    # it with an attribute-contains selector instead of an exact #id.
+    dash_duo.wait_for_element('[id*="fig-Donut"]', timeout=15)
     assert dash_duo.find_element("#dropdown-Year") is not None
     assert _no_severe_errors(dash_duo)
 

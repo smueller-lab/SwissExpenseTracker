@@ -159,7 +159,12 @@ class Fig:
         combined = pd.concat([pdf["Expense"], pdf["Income"]])
         dTick = get_adaptive_dTick(float(combined.max()))
         ry_Axis = get_ryAxis(dTick, combined, True)
-        height_Figure = get_heightFigure(cfg.npixel_IncomeExpense, self.vk_Margin)
+        # Wider top margin than the template default (t=20) to fit the
+        # above-plot legend below without crowding it — folded into the
+        # height calc so the plot area keeps its usual size instead of
+        # shrinking by the extra margin.
+        margin_TopLegend = {"t": 60, "b": self.vk_Margin["b"]}
+        height_Figure = get_heightFigure(cfg.npixel_IncomeExpense, margin_TopLegend)
         s_tick_val, s_tick_text, format_Date = get_rxAxis_Date(x_dates)
 
         x_min, x_max = x_dates.min(), x_dates.max()
@@ -184,15 +189,23 @@ class Fig:
                 "showline": True,
                 "linecolor": "white",
             },
+            margin={"t": margin_TopLegend["t"]},
             height=height_Figure,
             showlegend=True,
+            # One-off exception to the site-wide right-side legend (see
+            # plots.md): this chart only has two series (Income/Expenses),
+            # so a horizontal legend above the plot reads better than a
+            # tall empty right gutter. legendFixed in meta tells
+            # mobile_legend.js to leave this position alone at every
+            # breakpoint instead of applying the usual responsive rules.
             legend={
-                "orientation": "v",
-                "yanchor": "middle",
-                "y": 0.5,
-                "xanchor": "left",
-                "x": 1.02,
+                "orientation": "h",
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "center",
+                "x": 0.5,
             },
+            meta={"legendFixed": True},
         )
 
         return fig
@@ -410,7 +423,10 @@ class Fig:
             )
         )
 
-        fig.update_layout(showlegend=False)
+        fig.update_layout(
+            showlegend=False,
+            height=get_heightFigure(cfg.npixel_Donut, self.vk_Margin),
+        )
 
         return fig
 
@@ -456,7 +472,10 @@ class Fig:
                 marker=marker,
             )
         )
-        fig.update_layout(showlegend=False)
+        fig.update_layout(
+            showlegend=False,
+            height=get_heightFigure(cfg.npixel_Donut, self.vk_Margin),
+        )
         return fig
 
     def fig_BarVacation(self, pdf_Vacation: pd.DataFrame) -> go.Figure:
@@ -835,7 +854,10 @@ class Fig:
                 hovertemplate=cfg.donut_hovertemplate,
             )
         )
-        fig.update_layout(showlegend=False)
+        fig.update_layout(
+            showlegend=False,
+            height=get_heightFigure(cfg.npixel_Donut, self.vk_Margin),
+        )
         return fig
 
     def fig_HealthIndex(self, pdf: pd.DataFrame) -> go.Figure:
@@ -941,6 +963,16 @@ class Fig:
         )
         pivot = pivot.reindex(index=cat_order, columns=x_labels, fill_value=0)
 
+        # Color by each category's share of that month's total, not its raw
+        # CHF value — a global CHF-based color scale makes every category in
+        # a low-spend month look uniformly "cheap", hiding which categories
+        # actually dominated that month. Cell text stays CHF (the concrete
+        # number); only the color driver changes. month_totals.replace(0, 1)
+        # guards zero-spend months from a division by zero — the numerator
+        # is 0 there too, so the result is still 0.
+        month_totals = pivot.sum(axis=0)
+        pivot_pct = pivot.divide(month_totals.replace(0, 1), axis=1) * 100
+
         pivot_vals = pivot.to_numpy(dtype=float)
         text: list[list[str]] = [
             [
@@ -952,12 +984,17 @@ class Fig:
 
         fig = go.Figure(
             go.Heatmap(
-                z=pivot.values,
+                z=pivot_pct.values,
                 x=pivot.columns.tolist(),
                 y=pivot.index.tolist(),
+                zmin=0,
+                zmax=100,
                 colorscale=vis.vk_heatmap_colorscale["category_spend"],
-                colorbar={"title": "CHF"},
-                hovertemplate="Category: %{y}<br>Month: %{x}<br>CHF: %{z:.2f}<extra></extra>",
+                colorbar={"title": "% of month"},
+                hovertemplate=(
+                    "Category: %{y}<br>Month: %{x}"
+                    "<br>CHF: %{text}<br>Share of month: %{z:.1f}%<extra></extra>"
+                ),
                 text=text,
                 texttemplate="%{text}",
                 textfont=cfg.textfont_heatmap,

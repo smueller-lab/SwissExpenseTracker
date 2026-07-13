@@ -81,7 +81,7 @@ def fig_allocation_donut(pdf_latest: pd.DataFrame) -> go.Figure:
             ),
         )
     )
-    fig.update_layout(showlegend=True, height=280)
+    fig.update_layout(showlegend=False, height=420)
     return fig
 
 

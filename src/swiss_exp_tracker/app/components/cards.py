@@ -6,19 +6,31 @@ from typing import Any
 
 import pandas as pd
 import plotly.graph_objects as go  # pyright: ignore[reportMissingTypeStubs]
+import plotly.io as pio  # pyright: ignore[reportMissingTypeStubs]
 
 from dash import dcc
 from dash import html
 
 from swiss_exp_tracker.app.config import VIS
+from swiss_exp_tracker.app.config import config
 from swiss_exp_tracker.app.dash_components import GRAPH_CONFIG
 from swiss_exp_tracker.app.dash_components import format_diff
 from swiss_exp_tracker.app.dash_components import get_balance_class
 from swiss_exp_tracker.app.dash_components import make_card_title
 from swiss_exp_tracker.app.dash_components import make_empty_figure
 from swiss_exp_tracker.app.data.budget_models import CategoryBudget
+from swiss_exp_tracker.app.libs import get_heightFigure
 
 vis = VIS()
+cfg = config()
+# Matches Fig.__init__'s own lookup (vis/figure.py) — the donut placeholder
+# must use the same fixed height as the real donut figure (see
+# fig_DonutCategoryMain/fig_DonutByCategory) so the callback swap doesn't
+# resize the card.
+_vk_Margin = pio.templates[
+    "myTemp"
+].layout.margin  # pyright: ignore[reportOptionalMemberAccess, reportAttributeAccessIssue]
+_donut_height = get_heightFigure(cfg.npixel_Donut, _vk_Margin)
 
 
 def make_number_card(
@@ -56,9 +68,27 @@ def make_number_card(
     )
 
 
-def make_figure_card(title: str, fig: go.Figure, width: int = 6) -> Any:
+def make_figure_card(
+    title: str, fig: go.Figure, fig_id: str | None = None, width: int = 6
+) -> Any:
+    """Return a card with a title and a static (non-callback) figure.
+
+    `fig_id` is not read by any callback — it only gives the graph a stable
+    pattern-matching id so the legend-rescan clientside_callback (see
+    callbacks/legend.py) fires when it first mounts. Optional and unused by
+    callers that haven't been migrated yet (spike in progress on fix/legend-pos:
+    once every call site passes it, drop the None branch and make it required).
+    """
+    graph_id: Any = {"type": "chart-graph", "index": fig_id} if fig_id else None
     return html.Div(
-        [make_card_title(title), dcc.Graph(figure=fig, config=GRAPH_CONFIG)],
+        [
+            make_card_title(title),
+            dcc.Graph(
+                **({"id": graph_id} if graph_id else {}),
+                figure=fig,
+                config=GRAPH_CONFIG,
+            ),
+        ],
         className=f"card card-graph col-{width}",
     )
 
@@ -191,9 +221,9 @@ def make_CategoryDonut_card(
                 ],
             ),
             dcc.Graph(
-                id="fig-Donut",
+                id={"type": "chart-graph", "index": "fig-Donut"},
                 className="graph-flex",
-                figure=make_empty_figure(),
+                figure=make_empty_figure(_donut_height),
                 config=GRAPH_CONFIG,
             ),
         ],

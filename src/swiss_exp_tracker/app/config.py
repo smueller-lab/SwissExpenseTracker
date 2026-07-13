@@ -23,6 +23,11 @@ class config:
     vk_npixel_GroceryCat = {"Monthly": 50, "Yearly": 50}
     npixel_IncomeExpense: int = 50
     npixel_Pct: int = 50
+    # Donuts have no axis, but still need a fixed, non-data-dependent height
+    # like every other chart — see fig_DonutCategoryMain/fig_DonutByCategory/
+    # fig_DonutGroceryCat, which previously had none and relied entirely on
+    # flex/container-fill sizing.
+    npixel_Donut: int = 50
     npixel_Vacation: int = 50
     npixel_Transport: int = 50
     npixel_Car: int = 60
@@ -292,7 +297,26 @@ class VIS:
     # Heatmap colorscales — one per heatmap type (see .claude/rules/plots.md)
     vk_heatmap_colorscale = {
         "financial": "RdYlGn_r",
-        "category_spend": "Greens",
+        # category_spend's z is a 0-100 % share of month (see
+        # fig_HeatmapGroceryCat), fixed via zmin/zmax so the legend always
+        # spans the full range. Real shares rarely exceed ~25-30% (many
+        # categories split each month's spend), so plain linear "Greens"
+        # left every cell washed out near-white. Stops are front-loaded
+        # into 0-65% (the same 9 Greens colors, just concentrated lower) so
+        # the values that actually occur use the full visual gradient;
+        # 65-100% (rare — one category dominating a whole month) reads as
+        # saturated dark green.
+        "category_spend": [
+            [0.00, "#f7fcf5"],
+            [0.05, "#e5f5e0"],
+            [0.10, "#c7e9c0"],
+            [0.15, "#a1d99b"],
+            [0.20, "#74c476"],
+            [0.30, "#41ab5d"],
+            [0.45, "#238b45"],
+            [0.65, "#006d2c"],
+            [1.00, "#00441b"],
+        ],
         "correlation": [[0.0, "#b2182b"], [0.5, "#f7f7f7"], [1.0, "#2166ac"]],
     }
 

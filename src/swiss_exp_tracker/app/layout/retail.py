@@ -92,7 +92,9 @@ def layout(data: Any) -> Any:
                             dcc.Graph(
                                 id="fig-Retail-Donut",
                                 className="graph-flex",
-                                figure=make_empty_figure(),
+                                figure=make_empty_figure(
+                                    get_heightFigure(cfg.npixel_Donut, F.vk_Margin)
+                                ),
                                 config=GRAPH_CONFIG,
                             ),
                         ],

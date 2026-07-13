@@ -95,6 +95,13 @@
         if (!graphDiv._fullLayout.showlegend) {
             return;
         }
+        // Opt-out for the rare figure that sets its own fixed legend
+        // position in Python (layout.meta.legendFixed) instead of the
+        // site-wide responsive right/below rule — leave it exactly as
+        // Python set it, at every breakpoint.
+        if (graphDiv._fullLayout.meta && graphDiv._fullLayout.meta.legendFixed) {
+            return;
+        }
 
         var target = legendPosition();
         if (!positionApplied(graphDiv, target)) {
@@ -124,15 +131,69 @@
         }
     }
 
+    // GRAPH_CONFIG sets responsive:true, so Plotly runs its own internal
+    // resize pass (via a ResizeObserver on the container) independently of
+    // this file. That native pass doesn't touch `_legendRelayoutBusy` at
+    // all, so calling our relayout directly from an outside trigger (initial
+    // discovery, a matchMedia change) can land while Plotly's own pass is
+    // still in flight — two concurrent updates to the same graphDiv, which
+    // is the same "stuck mid-update, collapsed visual" failure mode as the
+    // relayout/react race above. Deferring two animation frames lets the
+    // browser's current layout/paint pass (and any native resize it
+    // triggered) settle first before we touch the graph ourselves.
+    function nextFrame(fn) {
+        requestAnimationFrame(function () {
+            requestAnimationFrame(fn);
+        });
+    }
+
+    // Every figure sets a fixed, non-data-dependent height in Python (see
+    // plots.md) — it is never supposed to change after first paint, on a
+    // Month/Year toggle, a dropdown filter, or anything else. But
+    // GRAPH_CONFIG's responsive:true measures each graph's *container* on
+    // every resize and overwrites layout.height to match it, silently
+    // breaking that invariant — and if the container is itself stretched to
+    // match a taller sibling in the same CSS grid row (cards intentionally
+    // match row height, see style.css .card), the grown figure grows the
+    // row further, which stretches the card further, forever. Reproduced
+    // with headless Chrome (a fast multi-step resize sequence, e.g.
+    // dragging the window edge).
+    //
+    // Fix: trust the height Plotly renders on the very first afterplot for
+    // a graphDiv (it is exactly what Python passed in — responsive:true
+    // cannot have drifted it yet) and snap back to that recorded height on
+    // every subsequent afterplot where it no longer matches. This does not
+    // touch width, so Plotly's own responsive column-width fitting is
+    // unaffected — only height is ever pinned.
+    function enforceFixedHeight(graphDiv) {
+        if (!graphDiv || typeof Plotly === "undefined" || !graphDiv._fullLayout) {
+            return;
+        }
+        if (graphDiv._legendRelayoutBusy) {
+            return;
+        }
+        if (typeof graphDiv._intendedHeight !== "number") {
+            graphDiv._intendedHeight = graphDiv._fullLayout.height;
+            return;
+        }
+        if (graphDiv._fullLayout.height !== graphDiv._intendedHeight) {
+            relayout(graphDiv, { height: graphDiv._intendedHeight });
+        }
+    }
+
     function wireGraph(graphDiv) {
         if (!graphDiv || graphDiv._mobileLegendWired) {
             return;
         }
         graphDiv._mobileLegendWired = true;
         graphDiv.on("plotly_afterplot", function () {
+            enforceFixedHeight(graphDiv);
             applyLegendLayout(graphDiv);
         });
-        applyLegendLayout(graphDiv);
+        nextFrame(function () {
+            enforceFixedHeight(graphDiv);
+            applyLegendLayout(graphDiv);
+        });
     }
 
     function scanForGraphs(root) {
@@ -142,24 +203,64 @@
         root.querySelectorAll(".js-plotly-plot").forEach(wireGraph);
     }
 
+    // SPIKE (fix/legend-pos): clientside_callback-driven replacement for the
+    // MutationObserver below, scoped for now to graphs using the
+    // {"type": "chart-graph", ...} pattern-matching id (see callbacks/legend.py).
+    // Dash re-fires a pattern-matching ALL callback when the matching
+    // component set changes (mount/unmount), not just on prop updates, so
+    // this Input({"type":"chart-graph","index":ALL}, "figure") callback fires
+    // once a migrated graph first mounts — same discovery job the observer
+    // does, but driven by Dash's own dependency graph instead of DOM
+    // watching. Once every graph is migrated, the observer/poll below can be
+    // deleted and this becomes the only discovery mechanism.
+    window.dash_clientside = window.dash_clientside || {};
+    window.dash_clientside.legend = window.dash_clientside.legend || {};
+    window.dash_clientside.legend.rescan = function () {
+        scanForGraphs(document);
+        return window.dash_clientside.no_update;
+    };
+
     function applyToAllGraphs() {
         document.querySelectorAll(".js-plotly-plot").forEach(applyLegendLayout);
     }
 
+    // Breakpoint crossing is a case Plotly's own resize can't be relied on
+    // for: a card that's already full-width on both sides of 1024px doesn't
+    // change container size when the breakpoint is crossed, so Plotly's
+    // ResizeObserver may not fire at all — matchMedia is the only signal.
     if (typeof mql.addEventListener === "function") {
-        mql.addEventListener("change", applyToAllGraphs);
+        mql.addEventListener("change", function () {
+            nextFrame(applyToAllGraphs);
+        });
     } else if (typeof mql.addListener === "function") {
-        mql.addListener(applyToAllGraphs);
+        mql.addListener(function () {
+            nextFrame(applyToAllGraphs);
+        });
     }
 
-    // A resizing card can reflow how a legend wraps (more/fewer rows or
-    // columns) even though its position doesn't change, which changes how
-    // much margin it needs — recheck on any resize, not just the mobile
-    // breakpoint the matchMedia listener already covers.
-    var resizeTimer;
+    // dcc.Graph's own resize handling (separate from — and in addition to —
+    // Plotly's responsive:true) can get stuck when resize events fire in
+    // rapid succession, e.g. a user actually dragging the window edge
+    // rather than a single discrete resize: verified by reproducing it
+    // (headless Chrome, a fast multi-step resize sequence) — a graph gets
+    // locked in at an intermediate size from mid-drag that never corrects
+    // itself even once the window stops moving and settles at its final
+    // size, permanently mismatched with its actual container until
+    // something forces a fresh resize. A single corrective
+    // Plotly.Plots.resize() once resize events stop firing (debounced, not
+    // per-event, so it runs well after Plotly's own native handling has had
+    // time to settle rather than racing it) fixes the mismatch.
+    var resizeSettleTimer;
     window.addEventListener("resize", function () {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(applyToAllGraphs, 150);
+        clearTimeout(resizeSettleTimer);
+        resizeSettleTimer = setTimeout(function () {
+            document.querySelectorAll(".js-plotly-plot").forEach(function (graphDiv) {
+                if (typeof Plotly === "undefined" || !graphDiv._fullLayout) {
+                    return;
+                }
+                Plotly.Plots.resize(graphDiv);
+            });
+        }, 250);
     });
 
     // react-plotly.js calls Plotly.newPlot() on a <div> React already mounted,
