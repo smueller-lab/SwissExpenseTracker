@@ -7,10 +7,12 @@ from dash import html
 from swiss_exp_tracker.app.components.cards import make_figure_card
 from swiss_exp_tracker.app.components.cards import make_figure_card_MonthYear
 from swiss_exp_tracker.app.components.cards import make_number_card
+from swiss_exp_tracker.app.config import config
 from swiss_exp_tracker.app.dash_components import make_page_title
 from swiss_exp_tracker.app.vis.figure import Fig
 
 F = Fig()
+cfg = config()
 
 
 def layout(data: Any) -> Any:
@@ -40,7 +42,10 @@ def layout(data: Any) -> Any:
                         fmt="+.1f",
                     ),
                     make_figure_card_MonthYear(
-                        "Sport expenses [CHF]", "fig-Sport", width=12
+                        "Sport expenses [CHF]",
+                        "fig-Sport",
+                        width=12,
+                        height=cfg.height_Sport,
                     ),
                     make_figure_card(
                         "Activities per Year",

@@ -81,7 +81,7 @@ def fig_allocation_donut(pdf_latest: pd.DataFrame) -> go.Figure:
             ),
         )
     )
-    fig.update_layout(showlegend=True, height=280)
+    fig.update_layout(showlegend=False, height=420)
     return fig
 
 
@@ -122,11 +122,11 @@ def fig_portfolio_progression(pdf: pd.DataFrame) -> go.Figure:
         height=350,
         margin={"l": 80},
         legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
+            "orientation": "v",
+            "yanchor": "middle",
+            "y": 0.5,
             "xanchor": "left",
-            "x": 0,
+            "x": 1.02,
         },
     )
     return fig
@@ -165,11 +165,11 @@ def fig_position_value(pdf: pd.DataFrame, symbols: list[str]) -> go.Figure:
         uirevision="pos-value",
         margin={"l": 80},
         legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
+            "orientation": "v",
+            "yanchor": "middle",
+            "y": 0.5,
             "xanchor": "left",
-            "x": 0,
+            "x": 1.02,
         },
     )
     return fig
@@ -212,11 +212,11 @@ def fig_position_pct(pdf: pd.DataFrame, symbols: list[str]) -> go.Figure:
         uirevision="pos-pct",
         margin={"l": 65},
         legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
+            "orientation": "v",
+            "yanchor": "middle",
+            "y": 0.5,
             "xanchor": "left",
-            "x": 0,
+            "x": 1.02,
         },
     )
     return fig

@@ -51,10 +51,11 @@ def build(df: pd.DataFrame, con: sqlite3.Connection) -> None:
     )
     donut.to_sql("dash_retail_donut", con, if_exists="replace", index=False)
 
-    # Top-10 most expensive single retail purchases
+    # Top-15 most expensive single retail purchases (enough rows to fill the
+    # card next to the donut chart, capped by make_table_card's row limit)
     top = (
         pdf.sort_values("amount", ascending=False)
-        .head(10)[["date", "merchant", "category_second", "amount"]]
+        .head(15)[["date", "merchant", "category_second", "amount"]]
         .rename(
             columns={
                 "date": "Date",

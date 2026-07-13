@@ -8,8 +8,11 @@ from swiss_exp_tracker.app.components.cards import make_budget_forecast_card
 from swiss_exp_tracker.app.components.cards import make_budget_input_card
 from swiss_exp_tracker.app.config import config
 from swiss_exp_tracker.app.dash_components import make_page_title
+from swiss_exp_tracker.app.libs import get_heightFigure
+from swiss_exp_tracker.app.vis.figure import Fig
 
 cfg = config()
+F = Fig()
 
 BUDGET_TABLE_COLUMNS: list[dict[str, Any]] = [
     {"id": "category", "name": "Category", "fmt": "text"},
@@ -67,6 +70,7 @@ def layout(data: Any) -> Any:
                         title="\U0001f4c8 Spend Progression & Year-End Forecast",
                         fig_id="budget-forecast-fig",
                         width=12,
+                        height=get_heightFigure(cfg.npixel_Budget, F.vk_Margin),
                     ),
                     html.Div(id="budget-table-container", className="col-12"),
                 ],

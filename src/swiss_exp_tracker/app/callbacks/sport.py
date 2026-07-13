@@ -14,8 +14,6 @@ from swiss_exp_tracker.app.vis.figure import Fig
 F = Fig()
 cfg = config()
 
-_NPIXEL_SPORT = 60
-
 
 def register_callbacks(app: Any, data: Any) -> None:
     @app.callback(  # type: ignore[untyped-decorator]
@@ -44,7 +42,7 @@ def register_callbacks(app: Any, data: Any) -> None:
             col_catgeory="category_sport",
             col_amount="Total",
             Freq=freq,
-            npixel=_NPIXEL_SPORT,
+            npixel=cfg.npixel_Sport,
         )
         fig.update_layout(height=cfg.height_Sport)
         return fig, monthly_class, yearly_class

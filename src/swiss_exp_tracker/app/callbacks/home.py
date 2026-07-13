@@ -12,7 +12,8 @@ F = Fig()
 
 def register_callbacks(app: Any, data: Any) -> None:
     @app.callback(  # type: ignore[untyped-decorator]
-        Output("fig-Donut", "figure"), Input("dropdown-Year", "value")
+        Output({"type": "chart-graph", "index": "fig-Donut"}, "figure"),
+        Input("dropdown-Year", "value"),
     )
     def update_Donut(Period: str) -> Any:  # pyright: ignore[reportUnusedFunction]
         pdf_CatMain = data.pdf_CatMain.copy()

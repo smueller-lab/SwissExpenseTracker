@@ -104,6 +104,9 @@ def create_app_layout(
             ),
             # ---------------- Router ----------------
             dcc.Location(id="url", refresh=False),
+            # Dummy output target for the legend-rescan clientside_callback
+            # (see callbacks/legend.py) — never read, only written to.
+            dcc.Store(id="legend-ping"),
             # ---------------- Page content ----------------
             html.Div(id="page-content", className="content"),
         ]

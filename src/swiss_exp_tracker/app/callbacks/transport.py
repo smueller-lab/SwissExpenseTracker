@@ -9,12 +9,12 @@ from dash import Output
 from dash import ctx
 
 from swiss_exp_tracker.app.config import VIS
+from swiss_exp_tracker.app.config import config
 from swiss_exp_tracker.app.vis.figure import Fig
 
 F = Fig()
 vis = VIS()
-
-_NPIXEL_CAR = 60
+cfg = config()
 
 
 def register_callbacks(app: Any, data: Any) -> None:
@@ -44,7 +44,7 @@ def register_callbacks(app: Any, data: Any) -> None:
             col_catgeory="category_car",
             col_amount="Total",
             Freq=freq,
-            npixel=_NPIXEL_CAR,
+            npixel=cfg.npixel_Car,
             col_map=vis.vk_Car_col,
         )
         return fig, monthly_class, yearly_class
