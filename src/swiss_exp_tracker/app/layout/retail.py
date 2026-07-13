@@ -101,7 +101,7 @@ def layout(data: Any) -> Any:
                         className="card card-graph col-5",
                     ),
                     make_table_card(
-                        title="Top 10 Retail Purchases",
+                        title="Top Retail Purchases",
                         s_col=s_top_col,
                         data=data.pdf_RetailTop.to_dict("records"),
                         width=7,
