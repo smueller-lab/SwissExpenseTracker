@@ -246,6 +246,23 @@ class VIS:
         "Income": "#4580F6",
     }
 
+    # Top-level category_main colors — shared by fig_DonutCategoryMain (home page)
+    # and get_fig_BudgetForecast (budget/forecast page) so the same main category
+    # renders in the same color on both pages. Covers the categories in
+    # BALANCE_SHEET_MAJOR_CATEGORIES and budget_default_categories; anything else
+    # falls back to vk_cycling_col via _build_category_colors.
+    vk_CategoryMain_col = {
+        "Housing": "#8E44AD",
+        "Groceries": "#45C7F6",
+        "Car": "#F39C12",
+        "Transport": "#5DADE2",
+        "Travel": "#E67E22",
+        "Sport": "#2ECC71",
+        "Restaurant": "#E38A04",
+        "Retail": "#9B59B6",
+        "Healthcare": "#E74C3C",
+    }
+
     vk_GroceryCat_col = {
         "Fresh Produce": "#4caf50",
         "Beverages": "#4fc3f7",

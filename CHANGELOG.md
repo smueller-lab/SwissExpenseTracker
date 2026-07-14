@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-14
+
+### Added
+
+- Client-side legend positioning (`assets/mobile_legend.js`) that measures the
+  rendered legend and repositions it below the plot on mobile automatically,
+  instead of relying on a fixed CSS breakpoint — fixes legends misplacing on
+  first paint and on window resize.
+- CONTRIBUTING.md, GitHub issue templates (bug report, feature request), and a
+  pull request template.
+- Codecov integration surfaced in CI and as a README badge.
+- Dev container bind mount for a host data folder.
+- Data model tests for the grocery and asset pipelines.
+
+### Changed
+
+- Extended the Retail table to fill the empty space next to the donut chart.
+- Refined the forecasting model and dev-container data mounting.
+- Removed dead code from `config.py` and `figure.py`; refreshed README,
+  dev-docs, and screenshots.
+
+### Fixed
+
+- Donut charts rendering blank/incorrectly on initial page load.
+- Mobile layout: stray legend items and false rendering of plots inside cards.
+- Main expense categories (e.g. Retail, Groceries, Transport) rendering in
+  different colors on the home donut chart vs. the budget/forecast chart —
+  both now share a single named color map (`vis.vk_CategoryMain_col`).
+
 ## [0.2.0] - 2026-07-06
 
 ### Added
@@ -57,7 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI deployment workflow.
 - Redesigned color contrast for accessibility.
 
-[Unreleased]: https://github.com/smueller-lab/SwissExpenseTracker/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/smueller-lab/SwissExpenseTracker/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/smueller-lab/SwissExpenseTracker/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/smueller-lab/SwissExpenseTracker/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/smueller-lab/SwissExpenseTracker/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/smueller-lab/SwissExpenseTracker/releases/tag/v0.1.0
