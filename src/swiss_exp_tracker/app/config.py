@@ -108,7 +108,7 @@ class config:
     font_no_data = {"color": "white", "size": 16}
     textfont_label = {"size": 12}  # donut + line-chart labels
     textfont_label_dense = {"size": 11}  # drill-down donut with many slices
-    textfont_heatmap = {"size": 10}  # heatmap cell annotations
+    textfont_heatmap = {"size": 12}  # heatmap cell annotations
     textfont_heatmap_corr = {"color": "white", "size": 14}  # correlation cells
 
 
@@ -251,16 +251,22 @@ class VIS:
     # renders in the same color on both pages. Covers the categories in
     # BALANCE_SHEET_MAJOR_CATEGORIES and budget_default_categories; anything else
     # falls back to vk_cycling_col via _build_category_colors.
+    # "Train" is a category_second (not category_main, so never shown in the donut)
+    # that budget_categories_all still exposes as a selectable budget line. Without
+    # an explicit entry it fell back to the cycling palette's first color, #19D3F3,
+    # a cyan too close in hue to Groceries/Transport's blues to tell apart on the
+    # forecast line chart — pin it to a hue far from every other entry here instead.
     vk_CategoryMain_col = {
         "Housing": "#8E44AD",
         "Groceries": "#45C7F6",
-        "Car": "#F39C12",
+        "Car": "#EB984E",
         "Transport": "#5DADE2",
-        "Travel": "#E67E22",
+        "Travel": "#48C9B0",
         "Sport": "#2ECC71",
-        "Restaurant": "#E38A04",
+        "Restaurant": "#F1C40F",
         "Retail": "#9B59B6",
         "Healthcare": "#E74C3C",
+        "Train": "#E84393",
     }
 
     vk_GroceryCat_col = {
@@ -319,19 +325,20 @@ class VIS:
         # spans the full range. Real shares rarely exceed ~25-30% (many
         # categories split each month's spend), so plain linear "Greens"
         # left every cell washed out near-white. Stops are front-loaded
-        # into 0-65% (the same 9 Greens colors, just concentrated lower) so
+        # into 0-45% (the same 9 Greens colors, just concentrated lower) so
         # the values that actually occur use the full visual gradient;
-        # 65-100% (rare — one category dominating a whole month) reads as
-        # saturated dark green.
+        # 45-100% (rare — one category dominating a whole month) reads as
+        # saturated dark green. A cell near 0% (genuinely negligible spend)
+        # still reads as near-white — that's intentional, not a bug.
         "category_spend": [
             [0.00, "#f7fcf5"],
             [0.05, "#e5f5e0"],
             [0.10, "#c7e9c0"],
             [0.15, "#a1d99b"],
             [0.20, "#74c476"],
-            [0.30, "#41ab5d"],
-            [0.45, "#238b45"],
-            [0.65, "#006d2c"],
+            [0.28, "#41ab5d"],
+            [0.36, "#238b45"],
+            [0.45, "#006d2c"],
             [1.00, "#00441b"],
         ],
         "correlation": [[0.0, "#b2182b"], [0.5, "#f7f7f7"], [1.0, "#2166ac"]],

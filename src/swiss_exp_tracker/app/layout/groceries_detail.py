@@ -93,7 +93,7 @@ def layout(data: Any) -> Any:
                     ),
                     # ── Heatmap (full width) ──────────────────────────────
                     make_figure_card(
-                        "Spend Heatmap — Category x Month [CHF]",
+                        "Spend Heatmap — Category x Month [% of Month]",
                         F.fig_HeatmapGroceryCat(data.pdf_GroceryCat),
                         width=12,
                     ),
