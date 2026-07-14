@@ -411,15 +411,19 @@ class Fig:
         if pdf_CatMain.empty:
             return _make_no_data_fig("expense categories")
         pdf_CatMain = _aggregate_top_n(pdf_CatMain, "category_main", "amount_CHF")
+        labels = pdf_CatMain["category_main"].tolist()
+        colors = _build_category_colors(labels, vis.vk_CategoryMain_col)
+        colors[cfg.category_other_label] = vis.fallback_col
         fig = go.Figure(
             go.Pie(
-                labels=pdf_CatMain["category_main"],
+                labels=labels,
                 values=pdf_CatMain["amount_CHF"],
                 hole=cfg.donut_hole,
                 textinfo="percent+label",
                 textfont=cfg.textfont_label,
                 pull=[cfg.donut_pull] * len(pdf_CatMain),
                 domain=cfg.donut_domain,
+                marker={"colors": [colors[label] for label in labels]},
             )
         )
 
@@ -1090,7 +1094,7 @@ def get_fig_BudgetForecast(
         .sort_values(ascending=False)
     )
     categories = category_totals.index.tolist()
-    color_map = _build_category_colors(categories, {})
+    color_map = _build_category_colors(categories, vis.vk_CategoryMain_col)
 
     fig = go.Figure()
 
