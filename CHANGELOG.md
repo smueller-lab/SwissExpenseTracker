@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Main expense categories (e.g. Retail, Groceries, Transport) rendering in
   different colors on the home donut chart vs. the budget/forecast chart —
   both now share a single named color map (`vis.vk_CategoryMain_col`).
+- Category colors on the budget/forecast Spend Progression chart that were too
+  similar to tell apart: Groceries/Transport/Train all read as shades of blue,
+  and Car/Travel/Restaurant all read as shades of orange. Reassigned to
+  visually distinct hues in `vis.vk_CategoryMain_col`.
 
 ## [0.2.0] - 2026-07-06
 

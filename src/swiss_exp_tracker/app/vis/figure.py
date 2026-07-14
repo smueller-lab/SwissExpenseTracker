@@ -941,7 +941,7 @@ class Fig:
         return fig
 
     def fig_HeatmapGroceryCat(self, pdf: pd.DataFrame) -> go.Figure:
-        """Return a monthly heatmap of grocery spend per category with CHF annotations."""
+        """Return a monthly heatmap of grocery spend per category with % of month annotations."""
         if pdf.empty:
             return _make_no_data_fig(
                 "No Migros Cumulus data found. Import your Cumulus receipt data first."
@@ -970,17 +970,20 @@ class Fig:
         # Color by each category's share of that month's total, not its raw
         # CHF value — a global CHF-based color scale makes every category in
         # a low-spend month look uniformly "cheap", hiding which categories
-        # actually dominated that month. Cell text stays CHF (the concrete
-        # number); only the color driver changes. month_totals.replace(0, 1)
-        # guards zero-spend months from a division by zero — the numerator
-        # is 0 there too, so the result is still 0.
+        # actually dominated that month. Cell text mirrors that same %
+        # share (not CHF) so the printed number and the color it sits in
+        # always agree — CHF is still available on hover via customdata.
+        # month_totals.replace(0, 1) guards zero-spend months from a
+        # division by zero — the numerator is 0 there too, so the result is
+        # still 0.
         month_totals = pivot.sum(axis=0)
         pivot_pct = pivot.divide(month_totals.replace(0, 1), axis=1) * 100
 
         pivot_vals = pivot.to_numpy(dtype=float)
+        pct_vals = pivot_pct.to_numpy(dtype=float)
         text: list[list[str]] = [
             [
-                f"{pivot_vals[r, c]:.0f}" if pivot_vals[r, c] > 0 else ""
+                f"{pct_vals[r, c]:.1f}" if pivot_vals[r, c] > 0 else ""
                 for c in range(pivot.shape[1])
             ]
             for r in range(pivot.shape[0])
@@ -995,12 +998,18 @@ class Fig:
                 zmax=100,
                 colorscale=vis.vk_heatmap_colorscale["category_spend"],
                 colorbar={"title": "% of month"},
+                # Plain nested list, not a numpy array — Plotly.py's binary
+                # "bdata" typed-array encoding for numpy arrays isn't decoded
+                # by the frontend for Heatmap customdata, which left
+                # %{customdata} unresolved in the hover tooltip.
+                customdata=pivot_vals.tolist(),
                 hovertemplate=(
                     "Category: %{y}<br>Month: %{x}"
-                    "<br>CHF: %{text}<br>Share of month: %{z:.1f}%<extra></extra>"
+                    "<br>CHF: %{customdata:,.2f}"
+                    "<br>Share of month: %{z:.1f}%<extra></extra>"
                 ),
                 text=text,
-                texttemplate="%{text}",
+                texttemplate="<b>%{text}</b>",
                 textfont=cfg.textfont_heatmap,
             )
         )
@@ -1012,7 +1021,7 @@ class Fig:
         fig.update_layout(
             height=height,
             xaxis={"domain": [0.15, 1.0]},
-            yaxis={"autorange": "reversed", "showticklabels": False},
+            yaxis={"autorange": "reversed", "showticklabels": False, "ticks": ""},
             margin={"l": 10},
         )
 

@@ -85,7 +85,7 @@ Charts that can show many categories (multi-category stacked bars, donuts) must 
 - Category spend heatmaps: `colorscale=VIS.vk_heatmap_colorscale["category_spend"]` — a custom Greens-based scale with stops front-loaded into 0-65%, not the plain named `"Greens"` scale. Use this whenever a heatmap's `z` is a fixed 0-100 range (e.g. % share of a total) but the real values rarely approach 100 — a linear named colorscale leaves everything washed out near one end; front-loading the stops keeps `zmin=0`/`zmax=100` (so the legend is comparable/honest across cells) while giving the values that actually occur the full visual gradient.
 - Correlation heatmaps: `colorscale=[[0.0,"#b2182b"],[0.5,"#f7f7f7"],[1.0,"#2166ac"]]`, `zmin=-1`, `zmax=1`.
 - Y-axis: `autorange="reversed"` for time-indexed heatmaps (newest row at top).
-- Cell annotations: show CHF value as integer string; suppress zeros with `""`.
+- Cell annotations: show CHF value as integer string; suppress zeros with `""`. Exception — category spend heatmaps (`z` is a % share, see above): annotate with that same percentage (one decimal, e.g. `"25.4%"`) instead of CHF, so the printed number always matches the color it sits in; keep CHF available via `customdata` in the hover template.
 - Height: `max(220, n_rows * 35 + 80)`.
 
 ## Color palette
