@@ -393,6 +393,14 @@ a {
     font-size: var(--font-size-dropdown);
 }
 
+/* Wider variant for dropdowns listing full trip names, not short years —
+   combine with dropdown-year (e.g. "dropdown-year dropdown-wide") to keep
+   its color/behavior styling while overriding the narrow width. */
+.dropdown-wide {
+    width: 100%;
+    min-width: 260px;
+}
+
 /* Main control (the box itself) */
 .dropdown-year .Select-control {
     background-color: var(--color-bg-dropdown) !important;
@@ -863,6 +871,19 @@ button.budget-remove-btn:hover {
     margin-bottom: 24px;
 }
 
+/* Holds the trip name and year edit rows side by side, on one line */
+.trip-edit-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 24px;
+    margin-bottom: 24px;
+}
+
+.trip-edit-row .budget-add-row {
+    margin-bottom: 0;
+}
+
 .budget-add-select {
     min-width: 220px;
 }
@@ -886,6 +907,169 @@ button#budget-save-btn:hover {
     margin-top: 10px;
     font-size: 13px;
     color: var(--color-text-card-muted);
+}
+
+/* ===== Trip Buckets Page ===== */
+:root {
+    /* Subtle tint for an empty dropzone so the target area is visible */
+    --color-bg-dropzone: rgba(102, 178, 255, 0.04);
+    /* Stronger tint shown while a dragged item hovers over the dropzone */
+    --color-bg-dropzone-drag-over: rgba(102, 178, 255, 0.18);
+}
+
+/* Tab bar container — full-width row above the page grid */
+.trips-tabs {
+    width: 100%;
+    margin-bottom: var(--card-gap);
+}
+
+/* Individual tab header button (inactive) */
+.trips-tab {
+    display: inline-block;
+    padding: 10px 24px;
+    cursor: pointer;
+    color: var(--color-text-card-muted);
+    font-size: 15px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    user-select: none;
+    transition: color 0.15s ease-in-out, border-bottom-color 0.15s ease-in-out;
+}
+
+.trips-tab:hover {
+    color: var(--color-text-primary);
+    border-bottom-color: var(--color-accent-border);
+}
+
+/* Active / selected tab — accent underline */
+.trips-tab--selected {
+    color: var(--color-text-accent);
+    border-bottom: 2px solid var(--color-accent);
+    font-weight: 600;
+}
+
+/* Scrollable wrapper around the (max 50-row) unassigned-transactions table */
+.trips-pool-list {
+    max-height: 480px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+}
+
+/* Search box above the unassigned-transactions table */
+.trip-pool-search {
+    background-color: var(--color-bg-budget-input) !important;
+    border: 1px solid var(--color-border-budget-input) !important;
+    border-radius: 6px !important;
+    color: var(--color-text-primary) !important;
+    padding: 6px 10px !important;
+    font-size: 14px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-bottom: 6px !important;
+}
+
+.trip-pool-search:focus {
+    outline: none !important;
+    border-color: var(--color-accent) !important;
+}
+
+.trip-pool-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.trip-pool-table th {
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: var(--font-weight-table);
+    color: var(--color-text-card-muted);
+    border-bottom: 1px solid var(--color-table-border);
+}
+
+.trip-pool-table th.num,
+.trip-pool-table td.num {
+    text-align: right;
+}
+
+.trip-pool-table td {
+    padding: 6px 10px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--color-table-row-border);
+}
+
+/* Single row in the unassigned-transactions table — draggable, click-to-assign */
+.trip-pool-row {
+    cursor: grab;
+    user-select: none;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.trip-pool-row:hover {
+    background-color: var(--color-table-bg-hover);
+}
+
+.trip-pool-row:active {
+    cursor: grabbing;
+}
+
+/* One already-assigned transaction inside a trip's dropzone (not draggable) */
+.trip-assigned-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.trip-assigned-row:hover {
+    background-color: var(--color-table-bg-hover);
+}
+
+.trip-pool-date {
+    flex: 0 0 auto;
+    color: var(--color-text-card-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.trip-pool-merchant {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.trip-pool-amount {
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+}
+
+/* Card wrapping a single trip's header + dropzone on the right panel */
+.trip-bucket-card {
+    background-color: var(--color-bg-main);
+    border-radius: var(--card-radius);
+    border: 1px solid var(--color-accent-border);
+    padding: var(--card-padding);
+    margin-top: var(--space-md);
+}
+
+/* Drop target area inside a trip bucket card */
+.trip-bucket-dropzone {
+    min-height: 120px;
+    border: 2px dashed var(--color-accent-border);
+    border-radius: var(--card-radius);
+    padding: var(--space-md);
+    background-color: var(--color-bg-dropzone);
+    transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+}
+
+/* Highlight state when a dragged row is over the dropzone */
+.trip-bucket-dropzone.drag-over {
+    border: 2px solid var(--color-accent);
+    background-color: var(--color-bg-dropzone-drag-over);
 }
 
 /* ===== Mobile (phones) ===== */

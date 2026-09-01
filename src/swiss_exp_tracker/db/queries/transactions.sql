@@ -78,6 +78,39 @@ CREATE TABLE IF NOT EXISTS dash_budget (
     UNIQUE(year, category)
 )
 
+-- name: create_trips_table#
+-- Create the trips table if it does not exist.
+CREATE TABLE IF NOT EXISTS trips (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE(name, year)
+)
+
+-- name: rename_trips_table_to_old!
+-- Rename the legacy (name-only UNIQUE) trips table aside so it can be rebuilt.
+ALTER TABLE trips RENAME TO trips_old_unique_name
+
+-- name: copy_trips_from_old!
+-- Copy rows from the renamed legacy trips table into the rebuilt trips table.
+INSERT INTO trips (id, name, year, created_at, updated_at)
+SELECT id, name, year, created_at, updated_at FROM trips_old_unique_name
+
+-- name: drop_trips_old_unique_name!
+-- Drop the renamed legacy trips table once its rows have been copied over.
+DROP TABLE trips_old_unique_name
+
+-- name: create_trip_transactions_table#
+-- Create the trip_transactions table if it does not exist.
+CREATE TABLE IF NOT EXISTS trip_transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trip_id INTEGER NOT NULL,           -- references trips(id)
+    transaction_id INTEGER NOT NULL UNIQUE,  -- references transactions_use(id)
+    assigned_at TEXT NOT NULL
+)
+
 -- name: create_idx_ingested_files_source#
 -- Create index on ingested_files(source_type) if it does not exist.
 CREATE INDEX IF NOT EXISTS idx_ingested_files_source
@@ -97,6 +130,11 @@ ON transactions_raw(source_type, processed)
 -- Create index on transactions_rfn(enrichment_status) if it does not exist.
 CREATE INDEX IF NOT EXISTS idx_refined_enrichment_status
 ON transactions_rfn(enrichment_status)
+
+-- name: create_idx_trip_transactions_trip#
+-- Create index on trip_transactions(trip_id) if it does not exist.
+CREATE INDEX IF NOT EXISTS idx_trip_transactions_trip
+ON trip_transactions(trip_id)
 
 -- name: alter_rfn_add_is_person#
 -- Add is_person column to transactions_rfn if absent.
@@ -446,3 +484,44 @@ SELECT * FROM dash_balance_sheet
 -- name: get_dash_balance_sheet_categories
 -- Select all rows from dash_balance_sheet_categories.
 SELECT * FROM dash_balance_sheet_categories
+
+-- name: insert_trip!
+-- Insert a new trip with a required name and year.
+INSERT INTO trips (name, year, created_at, updated_at)
+VALUES (:name, :year, :created_at, :updated_at)
+
+-- name: rename_trip!
+-- Update the name of a trip by id.
+UPDATE trips SET name = :name, updated_at = :updated_at WHERE id = :id
+
+-- name: update_trip_year!
+-- Update the year of a trip by id.
+UPDATE trips SET year = :year, updated_at = :updated_at WHERE id = :id
+
+-- name: delete_trip!
+-- Delete a trip by id.
+DELETE FROM trips WHERE id = :id
+
+-- name: get_trips
+-- Select all trips.
+SELECT id, name, year, created_at, updated_at FROM trips
+
+-- name: get_trip_transactions
+-- Select all trip_transactions rows.
+SELECT id, trip_id, transaction_id, assigned_at FROM trip_transactions
+
+-- name: assign_transactions_to_trip*!
+-- Upsert a transaction into a trip; moves it if already assigned elsewhere.
+INSERT INTO trip_transactions (trip_id, transaction_id, assigned_at)
+VALUES (:trip_id, :transaction_id, :assigned_at)
+ON CONFLICT(transaction_id) DO UPDATE SET
+    trip_id = excluded.trip_id,
+    assigned_at = excluded.assigned_at
+
+-- name: unassign_transaction_from_trip!
+-- Remove a single transaction's trip assignment by transaction_id.
+DELETE FROM trip_transactions WHERE transaction_id = :transaction_id
+
+-- name: delete_trip_transactions_by_trip!
+-- Delete all trip_transactions rows for a given trip_id.
+DELETE FROM trip_transactions WHERE trip_id = :trip_id

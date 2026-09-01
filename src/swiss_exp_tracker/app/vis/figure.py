@@ -1085,6 +1085,86 @@ class Fig:
 
         return fig
 
+    def fig_BarTripCostByYear(self, pdf_TripsByCategoryYear: pd.DataFrame) -> go.Figure:
+        """Return a grouped-and-stacked bar chart of trip costs by year and category.
+
+        Input: year, trip_id, trip_name, category_main, total_chf (one row per trip/category).
+        """
+        if pdf_TripsByCategoryYear.empty:
+            return _make_no_data_fig("trip costs by year")
+
+        # Deliberate exception to the flat-categoryarray yearly x-axis convention in plots.md:
+        # nesting year (outer) and trip (inner) requires Plotly's multicategory axis
+        # (x=[years_array, trip_names_array] per trace) rather than a flat categoryarray of years.
+
+        pdf = _collapse_top_n(
+            pdf_TripsByCategoryYear,
+            "category_main",
+            "total_chf",
+            n=cfg.category_top_n_bar,
+        )
+        # Re-aggregate after relabeling — multiple rows may share category_main="Other" per trip.
+        pdf_agg = pdf.groupby(
+            ["year", "trip_id", "trip_name", "category_main"], as_index=False
+        )["total_chf"].sum()
+
+        # Per-trip totals drive dTick/y-range — NOT the per-year sum of all trips.
+        per_trip_totals = pdf_agg.groupby("trip_id")["total_chf"].sum()
+
+        # Ordered (year, trip_name) pairs: years ascending, trips within a year by spend descending.
+        trip_order = (
+            pdf_agg.groupby(["year", "trip_id", "trip_name"], as_index=False)[
+                "total_chf"
+            ]
+            .sum()
+            .sort_values(["year", "total_chf"], ascending=[True, False])
+        )
+        ordered_years: list[Any] = trip_order["year"].tolist()
+        ordered_trips: list[Any] = trip_order["trip_name"].tolist()
+
+        # Categories sorted by total spend descending; "Other" always last in the stack.
+        category_order = _order_with_other_last(
+            pdf_agg.groupby("category_main")["total_chf"]
+            .sum()
+            .sort_values(ascending=False)
+            .index.tolist()
+        )
+
+        fig = go.Figure()
+        for category in category_order:
+            lookup: dict[Any, Any] = (
+                pdf_agg[pdf_agg["category_main"] == category]
+                .set_index(["year", "trip_name"])["total_chf"]
+                .to_dict()
+            )
+            y_vals = [
+                float(lookup.get((yr, tn), 0.0))
+                for yr, tn in zip(ordered_years, ordered_trips, strict=True)
+            ]
+            fig.add_trace(
+                go.Bar(
+                    x=[ordered_years, ordered_trips],
+                    y=y_vals,
+                    name=category,
+                    marker={
+                        "color": vis.vk_CategoryMain_col.get(category, vis.fallback_col)
+                    },
+                )
+            )
+
+        dTick = get_adaptive_dTick(float(per_trip_totals.max()))
+        ry_Axis = get_ryAxis(dTick, per_trip_totals, True)
+        height_Figure = get_heightFigure(cfg.npixel_TripCost, self.vk_Margin)
+
+        fig.update_layout(
+            barmode="stack",
+            xaxis={"showline": True},
+            yaxis={"dtick": dTick, "range": ry_Axis, "showline": True},
+            height=height_Figure,
+        )
+
+        return fig
+
 
 def get_fig_BudgetForecast(
     pdf_lines: pd.DataFrame, npixel: int, vk_margin: dict[str, Any]

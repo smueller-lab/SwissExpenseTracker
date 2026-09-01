@@ -12,10 +12,12 @@ import pandas as pd
 from swiss_exp_tracker.app.config import DB_PATH
 from swiss_exp_tracker.app.config import VIS
 from swiss_exp_tracker.app.data.budget_models import CategoryBudget
+from swiss_exp_tracker.app.data.trip_models import Trip
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_dash.config import BALANCE_SHEET_MAJOR_CATEGORIES
 from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANT_NORMALIZE
 from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANTS_TRACKED
+from swiss_exp_tracker.pipeline_ingestion.db import migrate_trips_unique_name_year
 
 _FREQ_RULE: dict[str, str] = {"D": "D", "W": "W", "M": "MS"}
 
@@ -282,6 +284,12 @@ class DataLoader:
                 {str(c) for c in [*_main, *_second] if str(c).strip()}
             )
 
+            # Trips (create tables defensively for tmp DBs in tests)
+            transactions.create_trips_table(con)
+            transactions.create_trip_transactions_table(con)
+            transactions.create_idx_trip_transactions_trip(con)
+            self._reload_pdf_trips(con)
+
         # Category labels in the canonical order defined in pipeline config
         _cat_labels = [label for label, _, _ in BALANCE_SHEET_MAJOR_CATEGORIES]
 
@@ -420,6 +428,186 @@ class DataLoader:
             transactions.delete_dash_budget(con, year=year, category=category)
             self._reload_pdf_budget(con)
 
+    def _reload_pdf_trips(self, con: sqlite3.Connection) -> None:
+        """Reload pdf_Trips, pdf_TripTransactionsDetail, and pdf_TripsByCategoryYear from DB and pdf_Master."""
+        _TRIPS_COLS = [
+            "id",
+            "name",
+            "year",
+            "created_at",
+            "updated_at",
+            "total_chf",
+            "n_transactions",
+        ]
+        _DETAIL_COLS = [
+            "tt_id",
+            "trip_id",
+            "transaction_id",
+            "assigned_at",
+            "date",
+            "Merchant",
+            "amount_CHF",
+            "category_main",
+            "category_second",
+            "transaction_type",
+            "trip_name",
+            "year",
+        ]
+        _BYCAT_COLS = ["year", "trip_id", "trip_name", "category_main", "total_chf"]
+
+        pdf_trips_raw = pd.read_sql(transactions.get_trips.sql, con)
+
+        if pdf_trips_raw.empty:
+            self.pdf_Trips = pd.DataFrame(columns=_TRIPS_COLS)
+            self.pdf_TripTransactionsDetail = pd.DataFrame(columns=_DETAIL_COLS)
+            self.pdf_TripsByCategoryYear = pd.DataFrame(columns=_BYCAT_COLS)
+            return
+
+        pdf_tt = pd.read_sql(transactions.get_trip_transactions.sql, con)
+
+        if not pdf_tt.empty:
+            tt = pdf_tt.rename(columns={"id": "tt_id"})
+            master_sub = self.pdf_Master[
+                [
+                    "id",
+                    "date",
+                    "Merchant",
+                    "amount_CHF",
+                    "category_main",
+                    "category_second",
+                    "transaction_type",
+                ]
+            ].copy()
+            detail = tt.merge(
+                master_sub, left_on="transaction_id", right_on="id", how="inner"
+            ).drop(columns=["id"])
+            trips_info = pdf_trips_raw[["id", "name", "year"]].rename(
+                columns={"id": "trip_id", "name": "trip_name"}
+            )
+            detail = detail.merge(trips_info, on="trip_id", how="left")
+        else:
+            detail = pd.DataFrame(columns=_DETAIL_COLS)
+
+        self.pdf_TripTransactionsDetail = detail.reset_index(drop=True)
+
+        if not detail.empty:
+            agg = detail.groupby("trip_id", as_index=False).agg(
+                total_chf=("amount_CHF", "sum"),
+                n_transactions=("transaction_id", "count"),
+            )
+        else:
+            agg = pd.DataFrame(columns=["trip_id", "total_chf", "n_transactions"])
+
+        pdf_trips_merged = pdf_trips_raw.merge(
+            agg, left_on="id", right_on="trip_id", how="left"
+        )
+        pdf_trips_merged["total_chf"] = (
+            pdf_trips_merged["total_chf"].infer_objects(copy=False).fillna(0.0)
+        )
+        pdf_trips_merged["n_transactions"] = (
+            pdf_trips_merged["n_transactions"]
+            .infer_objects(copy=False)
+            .fillna(0)
+            .astype(int)
+        )
+        self.pdf_Trips = pdf_trips_merged[_TRIPS_COLS].reset_index(drop=True)
+
+        if not detail.empty:
+            self.pdf_TripsByCategoryYear = (
+                detail.groupby(["year", "trip_id", "trip_name", "category_main"])[
+                    "amount_CHF"
+                ]
+                .sum()
+                .reset_index()
+                .rename(columns={"amount_CHF": "total_chf"})
+            )
+        else:
+            self.pdf_TripsByCategoryYear = pd.DataFrame(columns=_BYCAT_COLS)
+
+    def _defensive_create_trip_tables(self, con: sqlite3.Connection) -> None:
+        """Create trips and trip_transactions tables and index if they do not exist."""
+        transactions.create_trips_table(con)
+        migrate_trips_unique_name_year(con)
+        transactions.create_trip_transactions_table(con)
+        transactions.create_idx_trip_transactions_trip(con)
+
+    def create_trip(self, name: str, year: int) -> None:
+        """Validate name/year, insert a new trip row, then reload trip DataFrames."""
+        trip = Trip.model_validate({"name": name, "year": year})
+        now = datetime.now().isoformat()
+        with sqlite3.connect(str(self._db_path)) as con:
+            self._defensive_create_trip_tables(con)
+            transactions.insert_trip(
+                con, name=trip.name, year=trip.year, created_at=now, updated_at=now
+            )
+            self._reload_pdf_trips(con)
+
+    def rename_trip(self, trip_id: int, new_name: str) -> None:
+        """Validate new_name, update the trip's name in the DB, then reload trip DataFrames."""
+        validated = Trip.model_validate({"name": new_name, "year": 2000})
+        now = datetime.now().isoformat()
+        with sqlite3.connect(str(self._db_path)) as con:
+            self._defensive_create_trip_tables(con)
+            transactions.rename_trip(
+                con, name=validated.name, updated_at=now, id=trip_id
+            )
+            self._reload_pdf_trips(con)
+
+    def update_trip_year(self, trip_id: int, new_year: int) -> None:
+        """Validate new_year, update the trip's year in the DB, then reload trip DataFrames."""
+        validated = Trip.model_validate({"name": "placeholder", "year": new_year})
+        now = datetime.now().isoformat()
+        with sqlite3.connect(str(self._db_path)) as con:
+            self._defensive_create_trip_tables(con)
+            transactions.update_trip_year(
+                con, year=validated.year, updated_at=now, id=trip_id
+            )
+            self._reload_pdf_trips(con)
+
+    def delete_trip(self, trip_id: int) -> None:
+        """Delete a trip's junction rows then the trip itself, then reload trip DataFrames."""
+        with sqlite3.connect(str(self._db_path)) as con:
+            self._defensive_create_trip_tables(con)
+            transactions.delete_trip_transactions_by_trip(con, trip_id=trip_id)
+            transactions.delete_trip(con, id=trip_id)
+            self._reload_pdf_trips(con)
+
+    def assign_transactions_to_trip(
+        self, trip_id: int, transaction_ids: list[int]
+    ) -> None:
+        """Upsert one or more transactions into a trip (moves already-assigned ones), then reload trip DataFrames."""
+        now = datetime.now().isoformat()
+        rows = [
+            {"trip_id": trip_id, "transaction_id": tid, "assigned_at": now}
+            for tid in transaction_ids
+        ]
+        with sqlite3.connect(str(self._db_path)) as con:
+            self._defensive_create_trip_tables(con)
+            transactions.assign_transactions_to_trip(con, rows)
+            self._reload_pdf_trips(con)
+
+    def unassign_transactions(self, transaction_ids: list[int]) -> None:
+        """Remove trip assignments for the given transaction IDs, then reload trip DataFrames."""
+        with sqlite3.connect(str(self._db_path)) as con:
+            self._defensive_create_trip_tables(con)
+            for tid in transaction_ids:
+                transactions.unassign_transaction_from_trip(con, transaction_id=tid)
+            self._reload_pdf_trips(con)
+
+    def get_unassigned_transactions(self) -> pd.DataFrame:
+        """Return pdf_Master rows with no trip assignment, sorted by date descending."""
+        if self.pdf_TripTransactionsDetail.empty:
+            return self.pdf_Master.sort_values("date", ascending=False).reset_index(
+                drop=True
+            )
+        assigned_ids = set(self.pdf_TripTransactionsDetail["transaction_id"].tolist())
+        mask = ~self.pdf_Master["id"].isin(assigned_ids)
+        return (
+            self.pdf_Master[mask]
+            .sort_values("date", ascending=False)
+            .reset_index(drop=True)
+        )
+
     def get_category_year_spend(self, year: int) -> pd.DataFrame:
         """Return per-category EXPENSE totals for year (main and second levels); columns [category, spend_chf]."""
         mask = (self.pdf_Master["transaction_type"] == "EXPENSE") & (
@@ -430,8 +618,9 @@ class DataLoader:
         for level in ("category_main", "category_second"):
             grouped = (
                 base.dropna(subset=[level])
-                .groupby(level, as_index=False)["amount_CHF"]
+                .groupby(level)["amount_CHF"]
                 .sum()
+                .reset_index()
                 .rename(columns={level: "category", "amount_CHF": "spend_chf"})
             )
             parts.append(grouped)
@@ -521,7 +710,9 @@ class DataLoader:
                 )["amount_CHF"]
                 resampled = year_series.resample(rule).sum()
                 # Keep only buckets whose label date falls within the year
-                resampled = resampled[resampled.index.year == year_int]
+                resampled = resampled[
+                    pd.DatetimeIndex(resampled.index).year == year_int
+                ]
                 n_days = 366 if calendar.isleap(year_int) else 365
                 for period_dt, spend in resampled.items():
                     period_ts = pd.Timestamp(period_dt)
@@ -583,7 +774,7 @@ class DataLoader:
                     continue
                 full = pd.date_range(f"{yr}-01-01", periods=n_months, freq="MS")
                 monthly = (
-                    cat_series[cat_series.index.year == yr]
+                    cat_series[pd.DatetimeIndex(cat_series.index).year == yr]
                     .resample("MS")
                     .sum()
                     .reindex(full, fill_value=0.0)

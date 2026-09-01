@@ -57,6 +57,25 @@ def backfill_balance_chf_rfn(db: sqlite3.Connection) -> int:
     return updated
 
 
+def migrate_trips_unique_name_year(db: sqlite3.Connection) -> None:
+    """Rebuild trips with UNIQUE(name, year) if it still has the old name-only UNIQUE index.
+
+    Lets two trips share a name as long as they're in different years.
+    """
+    if not _table_exists(db, "trips"):
+        return
+    for _, idx_name, is_unique, *_rest in db.execute("PRAGMA index_list('trips')"):
+        if not is_unique:
+            continue
+        cols = [row[2] for row in db.execute(f"PRAGMA index_info('{idx_name}')")]
+        if cols == ["name"]:
+            transactions.rename_trips_table_to_old(db)
+            transactions.create_trips_table(db)
+            transactions.copy_trips_from_old(db)
+            transactions.drop_trips_old_unique_name(db)
+            return
+
+
 def create_all_tables() -> None:
     """Create all pipeline tables and indexes in transactions.db if they do not exist."""
     with get_connection() as db:
@@ -66,6 +85,9 @@ def create_all_tables() -> None:
         transactions.create_transactions_rfn_table(db)
         transactions.create_api_usage_table(db)
         transactions.create_dash_budget_table(db)
+        transactions.create_trips_table(db)
+        migrate_trips_unique_name_year(db)
+        transactions.create_trip_transactions_table(db)
 
         refined_columns = {str(col[1]) for col in transactions.get_rfn_column_names(db)}
         if "is_person" not in refined_columns:
@@ -78,3 +100,4 @@ def create_all_tables() -> None:
         transactions.create_idx_landing_file_processed(db)
         transactions.create_idx_raw_source_processed(db)
         transactions.create_idx_refined_enrichment_status(db)
+        transactions.create_idx_trip_transactions_trip(db)

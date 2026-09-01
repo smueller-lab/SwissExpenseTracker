@@ -14,6 +14,7 @@ from swiss_exp_tracker.app.callbacks import router
 from swiss_exp_tracker.app.callbacks import smarttable
 from swiss_exp_tracker.app.callbacks import sport
 from swiss_exp_tracker.app.callbacks import transport
+from swiss_exp_tracker.app.callbacks import trips
 
 _PAGE_CALLBACKS = [
     home,
@@ -25,6 +26,7 @@ _PAGE_CALLBACKS = [
     retail,
     smarttable,
     budget_forecast,
+    trips,
 ]
 
 

@@ -18,6 +18,7 @@ from swiss_exp_tracker.app.layout.retail import layout as retail_layout
 from swiss_exp_tracker.app.layout.smarttable import layout as smarttable_layout
 from swiss_exp_tracker.app.layout.sport import layout as sport_layout
 from swiss_exp_tracker.app.layout.transport import layout as transport_layout
+from swiss_exp_tracker.app.layout.trips import layout as trips_layout
 from swiss_exp_tracker.app.layout.vacation import layout as vacation_layout
 
 
@@ -50,6 +51,8 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
             return balance_sheet_layout(data)
         elif pth == "/budget-forecast":
             return budget_forecast_layout(data)
+        elif pth == "/trips":
+            return trips_layout(data)
         return home_layout(data, pos)
 
     @app.callback(  # type: ignore[untyped-decorator]
@@ -66,6 +69,7 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
             Output("link-investing", "className"),
             Output("link-balance-sheet", "className"),
             Output("link-budget-forecast", "className"),
+            Output("link-trips", "className"),
         ],
         Input("url", "pathname"),
     )
@@ -87,4 +91,5 @@ def register_callbacks(app: Any, data: Any, pos: Any) -> None:
             active if pth == "/investing" else default,
             active if pth == "/balance-sheet" else default,
             active if pth == "/budget-forecast" else default,
+            active if pth == "/trips" else default,
         ]

@@ -29,6 +29,7 @@ class config:
     # flex/container-fill sizing.
     npixel_Donut: int = 50
     npixel_Vacation: int = 50
+    npixel_TripCost: int = 50
     npixel_Transport: int = 50
     npixel_Car: int = 60
     npixel_Sport: int = 60

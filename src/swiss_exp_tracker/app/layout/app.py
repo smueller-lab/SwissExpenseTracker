@@ -98,6 +98,12 @@ def create_app_layout(
                         id="link-investing",
                         className="menu-link",
                     ),
+                    dcc.Link(
+                        "\U0001f9f3 Trip Buckets",
+                        href="/trips",
+                        id="link-trips",
+                        className="menu-link",
+                    ),
                     html.Div(footer_children, className="sidebar-footer"),
                 ],
                 className="sidebar",
