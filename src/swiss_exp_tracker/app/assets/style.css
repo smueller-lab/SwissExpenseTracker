@@ -917,36 +917,56 @@ button#budget-save-btn:hover {
     --color-bg-dropzone-drag-over: rgba(102, 178, 255, 0.18);
 }
 
-/* Tab bar container — full-width row above the page grid */
+/* Tab bar container — row above the page grid, tabs hug their content */
 .trips-tabs {
     width: 100%;
     margin-bottom: var(--card-gap);
 }
 
-/* Individual tab header button (inactive) */
-.trips-tab {
+/* Dash's dcc.Tabs ships its own scoped CSS (.tab.jsx-<hash>) that sets
+   width: calc(100% / amountOfTabs) plus a light #f9f9f9/white box — same
+   specificity as a single custom class, so it wins on load order. The
+   extra chained class here raises our specificity to override it. */
+.trips-tabs .tab.trips-tab {
     display: inline-block;
+    width: auto;
+    flex: 0 0 auto;
     padding: 10px 24px;
     cursor: pointer;
     color: var(--color-text-card-muted);
     font-size: 15px;
     font-weight: 500;
+    border: none;
     border-bottom: 2px solid transparent;
     background: transparent;
     user-select: none;
     transition: color 0.15s ease-in-out, border-bottom-color 0.15s ease-in-out;
 }
 
-.trips-tab:hover {
+/* Dash also sets border-right/border-bottom on the last tab specifically;
+   match that specificity to strip it too. */
+.trips-tabs .tab.trips-tab:last-of-type {
+    border: none;
+    border-bottom: 2px solid transparent;
+}
+
+.trips-tabs .tab.trips-tab:hover {
     color: var(--color-text-primary);
     border-bottom-color: var(--color-accent-border);
+    background: transparent;
 }
 
 /* Active / selected tab — accent underline */
-.trips-tab--selected {
+.trips-tabs .tab.trips-tab.trips-tab--selected {
     color: var(--color-text-accent);
+    border: none;
     border-bottom: 2px solid var(--color-accent);
     font-weight: 600;
+    background: transparent;
+}
+
+.trips-tabs .tab.trips-tab.trips-tab--selected:hover {
+    background: transparent;
 }
 
 /* Scrollable wrapper around the (max 50-row) unassigned-transactions table */
@@ -954,6 +974,10 @@ button#budget-save-btn:hover {
     max-height: 480px;
     overflow-y: auto;
     margin-bottom: 10px;
+}
+
+.trips-pool-list::-webkit-scrollbar-thumb {
+    background: var(--color-white);
 }
 
 /* Search box above the unassigned-transactions table */

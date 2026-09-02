@@ -255,18 +255,6 @@ def _bucket_builder_content(data: Any) -> Any:
             # Right card — single trip builder
             html.Div(
                 [
-                    make_card_title("Select Existing Trip"),
-                    dcc.Dropdown(
-                        id="trips-builder-select",
-                        className="dropdown-year dropdown-wide",
-                        options=options,  # type: ignore[arg-type]
-                        placeholder="Select a trip…",
-                        clearable=False,
-                    ),
-                    html.Div(
-                        _build_trip_body(None, data),
-                        id="trips-builder-body",
-                    ),
                     # Create-trip form
                     html.Div(
                         [
@@ -302,6 +290,18 @@ def _bucket_builder_content(data: Any) -> Any:
                             ),
                         ],
                         className="trip-create-form",
+                    ),
+                    make_card_title("Select Existing Trip"),
+                    dcc.Dropdown(
+                        id="trips-builder-select",
+                        className="dropdown-year dropdown-wide",
+                        options=options,  # type: ignore[arg-type]
+                        placeholder="Select a trip…",
+                        clearable=False,
+                    ),
+                    html.Div(
+                        _build_trip_body(None, data),
+                        id="trips-builder-body",
                     ),
                 ],
                 className="card col-7",
