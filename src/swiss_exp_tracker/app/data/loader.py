@@ -285,9 +285,7 @@ class DataLoader:
             )
 
             # Trips (create tables defensively for tmp DBs in tests)
-            transactions.create_trips_table(con)
-            transactions.create_trip_transactions_table(con)
-            transactions.create_idx_trip_transactions_trip(con)
+            self._defensive_create_trip_tables(con)
             self._reload_pdf_trips(con)
 
         # Category labels in the canonical order defined in pipeline config
@@ -444,9 +442,11 @@ class DataLoader:
             "trip_id",
             "transaction_id",
             "assigned_at",
+            "split",
             "date",
             "Merchant",
             "amount_CHF",
+            "share_CHF",
             "category_main",
             "category_second",
             "transaction_type",
@@ -485,14 +485,18 @@ class DataLoader:
                 columns={"id": "trip_id", "name": "trip_name"}
             )
             detail = detail.merge(trips_info, on="trip_id", how="left")
+            detail["share_CHF"] = detail["amount_CHF"] / detail["split"]
         else:
             detail = pd.DataFrame(columns=_DETAIL_COLS)
 
         self.pdf_TripTransactionsDetail = detail.reset_index(drop=True)
 
         if not detail.empty:
+            detail["signed_amount_CHF"] = detail["share_CHF"].where(
+                detail["transaction_type"] == "EXPENSE", -detail["share_CHF"]
+            )
             agg = detail.groupby("trip_id", as_index=False).agg(
-                total_chf=("amount_CHF", "sum"),
+                total_chf=("signed_amount_CHF", "sum"),
                 n_transactions=("transaction_id", "count"),
             )
         else:
@@ -515,21 +519,26 @@ class DataLoader:
         if not detail.empty:
             self.pdf_TripsByCategoryYear = (
                 detail.groupby(["year", "trip_id", "trip_name", "category_main"])[
-                    "amount_CHF"
+                    "signed_amount_CHF"
                 ]
                 .sum()
                 .reset_index()
-                .rename(columns={"amount_CHF": "total_chf"})
+                .rename(columns={"signed_amount_CHF": "total_chf"})
             )
         else:
             self.pdf_TripsByCategoryYear = pd.DataFrame(columns=_BYCAT_COLS)
 
     def _defensive_create_trip_tables(self, con: sqlite3.Connection) -> None:
-        """Create trips and trip_transactions tables and index if they do not exist."""
+        """Create trips and trip_transactions tables/index/columns if they do not exist."""
         transactions.create_trips_table(con)
         migrate_trips_unique_name_year(con)
         transactions.create_trip_transactions_table(con)
         transactions.create_idx_trip_transactions_trip(con)
+        tt_columns = {
+            str(col[1]) for col in transactions.get_trip_transactions_column_names(con)
+        }
+        if "split" not in tt_columns:
+            con.execute(transactions.alter_trip_transactions_add_split.sql)
 
     def create_trip(self, name: str, year: int) -> None:
         """Validate name/year, insert a new trip row, then reload trip DataFrames."""
@@ -592,6 +601,15 @@ class DataLoader:
             self._defensive_create_trip_tables(con)
             for tid in transaction_ids:
                 transactions.unassign_transaction_from_trip(con, transaction_id=tid)
+            self._reload_pdf_trips(con)
+
+    def update_transaction_split(self, transaction_id: int, split: int) -> None:
+        """Set how many people share an assigned transaction's cost, then reload trip DataFrames."""
+        with sqlite3.connect(str(self._db_path)) as con:
+            self._defensive_create_trip_tables(con)
+            transactions.update_trip_transaction_split(
+                con, split=max(1, split), transaction_id=transaction_id
+            )
             self._reload_pdf_trips(con)
 
     def get_unassigned_transactions(self) -> pd.DataFrame:

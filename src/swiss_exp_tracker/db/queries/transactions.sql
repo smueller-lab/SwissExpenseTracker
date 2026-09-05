@@ -108,8 +108,17 @@ CREATE TABLE IF NOT EXISTS trip_transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     trip_id INTEGER NOT NULL,           -- references trips(id)
     transaction_id INTEGER NOT NULL UNIQUE,  -- references transactions_use(id)
-    assigned_at TEXT NOT NULL
+    assigned_at TEXT NOT NULL,
+    split INTEGER NOT NULL DEFAULT 1    -- number of people sharing the cost; my share = amount_CHF / split
 )
+
+-- name: get_trip_transactions_column_names
+-- Return column metadata for trip_transactions.
+SELECT * FROM pragma_table_info('trip_transactions')
+
+-- name: alter_trip_transactions_add_split!
+-- Add split column to trip_transactions if absent.
+ALTER TABLE trip_transactions ADD COLUMN split INTEGER NOT NULL DEFAULT 1
 
 -- name: create_idx_ingested_files_source#
 -- Create index on ingested_files(source_type) if it does not exist.
@@ -508,7 +517,7 @@ SELECT id, name, year, created_at, updated_at FROM trips
 
 -- name: get_trip_transactions
 -- Select all trip_transactions rows.
-SELECT id, trip_id, transaction_id, assigned_at FROM trip_transactions
+SELECT id, trip_id, transaction_id, assigned_at, split FROM trip_transactions
 
 -- name: assign_transactions_to_trip*!
 -- Upsert a transaction into a trip; moves it if already assigned elsewhere.
@@ -525,3 +534,7 @@ DELETE FROM trip_transactions WHERE transaction_id = :transaction_id
 -- name: delete_trip_transactions_by_trip!
 -- Delete all trip_transactions rows for a given trip_id.
 DELETE FROM trip_transactions WHERE trip_id = :trip_id
+
+-- name: update_trip_transaction_split!
+-- Update the split (number of people sharing the cost) for a transaction's trip assignment.
+UPDATE trip_transactions SET split = :split WHERE transaction_id = :transaction_id

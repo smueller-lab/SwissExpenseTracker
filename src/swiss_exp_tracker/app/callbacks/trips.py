@@ -17,9 +17,13 @@ from pydantic import ValidationError
 
 from swiss_exp_tracker.app.config import VIS
 from swiss_exp_tracker.app.dash_components import get_balance_class
+from swiss_exp_tracker.app.layout.trips import _POOL_PAGE_SIZE
 from swiss_exp_tracker.app.layout.trips import _build_trip_body
 from swiss_exp_tracker.app.layout.trips import _overview_kpi_values
 from swiss_exp_tracker.app.layout.trips import _pool_table_and_count
+from swiss_exp_tracker.app.layout.trips import _pool_year_options
+from swiss_exp_tracker.app.layout.trips import _show_more_class
+from swiss_exp_tracker.app.layout.trips import _show_more_label
 from swiss_exp_tracker.app.layout.trips import _trip_options
 from swiss_exp_tracker.app.vis.figure import Fig
 
@@ -52,6 +56,7 @@ def register_callbacks(app: Any, data: Any) -> None:
         Input({"type": "trips-year-edit-btn", "index": ALL}, "n_clicks"),
         Input({"type": "trips-delete-btn", "index": ALL}, "n_clicks"),
         Input({"type": "trip-remove-tx", "index": ALL}, "n_clicks"),
+        Input({"type": "trip-split-input", "index": ALL}, "value"),
         State("trips-version", "data"),
         State("trips-builder-select", "value"),
         State("trips-create-name", "value"),
@@ -61,6 +66,7 @@ def register_callbacks(app: Any, data: Any) -> None:
         State({"type": "trips-year-edit-input", "index": ALL}, "value"),
         State({"type": "trips-year-edit-btn", "index": ALL}, "id"),
         State({"type": "trips-delete-btn", "index": ALL}, "id"),
+        State({"type": "trip-split-input", "index": ALL}, "id"),
         prevent_initial_call=True,
     )
     def mutate_trips(  # pyright: ignore[reportUnusedFunction]
@@ -70,6 +76,7 @@ def register_callbacks(app: Any, data: Any) -> None:
         year_edit_clicks: list[int | None],
         delete_clicks: list[int | None],
         remove_clicks: list[int | None],
+        split_values: list[int | None],
         version: int,
         builder_selected: int | None,
         create_name: str | None,
@@ -79,6 +86,7 @@ def register_callbacks(app: Any, data: Any) -> None:
         year_edit_values: list[int | None],
         year_edit_ids: list[dict[str, Any]],
         delete_ids: list[dict[str, Any]],
+        split_ids: list[dict[str, Any]],
     ) -> tuple[Any, Any, Any, Any]:
         """Branch on ctx.triggered_id to mutate trips; bump version to trigger re-render."""
         triggered = ctx.triggered_id
@@ -174,6 +182,22 @@ def register_callbacks(app: Any, data: Any) -> None:
                 data.unassign_transactions([tx_id])
                 return new_version, _no_select, _no_store, ""
 
+            # --- Per-row split update ---
+            if (
+                isinstance(triggered, dict)
+                and triggered.get("type") == "trip-split-input"
+            ):
+                tx_id = int(triggered["index"])
+                idx = next(
+                    (i for i, d in enumerate(split_ids) if d.get("index") == tx_id),
+                    None,
+                )
+                if idx is None or split_values[idx] is None:
+                    return no_update, no_update, no_update, no_update
+                new_split = int(split_values[idx])  # type: ignore[arg-type]
+                data.update_transaction_split(tx_id, new_split)
+                return new_version, _no_select, _no_store, f"✓ Split set to {new_split}"
+
         except (sqlite3.IntegrityError, sqlite3.DatabaseError) as exc:
             msg = str(exc)
             if "UNIQUE" in msg.upper() or "unique" in msg:
@@ -191,26 +215,66 @@ def register_callbacks(app: Any, data: Any) -> None:
         return no_update, no_update, no_update, no_update
 
     @app.callback(  # type: ignore[untyped-decorator]
+        Output("trips-pool-limit", "data"),
+        Input("trips-pool-show-more", "n_clicks"),
+        Input("trips-pool-search", "value"),
+        Input("trips-pool-year", "value"),
+        Input("trips-pool-month", "value"),
+        State("trips-pool-limit", "data"),
+        prevent_initial_call=True,
+    )
+    def update_pool_limit(  # pyright: ignore[reportUnusedFunction]
+        _n_clicks: int | None,
+        _search: str | None,
+        _pool_year: int | None,
+        _pool_month: int | None,
+        limit: int | None,
+    ) -> int:
+        """Grow the pool row limit by one page on 'Show more'; reset to the default on any filter change."""
+        if ctx.triggered_id == "trips-pool-show-more":
+            return (limit or _POOL_PAGE_SIZE) + _POOL_PAGE_SIZE
+        return _POOL_PAGE_SIZE
+
+    @app.callback(  # type: ignore[untyped-decorator]
         Output("trips-pool-list", "children"),
         Output("trips-pool-count", "children"),
+        Output("trips-pool-show-more", "children"),
+        Output("trips-pool-show-more", "className"),
         Output("trips-builder-body", "children"),
         Output("trips-builder-select", "options"),
+        Output("trips-pool-year", "options"),
         Input("trips-version", "data"),
         Input("trips-builder-select", "value"),
         Input("trips-pool-search", "value"),
+        Input("trips-pool-year", "value"),
+        Input("trips-pool-month", "value"),
+        Input("trips-pool-limit", "data"),
     )
     def render_bucket_builder(  # pyright: ignore[reportUnusedFunction]
         _version: int | None,
         selected_id: int | None,
         search: str | None,
-    ) -> tuple[Any, str, Any, list[dict[str, Any]]]:
-        """Rebuild the pool table (filtered, capped to 50) and selected trip card."""
+        pool_year: int | None,
+        pool_month: int | None,
+        pool_limit: int | None,
+    ) -> tuple[Any, str, str, str, Any, list[dict[str, Any]], list[dict[str, Any]]]:
+        """Rebuild the pool table (filtered by search/year/month, capped to pool_limit) and selected trip card."""
         options = _trip_options(data.pdf_Trips)
-        pool_table, pool_count = _pool_table_and_count(
-            data.get_unassigned_transactions(), search
+        unassigned = data.get_unassigned_transactions()
+        pool_table, pool_count, pool_remaining = _pool_table_and_count(
+            unassigned, search, pool_year, pool_month, pool_limit or _POOL_PAGE_SIZE
         )
         trip_body = _build_trip_body(selected_id, data)
-        return pool_table, pool_count, trip_body, options
+        year_options = _pool_year_options(unassigned)
+        return (
+            pool_table,
+            pool_count,
+            _show_more_label(pool_remaining),
+            _show_more_class(pool_remaining),
+            trip_body,
+            options,
+            year_options,
+        )
 
     @app.callback(  # type: ignore[untyped-decorator]
         Output("trips-kpi-n-trips", "children"),
@@ -270,7 +334,7 @@ def register_callbacks(app: Any, data: Any) -> None:
             fig_donut = _F.fig_DonutByCategory(
                 trip_txs,
                 col_category="category_main",
-                col_amount="amount_CHF",
+                col_amount="share_CHF",
                 col_map=vis.vk_CategoryMain_col,
             )
 

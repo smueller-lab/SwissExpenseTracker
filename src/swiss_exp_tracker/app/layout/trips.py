@@ -33,22 +33,61 @@ def _trip_options(pdf_Trips: pd.DataFrame) -> list[dict[str, Any]]:
     ]
 
 
-_POOL_PAGE_SIZE = 50
+_POOL_PAGE_SIZE = 100
+
+_MONTH_NAMES = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+]
+
+
+def _pool_year_options(pdf_unassigned: pd.DataFrame) -> list[dict[str, Any]]:
+    """Return sorted-descending {label, value} year options from unassigned transaction dates."""
+    if pdf_unassigned.empty:
+        return []
+    years = sorted(
+        pdf_unassigned["date"].dropna().dt.year.astype(int).unique().tolist(),
+        reverse=True,
+    )
+    return [{"label": str(y), "value": y} for y in years]
+
+
+def _pool_month_options() -> list[dict[str, Any]]:
+    """Return the fixed [{label, value}] month options, value 1-12."""
+    return [{"label": m, "value": i} for i, m in enumerate(_MONTH_NAMES, start=1)]
 
 
 def _filter_pool_search(
-    pdf_unassigned: pd.DataFrame, search: str | None
+    pdf_unassigned: pd.DataFrame,
+    search: str | None,
+    year: int | None = None,
+    month: int | None = None,
 ) -> pd.DataFrame:
-    """Return rows whose Merchant or category_main contains search (case-insensitive)."""
-    if not search or not search.strip():
-        return pdf_unassigned
-    term = search.strip().lower()
-    mask = pdf_unassigned["Merchant"].astype(str).str.lower().str.contains(
-        term, na=False, regex=False
-    ) | pdf_unassigned["category_main"].astype(str).str.lower().str.contains(
-        term, na=False, regex=False
-    )
-    return pdf_unassigned[mask]
+    """Return rows matching search (Merchant/category_main) and, if set, year/month of date."""
+    result = pdf_unassigned
+    if year is not None:
+        result = result[result["date"].dt.year == year]
+    if month is not None:
+        result = result[result["date"].dt.month == month]
+    if search and search.strip():
+        term = search.strip().lower()
+        mask = result["Merchant"].astype(str).str.lower().str.contains(
+            term, na=False, regex=False
+        ) | result["category_main"].astype(str).str.lower().str.contains(
+            term, na=False, regex=False
+        )
+        result = result[mask]
+    return result
 
 
 def _build_pool_table(pdf_capped: pd.DataFrame) -> Any:
@@ -59,15 +98,15 @@ def _build_pool_table(pdf_capped: pd.DataFrame) -> Any:
     header = html.Thead(
         html.Tr(
             [
-                html.Th("Date"),
+                html.Th("Date", className="date"),
                 html.Th("Merchant"),
-                html.Th("Amount", className="num"),
+                html.Th("Amount [CHF]", className="num"),
             ]
         )
     )
 
     def _row(row: pd.Series) -> Any:
-        """Return one <tr> for a single unassigned transaction."""
+        """Return one <tr> for a single unassigned transaction, amount signed/colored by transaction_type."""
         tx_id = int(row["id"])
         date_val: pd.Timestamp | object = row["date"]
         date_str = (
@@ -75,11 +114,18 @@ def _build_pool_table(pdf_capped: pd.DataFrame) -> Any:
             if isinstance(date_val, pd.Timestamp)
             else str(date_val)[:10]
         )
+        is_income = row["transaction_type"] == "INCOME"
+        sign = "+" if is_income else "-"
+        amount_class = "num " + (
+            "balance-positive" if is_income else "balance-negative"
+        )
         return html.Tr(
             [
-                html.Td(date_str),
+                html.Td(date_str, className="date"),
                 html.Td(str(row["Merchant"])),
-                html.Td(f"CHF {float(row['amount_CHF']):,.2f}", className="num"),
+                html.Td(
+                    f"{sign} {float(row['amount_CHF']):,.2f}", className=amount_class
+                ),
             ],
             className="trip-pool-row",
             **{"data-tx-id": str(tx_id)},  # type: ignore[arg-type]
@@ -90,20 +136,36 @@ def _build_pool_table(pdf_capped: pd.DataFrame) -> Any:
 
 
 def _pool_table_and_count(
-    pdf_unassigned: pd.DataFrame, search: str | None
-) -> tuple[Any, str]:
-    """Return (table, count-text) for the pool, filtered by search and capped to 50 rows."""
-    filtered = _filter_pool_search(pdf_unassigned, search)
-    capped = filtered.head(_POOL_PAGE_SIZE)
+    pdf_unassigned: pd.DataFrame,
+    search: str | None,
+    year: int | None = None,
+    month: int | None = None,
+    limit: int = _POOL_PAGE_SIZE,
+) -> tuple[Any, str, int]:
+    """Return (table, count-text, remaining-row-count) for the pool, capped to limit rows."""
+    filtered = _filter_pool_search(pdf_unassigned, search, year, month)
+    capped = filtered.head(limit)
     table = _build_pool_table(capped)
+    remaining = len(filtered) - len(capped)
     if filtered.empty:
         count_text = ""
-    elif len(filtered) > len(capped):
-        count_text = f"Showing {len(capped)} of {len(filtered)} — refine your search to see more."
+    elif remaining > 0:
+        count_text = f"Showing {len(capped)} of {len(filtered)} unassigned transactions"
     else:
         plural = "s" if len(filtered) != 1 else ""
         count_text = f"{len(filtered)} unassigned transaction{plural}"
-    return table, count_text
+    return table, count_text, remaining
+
+
+def _show_more_label(remaining: int) -> str:
+    """Return the 'Show more' button label for the given remaining row count."""
+    return f"Show {min(remaining, _POOL_PAGE_SIZE)} more"
+
+
+def _show_more_class(remaining: int) -> str:
+    """Return the 'Show more' button className, hidden via is-hidden when nothing remains."""
+    base = "btn-toggle trip-pool-show-more-btn"
+    return base if remaining > 0 else f"{base} is-hidden"
 
 
 def _build_trip_body(selected_id: int | None, data: Any) -> Any:
@@ -127,26 +189,59 @@ def _build_trip_body(selected_id: int | None, data: Any) -> Any:
             return str(val.strftime("%d %b %Y"))
         return str(val)[:10]
 
-    tx_rows = [
-        html.Div(
+    def _tx_row(r: pd.Series) -> Any:
+        """Return one assigned-transaction row: amount signed/colored by type, plus an editable people-split input."""
+        tx_id = int(r["transaction_id"])
+        is_income = r["transaction_type"] == "INCOME"
+        sign = "+" if is_income else "-"
+        amount_class = "trip-pool-amount " + (
+            "balance-positive" if is_income else "balance-negative"
+        )
+        return html.Div(
             [
                 html.Span(_date_str(r["date"]), className="trip-pool-date"),
                 html.Span(str(r["Merchant"]), className="trip-pool-merchant"),
                 html.Span(
-                    f"CHF {float(r['amount_CHF']):,.2f}",
-                    className="trip-pool-amount",
+                    f"{sign} {float(r['amount_CHF']):,.2f}",
+                    className=amount_class,
+                ),
+                html.Span("÷", className="trip-split-symbol"),
+                dcc.Input(
+                    id={"type": "trip-split-input", "index": tx_id},
+                    type="number",
+                    min=1,
+                    max=20,
+                    step=1,
+                    value=int(r["split"]),
+                    debounce=True,
+                    className="trip-split-input",
                 ),
                 html.Button(
                     "✕",
-                    id={"type": "trip-remove-tx", "index": int(r["transaction_id"])},
+                    id={"type": "trip-remove-tx", "index": tx_id},
                     className="btn-toggle",
                     n_clicks=0,
                 ),
             ],
             className="trip-assigned-row",
         )
-        for _, r in trip_txs.iterrows()
+
+    expense_rows = [
+        _tx_row(r)
+        for _, r in trip_txs[trip_txs["transaction_type"] == "EXPENSE"].iterrows()
     ]
+    income_rows = [
+        _tx_row(r)
+        for _, r in trip_txs[trip_txs["transaction_type"] == "INCOME"].iterrows()
+    ]
+    if expense_rows and income_rows:
+        tx_rows = [
+            *expense_rows,
+            html.Hr(className="trip-income-divider"),
+            *income_rows,
+        ]
+    else:
+        tx_rows = [*expense_rows, *income_rows]
 
     return html.Div(
         [
@@ -226,22 +321,43 @@ def _build_trip_body(selected_id: int | None, data: Any) -> Any:
 def _bucket_builder_content(data: Any) -> Any:
     """Return the Bucket Builder tab's grid content: pool on the left, trip builder on the right."""
     options = _trip_options(data.pdf_Trips)
-    pool_table, pool_count = _pool_table_and_count(
-        data.get_unassigned_transactions(), None
-    )
+    unassigned = data.get_unassigned_transactions()
+    pool_table, pool_count, pool_remaining = _pool_table_and_count(unassigned, None)
+    year_options = _pool_year_options(unassigned)
+    month_options = _pool_month_options()
 
     return html.Div(
         [
             # Left card — unassigned transaction pool
             html.Div(
                 [
+                    dcc.Store(id="trips-pool-limit", data=_POOL_PAGE_SIZE),
                     make_card_title("Unassigned Transactions"),
-                    dcc.Input(
-                        id="trips-pool-search",
-                        type="text",
-                        placeholder="Search merchant or category…",
-                        debounce=True,
-                        className="trip-pool-search",
+                    html.Div(
+                        [
+                            dcc.Input(
+                                id="trips-pool-search",
+                                type="text",
+                                placeholder="Search merchant or category…",
+                                debounce=True,
+                                className="trip-pool-search",
+                            ),
+                            dcc.Dropdown(
+                                id="trips-pool-year",
+                                options=year_options,  # type: ignore[arg-type]
+                                placeholder="Year",
+                                clearable=True,
+                                className="dropdown-year trip-pool-year-dd",
+                            ),
+                            dcc.Dropdown(
+                                id="trips-pool-month",
+                                options=month_options,  # type: ignore[arg-type]
+                                placeholder="Month",
+                                clearable=True,
+                                className="dropdown-year trip-pool-month-dd",
+                            ),
+                        ],
+                        className="trip-pool-filter-row",
                     ),
                     html.P(pool_count, id="trips-pool-count", className="kpi-subtext"),
                     html.Div(
@@ -249,8 +365,14 @@ def _bucket_builder_content(data: Any) -> Any:
                         id="trips-pool-list",
                         className="trips-pool-list",
                     ),
+                    html.Button(
+                        _show_more_label(pool_remaining),
+                        id="trips-pool-show-more",
+                        className=_show_more_class(pool_remaining),
+                        n_clicks=0,
+                    ),
                 ],
-                className="card col-5",
+                className="card col-6",
             ),
             # Right card — single trip builder
             html.Div(
@@ -304,7 +426,7 @@ def _bucket_builder_content(data: Any) -> Any:
                         id="trips-builder-body",
                     ),
                 ],
-                className="card col-7",
+                className="card col-6",
             ),
         ],
         className="grid",
