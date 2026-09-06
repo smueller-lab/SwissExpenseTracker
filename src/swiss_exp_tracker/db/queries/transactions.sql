@@ -256,12 +256,35 @@ WHERE tr.processed = 0
   AND tr.source_type = :source_type
 ORDER BY tr.id
 
+-- name: get_all_raw_rows
+-- Return all raw rows for the given source_type regardless of processed state,
+-- ordered by id. Used to reconstruct a full-history FX rate timeline (e.g. Revolut)
+-- where a batch of unprocessed rows alone may lack the exchange events needed to
+-- resolve a currency rate.
+SELECT tr.id, tr.landing_id, tl.file_id, tr.source_type, tr.raw_json, tr.source_file
+FROM transactions_raw tr
+JOIN transactions_lnd tl ON tl.id = tr.landing_id
+WHERE tr.source_type = :source_type
+ORDER BY tr.id
+
 -- name: check_duplicate_rfn$
 -- Check for an existing refined row matching reference, date (NULL-safe), and amount.
 SELECT 1
 FROM transactions_rfn
 WHERE reference = :reference
   AND COALESCE(date, '') = COALESCE(:date, '')
+  AND amount = :amount
+LIMIT 1
+
+-- name: check_duplicate_rfn_revolut$
+-- Check for an existing Revolut refined row matching date and amount only. Revolut
+-- rows have no stable reference (falls back to a random NOID-<uuid> per parse), so
+-- overlapping exports can't be deduplicated by reference; date is a full timestamp
+-- so date+amount is a reliable match within a single source.
+SELECT 1
+FROM transactions_rfn
+WHERE source_type = 'REVOLUT'
+  AND date = :date
   AND amount = :amount
 LIMIT 1
 

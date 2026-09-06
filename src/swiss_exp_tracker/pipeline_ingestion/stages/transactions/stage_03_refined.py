@@ -4,6 +4,7 @@ import json
 import re
 
 from datetime import datetime
+from typing import Any
 
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_agentic.data_models.merchant import MERCHANT_BRANDS
@@ -96,13 +97,8 @@ def _as_iso_datetime(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
 
 
-def _load_unprocessed_raw_rows(source_type: SourceType) -> list[RawRow]:
-    """Return all unprocessed raw rows for source_type, ordered by id."""
-    with get_connection() as db:
-        rows = list(
-            transactions.get_unprocessed_raw_rows(db, source_type=source_type.value)
-        )
-
+def _rows_from_query_result(rows: list[Any]) -> list[RawRow]:
+    """Convert raw SQL row tuples into RawRow models."""
     return [
         RawRow(
             raw_id=int(row[0]),
@@ -114,6 +110,22 @@ def _load_unprocessed_raw_rows(source_type: SourceType) -> list[RawRow]:
         )
         for row in rows
     ]
+
+
+def _load_unprocessed_raw_rows(source_type: SourceType) -> list[RawRow]:
+    """Return all unprocessed raw rows for source_type, ordered by id."""
+    with get_connection() as db:
+        rows = list(
+            transactions.get_unprocessed_raw_rows(db, source_type=source_type.value)
+        )
+    return _rows_from_query_result(rows)
+
+
+def _load_all_raw_rows(source_type: SourceType) -> list[RawRow]:
+    """Return all raw rows for source_type regardless of processed state, ordered by id."""
+    with get_connection() as db:
+        rows = list(transactions.get_all_raw_rows(db, source_type=source_type.value))
+    return _rows_from_query_result(rows)
 
 
 def process_refined_source(source_type: SourceType) -> dict[str, int]:
@@ -137,10 +149,12 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
     rows = _load_unprocessed_raw_rows(source_type)
     profile = get_profile(source_type)
 
-    # Precompute Revolut CHF conversion map before the main loop.
+    # Precompute Revolut CHF conversion map before the main loop. Built from full
+    # history (not just this batch's unprocessed rows) — the exchange event that
+    # established a currency's rate may already be processed from an earlier run.
     revolut_chf_map: dict[int, float | None] = {}
     if source_type == SourceType.REVOLUT:
-        revolut_chf_map = get_revolut_chf_map(rows, profile)
+        revolut_chf_map = get_revolut_chf_map(_load_all_raw_rows(source_type), profile)
 
     rows_processed = 0
     records_inserted = 0
@@ -227,11 +241,20 @@ def process_refined_source(source_type: SourceType) -> dict[str, int]:
                 continue
 
             reference = unified.reference_id
-            is_duplicate = bool(
-                transactions.check_duplicate_rfn(
-                    db, reference=reference.strip(), date=date_iso, amount=amount
+            if source_type == SourceType.REVOLUT:
+                # Revolut rows have no stable reference (NOID-<uuid> is random per
+                # parse), so overlapping exports need a date+amount match instead.
+                is_duplicate = bool(
+                    transactions.check_duplicate_rfn_revolut(
+                        db, date=date_iso, amount=amount
+                    )
                 )
-            )
+            else:
+                is_duplicate = bool(
+                    transactions.check_duplicate_rfn(
+                        db, reference=reference.strip(), date=date_iso, amount=amount
+                    )
+                )
             if is_duplicate:
                 # Duplicate raw rows are still marked processed so the source
                 # file can eventually advance to the next pipeline stage.

@@ -386,6 +386,139 @@ def test_revolut_topup_skipped(tmp_db: Path) -> None:
     assert processed == 1
 
 
+def test_revolut_fx_rate_uses_full_history_across_batches(tmp_db: Path) -> None:
+    """A later batch's EUR row uses the rate from an already-processed exchange pair.
+
+    Regression test: the FX rate timeline must be built from all Revolut raw rows,
+    not just the current run's unprocessed batch — otherwise a batch containing only
+    new spending rows (no exchange event of its own) silently falls back to a 1:1
+    rate instead of the real historical CHF/EUR rate.
+    """
+    started = "2023-06-01 10:00:00"
+    chf_row = {
+        "Type": "Exchange",
+        "Product": "Current",
+        "Started Date": started,
+        "Completed Date": started,
+        "Description": "Exchange to EUR",
+        "Amount": "-100.0",
+        "Fee": "0",
+        "Currency": "CHF",
+        "State": "COMPLETED",
+        "Balance": "900",
+    }
+    eur_row = {
+        "Type": "Exchange",
+        "Product": "Current",
+        "Started Date": started,
+        "Completed Date": started,
+        "Description": "Exchange to EUR",
+        "Amount": "104.0",
+        "Fee": "0",
+        "Currency": "EUR",
+        "State": "COMPLETED",
+        "Balance": "104",
+    }
+    for row_dict in (chf_row, eur_row):
+        _seed_raw_row(tmp_db, json.dumps(row_dict, ensure_ascii=False), "REVOLUT")
+
+    # First run resolves and skips the exchange pair, marking both rows processed.
+    process_refined_source(SourceType.REVOLUT)
+
+    # Second run/batch: a later EUR card payment with no exchange info of its own.
+    spend_row = {
+        "Type": "Card Payment",
+        "Product": "Current",
+        "Started Date": "2023-06-02 09:00:00",
+        "Completed Date": "2023-06-02 09:00:00",
+        "Description": "Some Shop",
+        "Amount": "-52.0",
+        "Fee": "0",
+        "Currency": "EUR",
+        "State": "COMPLETED",
+        "Balance": "52",
+    }
+    _seed_raw_row(tmp_db, json.dumps(spend_row, ensure_ascii=False), "REVOLUT")
+
+    result = process_refined_source(SourceType.REVOLUT)
+
+    assert result["records_inserted"] == 1
+
+    with sqlite3.connect(tmp_db) as db:
+        amount = db.execute(
+            "SELECT amount FROM transactions_rfn WHERE booking_text LIKE '%Some Shop%'"
+        ).fetchone()[0]
+
+    # rate = 100 CHF / 104 EUR; -52 EUR converts to 50.00 CHF, not a 1:1 fallback of 52.0.
+    assert amount == pytest.approx(50.0)
+
+
+# ---------------------------------------------------------------------------
+# Revolut date+amount deduplication (no stable reference across exports)
+# ---------------------------------------------------------------------------
+
+
+def _revolut_card_payment_row(**overrides: object) -> dict[str, object]:
+    """Return a base Revolut Card Payment row dict, optionally overriding fields."""
+    base: dict[str, object] = {
+        "Type": "Card Payment",
+        "Product": "Current",
+        "Started Date": "2025-12-31 10:02:53",
+        "Completed Date": "2026-01-01 11:47:23",
+        "Description": "Avolta",
+        "Amount": "-36.70",
+        "Fee": "0",
+        "Currency": "CHF",
+        "State": "COMPLETED",
+        "Balance": "99.76",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_revolut_duplicate_date_amount_skipped(tmp_db: Path) -> None:
+    """Two Revolut rows with same date+amount but different random references dedupe."""
+    row_a = json.dumps(_revolut_card_payment_row(), ensure_ascii=False)
+    row_b = json.dumps(
+        _revolut_card_payment_row(Description="Avolta duplicate export"),
+        ensure_ascii=False,
+    )
+    _seed_raw_row(tmp_db, row_a, "REVOLUT", filename="export1.csv")
+    _seed_raw_row(tmp_db, row_b, "REVOLUT", filename="export2.csv")
+
+    result = process_refined_source(SourceType.REVOLUT)
+
+    assert result["records_inserted"] == 1
+    assert result["duplicates_found"] == 1
+
+    with sqlite3.connect(tmp_db) as db:
+        rfn_count = db.execute(
+            "SELECT COUNT(*) FROM transactions_rfn WHERE source_type='REVOLUT'"
+        ).fetchone()[0]
+    assert rfn_count == 1
+
+
+def test_revolut_same_amount_different_date_not_duplicate(tmp_db: Path) -> None:
+    """Revolut rows with matching amount but different dates are both inserted."""
+    row_a = json.dumps(_revolut_card_payment_row(), ensure_ascii=False)
+    row_b = json.dumps(
+        _revolut_card_payment_row(
+            **{
+                "Started Date": "2026-02-01 10:02:53",
+                "Completed Date": "2026-02-02 11:47:23",
+            }
+        ),
+        ensure_ascii=False,
+    )
+    _seed_raw_row(tmp_db, row_a, "REVOLUT", filename="export1.csv")
+    _seed_raw_row(tmp_db, row_b, "REVOLUT", filename="export2.csv")
+
+    result = process_refined_source(SourceType.REVOLUT)
+
+    assert result["records_inserted"] == 2
+    assert result["duplicates_found"] == 0
+
+
 # ---------------------------------------------------------------------------
 # Amount invariant
 # ---------------------------------------------------------------------------
