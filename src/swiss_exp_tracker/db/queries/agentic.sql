@@ -268,6 +268,24 @@ WHERE id = :id
 -- Return id, date, merchant, amount, and category columns from transactions_use for correction logic.
 SELECT id, date, merchant, amount, category_main, category_second FROM transactions_use
 
+-- name: get_transactions_use_by_reference
+-- Return id, merchant, and category columns for transactions_use rows matching reference.
+SELECT id, merchant, category_main, category_second, city FROM transactions_use WHERE reference = :reference
+
+-- name: update_transactions_use_categories_by_merchant!
+-- Update category_main and category_second for every transactions_use row with the given merchant (case-insensitive exact match).
+UPDATE transactions_use
+SET category_main = :category_main,
+    category_second = :category_second
+WHERE LOWER(merchant) = LOWER(:merchant)
+
+-- name: update_merchant_metadata_rfn_categories_by_merchant!
+-- Update category_main and category_second for every merchant_metadata_rfn row with the given matched_merchant (case-insensitive exact match).
+UPDATE merchant_metadata_rfn
+SET category_main = :category_main,
+    category_second = :category_second
+WHERE LOWER(matched_merchant) = LOWER(:merchant)
+
 -- name: update_transactions_use_category_correction!
 -- Overwrite category_main and category_second for the given transactions_use row id.
 UPDATE transactions_use
