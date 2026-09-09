@@ -58,3 +58,6 @@ src/swiss_exp_tracker/pipeline_agentic/config
 # script files to create demo data + screenshots
 scripts/run_demo.py
 scripts/take_screenshots.py
+
+# openspec files
+/openspec

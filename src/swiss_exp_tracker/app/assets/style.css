@@ -51,6 +51,7 @@
     --color-accent-soft: rgba(102, 178, 255, 0.15);
     --color-accent-hover: rgba(102, 178, 255, 0.1);
     --color-accent-selected: rgba(102, 178, 255, 0.25);
+    --color-accent-selected-strong: rgba(102, 178, 255, 0.55);
     --color-accent-border: rgba(102, 178, 255, 0.25);
     --color-positive: #66d97a;
     --color-warning: #ff9800;
@@ -886,6 +887,54 @@ button#budget-save-btn:hover {
     margin-top: 10px;
     font-size: 13px;
     color: var(--color-text-card-muted);
+}
+
+.smart-table-alert {
+    margin-bottom: 10px;
+    font-size: 13px;
+}
+
+.smart-table-alert:empty {
+    display: none;
+}
+
+.smart-table-alert-error {
+    color: var(--color-negative);
+}
+
+.smart-table-alert-warning {
+    color: var(--color-warning);
+}
+
+/* Dash's DataTable themes row hover and cell/edit-input text via CSS
+   custom properties (--hover, --text-color) defined on the <table>
+   element. Row hover otherwise defaults to near-white; text otherwise
+   defaults to dark grey, unreadable against the table's near-black cells. */
+#smart-table .dash-spreadsheet-inner table {
+    --hover: var(--color-table-bg-hover);
+    --text-color: var(--color-white);
+}
+
+/* The active/editing cell's fill and border are set by Dash via inline
+   style (a translucent red fill plus a top/bottom-only hotpink border),
+   which only !important can override — no stylesheet selector, however
+   specific, beats an inline style. Replace with one solid fill and a
+   complete pink frame on all four sides. */
+#smart-table td.cell--selected {
+    background-color: #2a2b40 !important;
+    border: 2px solid var(--color-negative) !important;
+}
+
+/* Visible caret + a stronger, theme-consistent highlight for selected text
+   (e.g. double-click auto-selecting a word before typing a replacement) —
+   fully transparent made both impossible to see against the flat fill. */
+#smart-table input.dash-cell-value {
+    caret-color: var(--color-white);
+}
+
+#smart-table input.dash-cell-value::selection {
+    background-color: var(--color-accent-selected-strong);
+    color: var(--color-white);
 }
 
 /* ===== Mobile (phones) ===== */

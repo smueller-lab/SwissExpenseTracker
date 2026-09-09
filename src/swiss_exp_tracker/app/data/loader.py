@@ -12,6 +12,10 @@ import pandas as pd
 from swiss_exp_tracker.app.config import DB_PATH
 from swiss_exp_tracker.app.config import VIS
 from swiss_exp_tracker.app.data.budget_models import CategoryBudget
+from swiss_exp_tracker.config import user_config_writer
+from swiss_exp_tracker.config.user_config_schema import CustomRule
+from swiss_exp_tracker.config.user_config_schema import ReferenceIdCorrection
+from swiss_exp_tracker.db.sql import agentic
 from swiss_exp_tracker.db.sql import transactions
 from swiss_exp_tracker.pipeline_dash.config import BALANCE_SHEET_MAJOR_CATEGORIES
 from swiss_exp_tracker.pipeline_dash.config import GROCERY_MERCHANT_NORMALIZE
@@ -29,9 +33,18 @@ def _normalize_merchant(merchant: str) -> str:
 
 
 class DataLoader:
-    def __init__(self, db_path: Path | str | None = None) -> None:
+    def __init__(
+        self,
+        db_path: Path | str | None = None,
+        user_config_path: Path | None = None,
+    ) -> None:
         self.vis = VIS()
         self._db_path: Path | str = db_path or DB_PATH
+        self._user_config_path: Path = (
+            user_config_path
+            if user_config_path is not None
+            else user_config_writer.DEFAULT_USER_CONFIG_PATH
+        )
         self._load_all_data()
 
     def get_scol_DashTable(self, pdf: pd.DataFrame) -> list[dict[str, object]]:
@@ -419,6 +432,104 @@ class DataLoader:
             transactions.create_dash_budget_table(con)
             transactions.delete_dash_budget(con, year=year, category=category)
             self._reload_pdf_budget(con)
+
+    def rename_merchant(self, reference: str, new_merchant: str) -> None:
+        """Rename the merchant of one transaction (row-scoped); persists via a reference_id_corrections entry.
+        Raises ValueError for an empty name or unknown reference, RuntimeError if the DB update
+        succeeded but the YAML config write failed (edit may not survive the next pipeline run).
+        """
+        new_merchant = new_merchant.strip()
+        if not new_merchant:
+            raise ValueError("Merchant name must not be empty")
+
+        with sqlite3.connect(str(self._db_path)) as con:
+            con.row_factory = sqlite3.Row
+            rows = list(
+                agentic.get_transactions_use_by_reference(con, reference=reference)
+            )
+            if not rows:
+                raise ValueError(f"No transaction found for reference {reference!r}")
+            current = rows[0]
+            agentic.update_transactions_use_merchant_only_by_reference(
+                con, merchant=new_merchant, reference=reference
+            )
+
+        try:
+            user_config_writer.upsert_reference_id_correction(
+                ReferenceIdCorrection(
+                    reference_id=reference,
+                    merchant=new_merchant,
+                    category_main=current["category_main"],
+                    # category_second may be NULL in transactions_use, but
+                    # ReferenceIdCorrection requires a str (matches the schema's
+                    # existing, non-nullable field).
+                    category_second=current["category_second"] or "",
+                    city=current["city"],
+                ),
+                path=self._user_config_path,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                "Merchant rename saved to the database but could not be written "
+                "to user_config.yaml; it may be overwritten on the next pipeline run."
+            ) from exc
+
+        self.pdf_Master.loc[self.pdf_Master["reference"] == reference, "Merchant"] = (
+            new_merchant
+        )
+
+    def recategorize_merchant(
+        self, merchant: str, category_main: str, category_second: str
+    ) -> None:
+        """Update category/subcategory for every transaction sharing merchant (merchant-scoped);
+        persists via an exact-match custom_rules entry. `category_second` may be "" when the
+        merchant genuinely has no subcategory (stored as NULL in the DB, "" in the YAML rule,
+        since CustomRule requires a str). Raises ValueError for an empty merchant/category,
+        RuntimeError if the DB update succeeded but the YAML config write failed (edit may not
+        survive the next pipeline run).
+        """
+        merchant = merchant.strip()
+        category_main = category_main.strip()
+        category_second = category_second.strip()
+        if not merchant or not category_main:
+            raise ValueError("Merchant and category must not be empty")
+
+        with sqlite3.connect(str(self._db_path)) as con:
+            agentic.update_transactions_use_categories_by_merchant(
+                con,
+                category_main=category_main,
+                category_second=category_second or None,
+                merchant=merchant,
+            )
+            # Create table defensively for tmp DBs in tests where the agentic
+            # pipeline hasn't run yet.
+            agentic.create_merchant_metadata_rfn_table(con)
+            agentic.update_merchant_metadata_rfn_categories_by_merchant(
+                con,
+                category_main=category_main,
+                category_second=category_second or None,
+                merchant=merchant,
+            )
+
+        try:
+            user_config_writer.upsert_custom_rule(
+                CustomRule(
+                    merchant=merchant,
+                    category_main=category_main,
+                    category_second=category_second,
+                    exact_match=True,
+                ),
+                path=self._user_config_path,
+            )
+        except Exception as exc:
+            raise RuntimeError(
+                "Category update saved to the database but could not be written "
+                "to user_config.yaml; it may be overwritten on the next pipeline run."
+            ) from exc
+
+        mask = self.pdf_Master["Merchant"].str.lower() == merchant.lower()
+        self.pdf_Master.loc[mask, "category_main"] = category_main
+        self.pdf_Master.loc[mask, "category_second"] = category_second or None
 
     def get_category_year_spend(self, year: int) -> pd.DataFrame:
         """Return per-category EXPENSE totals for year (main and second levels); columns [category, spend_chf]."""
