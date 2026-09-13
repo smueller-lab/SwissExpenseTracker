@@ -9,6 +9,33 @@ from dash import html
 from swiss_exp_tracker.app.dash_components import make_page_title
 
 
+def smart_table_columns(editable: bool) -> list[dict[str, Any]]:
+    """Return smart-table column defs; Merchant/Category/Subcategory follow editable, Date/Amount never do."""
+    return [
+        {"name": "Date", "id": "Date", "type": "text", "editable": False},
+        {"name": "Merchant", "id": "Merchant", "type": "text", "editable": editable},
+        {
+            "name": "Category",
+            "id": "category_main",
+            "type": "text",
+            "editable": editable,
+        },
+        {
+            "name": "Subcategory",
+            "id": "category_second",
+            "type": "text",
+            "editable": editable,
+        },
+        {
+            "name": "Amount (CHF)",
+            "id": "amount_CHF",
+            "type": "numeric",
+            "format": {"specifier": ",.2f"},
+            "editable": False,
+        },
+    ]
+
+
 def layout(data: Any) -> Any:
     pdf = data.pdf_Master
     pdf_expense = pdf[pdf["transaction_type"] == "EXPENSE"]
@@ -145,6 +172,17 @@ def layout(data: Any) -> Any:
                                         value=[],
                                         className="filter-checkbox",
                                     ),
+                                    dcc.Checklist(
+                                        id="smart-edit-toggle",
+                                        options=[  # type: ignore[arg-type]
+                                            {
+                                                "label": " Edit table",
+                                                "value": "edit",
+                                            }
+                                        ],
+                                        value=[],
+                                        className="filter-checkbox",
+                                    ),
                                 ],
                                 className="filter-row",
                             ),
@@ -239,32 +277,14 @@ def layout(data: Any) -> Any:
                     ),
                     # ---- Summary row ----
                     html.Div(id="smart-summary", className="smart-summary"),
+                    # ---- Edit feedback (populated only on a failed inline edit) ----
+                    html.Div(id="smart-table-alert", className="smart-table-alert"),
                     # ---- Table ----
                     dash_table.DataTable(  # type: ignore[attr-defined]
                         id="smart-table",
-                        columns=[
-                            {"name": "Date", "id": "Date", "type": "text"},
-                            {"name": "Merchant", "id": "Merchant", "type": "text"},
-                            {
-                                "name": "Category",
-                                "id": "category_main",
-                                "type": "text",
-                            },
-                            {
-                                "name": "Subcategory",
-                                "id": "category_second",
-                                "type": "text",
-                            },
-                            {
-                                "name": "Amount (CHF)",
-                                "id": "amount_CHF",
-                                "type": "numeric",
-                                "format": {
-                                    "specifier": ",.2f",
-                                },
-                            },
-                        ],
+                        columns=smart_table_columns(editable=False),
                         data=[],
+                        editable=False,
                         sort_action="native",
                         page_action="native",
                         page_size=50,
