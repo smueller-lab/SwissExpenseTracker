@@ -35,6 +35,9 @@ def _trip_options(pdf_Trips: pd.DataFrame) -> list[dict[str, Any]]:
 
 _POOL_PAGE_SIZE = 100
 
+# Tooltip for the card drag handles wired by assets/trip_card_resize.js
+_RESIZE_HINT = "Drag to resize · double-click to reset"
+
 _MONTH_NAMES = [
     "Jan",
     "Feb",
@@ -371,6 +374,7 @@ def _bucket_builder_content(data: Any) -> Any:
                         className=_show_more_class(pool_remaining),
                         n_clicks=0,
                     ),
+                    html.Div(className="trip-resize-handle", title=_RESIZE_HINT),
                 ],
                 className="card col-6",
             ),
@@ -425,11 +429,12 @@ def _bucket_builder_content(data: Any) -> Any:
                         _build_trip_body(None, data),
                         id="trips-builder-body",
                     ),
+                    html.Div(className="trip-resize-handle", title=_RESIZE_HINT),
                 ],
                 className="card col-6",
             ),
         ],
-        className="grid",
+        className="grid trips-builder-grid",
     )
 
 
@@ -519,7 +524,7 @@ def _trips_overview_content(data: Any) -> Any:
                     make_card_title("Trip Details"),
                     dcc.Dropdown(
                         id="trips-overview-trip-select",
-                        className="dropdown-year",
+                        className="dropdown-year dropdown-trip",
                         options=options,  # type: ignore[arg-type]
                         placeholder="Select a trip…",
                     ),

@@ -402,6 +402,15 @@ a {
     min-width: 260px;
 }
 
+/* Medium variant for the Trips Overview "Trip Details" picker — fits a full
+   "Name (Year)" label without spanning the card; centered under the title
+   (auto margins, since Dash wraps the Select in a full-width block div). */
+.dropdown-trip {
+    width: 240px;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
 /* Main control (the box itself) */
 .dropdown-year .Select-control {
     background-color: var(--color-bg-dropdown) !important;
@@ -1005,8 +1014,12 @@ button#budget-save-btn:hover {
     background: transparent;
 }
 
-/* Active / selected tab — accent underline */
-.trips-tabs .tab.trips-tab.trips-tab--selected {
+/* Active / selected tab — accent underline. Dash also has a
+   .tab:last-of-type.tab--selected rule (border-top accent, no bottom border)
+   that ties with the plain selected selector and wins on injection order, so
+   the :last-of-type variant is listed explicitly to out-specify it. */
+.trips-tabs .tab.trips-tab.trips-tab--selected,
+.trips-tabs .tab.trips-tab.trips-tab--selected:last-of-type {
     color: var(--color-text-accent);
     border: none;
     border-bottom: 2px solid var(--color-accent);
@@ -1018,9 +1031,12 @@ button#budget-save-btn:hover {
     background: transparent;
 }
 
-/* Scrollable wrapper around the (max 50-row) unassigned-transactions table */
+/* Scrollable wrapper around the unassigned-transactions table. flex-basis 0
+   keeps the rows from sizing the card (it contributes only its min-height),
+   then it grows to fill the card once the trip builder card stretches it. */
 .trips-pool-list {
-    max-height: 480px;
+    flex: 1 1 0;
+    min-height: 480px;
     overflow-y: auto;
     margin-bottom: 10px;
 }
@@ -1227,6 +1243,53 @@ button#budget-save-btn:hover {
 .trip-bucket-dropzone.drag-over {
     border: 2px solid var(--color-accent);
     background-color: var(--color-bg-dropzone-drag-over);
+}
+
+/* Drag handle at the bottom of each Bucket Builder card (wired by
+   assets/trip_card_resize.js). margin-top: auto pins it to the card bottom
+   even when the card's content is shorter than the stretched row. The
+   element is a taller transparent grab zone (keeps a gap above it and is
+   easier to hit); the visible bar is the ::before, sunk into the card's
+   bottom padding. */
+.trip-resize-handle {
+    flex: 0 0 auto;
+    align-self: center;
+    position: relative;
+    width: 96px;
+    height: 18px;
+    margin-top: auto;
+    margin-bottom: calc(var(--card-padding) * -0.5);
+    cursor: ns-resize;
+    touch-action: none;
+}
+
+.trip-resize-handle::before {
+    content: "";
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 2px;
+    height: 6px;
+    border-radius: 3px;
+    background-color: var(--color-accent-border);
+    transition: background-color 0.15s ease-in-out;
+}
+
+.trip-resize-handle:hover::before,
+.trips-builder-grid.is-resizing .trip-resize-handle::before {
+    background-color: var(--color-accent);
+}
+
+/* No text selection while dragging a handle */
+.trips-builder-grid.is-resizing {
+    user-select: none;
+}
+
+/* Cards stack below this breakpoint, so a shared row height has no meaning */
+@media (max-width: 1024px) {
+    .trip-resize-handle {
+        display: none;
+    }
 }
 
 /* ===== Mobile (phones) ===== */
